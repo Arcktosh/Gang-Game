@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DrugDeal Game app icon</title>
+  <desc id="desc">A stylized neon city badge for the fictional browser MMO.</desc>
+  <rect width="512" height="512" rx="108" fill="#09090b"/>
+  <path d="M112 352h288v40H112zM144 304h64V168h-64zm80 0h64V120h-64zm80 0h64V200h-64z" fill="#f4f4f5"/>
+  <path d="M96 344 256 88l160 256" fill="none" stroke="#a78bfa" stroke-width="28" stroke-linejoin="round"/>
+</svg>

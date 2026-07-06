@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DrugDeal Game maskable icon</title>
+  <desc id="desc">A safe-area app icon for installable browser surfaces.</desc>
+  <rect width="512" height="512" fill="#09090b"/>
+  <circle cx="256" cy="256" r="200" fill="#18181b"/>
+  <path d="M128 360 256 120l128 240" fill="none" stroke="#a78bfa" stroke-width="36" stroke-linejoin="round"/>
+  <path d="M160 336h192v36H160zM184 300h48V204h-48zm64 0h48V168h-48zm64 0h48v-64h-48z" fill="#f4f4f5"/>
+</svg>

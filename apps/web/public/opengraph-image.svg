@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">DrugDeal Game preview</title>
+  <desc id="desc">Preview card for a fictional text-based persistent browser MMO.</desc>
+  <rect width="1200" height="630" fill="#09090b"/>
+  <circle cx="980" cy="120" r="260" fill="#18181b"/>
+  <path d="M90 470 250 150l160 320" fill="none" stroke="#a78bfa" stroke-width="34" stroke-linejoin="round"/>
+  <text x="460" y="260" fill="#f4f4f5" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700">DrugDeal Game</text>
+  <text x="462" y="336" fill="#d4d4d8" font-family="Arial, Helvetica, sans-serif" font-size="34">Fictional browser MMO · Jobs · Crimes · Factions · Markets</text>
+  <text x="462" y="406" fill="#a1a1aa" font-family="Arial, Helvetica, sans-serif" font-size="26">Public MVP candidate with playable browser loops and operator guardrails.</text>
+</svg>

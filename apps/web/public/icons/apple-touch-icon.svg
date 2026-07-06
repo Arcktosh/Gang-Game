@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title desc">
+  <title id="title">DrugDeal Game Apple icon</title>
+  <desc id="desc">Apple touch icon for the fictional browser MMO.</desc>
+  <rect width="180" height="180" rx="38" fill="#09090b"/>
+  <path d="M42 124 90 34l48 90" fill="none" stroke="#a78bfa" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M48 124h84v14H48zM58 112h20V72H58zm28 0h20V58H86zm28 0h20V86h-20z" fill="#f4f4f5"/>
+</svg>

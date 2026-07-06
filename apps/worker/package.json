@@ -1,0 +1,25 @@
+{
+  "name": "@drugdeal/worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "lint": "echo 'lint placeholder'",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests yet\""
+  },
+  "dependencies": {
+    "@drugdeal/db": "workspace:*",
+    "@drugdeal/game": "workspace:*",
+    "bullmq": "latest",
+    "drizzle-orm": "^0.45.2",
+    "ioredis": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

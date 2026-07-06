@@ -1,0 +1,30 @@
+{
+  "name": "@drugdeal/web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@drugdeal/db": "workspace:*",
+    "@drugdeal/game": "workspace:*",
+    "@drugdeal/ui": "workspace:*",
+    "@drugdeal/validators": "workspace:*",
+    "drizzle-orm": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest",
+    "tsx": "latest"
+  }
+}
