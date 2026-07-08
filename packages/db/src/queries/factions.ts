@@ -1,12 +1,15 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
-import { canSetFactionRole, calculateTerritoryAction, canWithdrawFactionFunds, type FactionRole } from '@drugdeal/game';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { canSetFactionRole, calculateFactionInventoryAction, calculateInventoryExposure, calculateTerritoryAction, canWithdrawFactionFunds, type FactionRole } from '@drugdeal/game';
 import { db } from '../client';
 import {
   characters,
+  factionInventoryItems,
   factionLedgerEntries,
   factionMembers,
   factions,
   financialTransactions,
+  inventoryItems,
+  itemDefinitions,
   playerEvents,
   territories,
   territoryActions,
@@ -26,7 +29,10 @@ type ActiveMembership = {
 type FactionDetail = {
   membership: typeof factionMembers.$inferSelect;
   faction: typeof factions.$inferSelect | null;
+  armory: (typeof factionInventoryItems.$inferSelect & { item?: typeof itemDefinitions.$inferSelect | null; exposure: ReturnType<typeof calculateInventoryExposure> })[];
+  characterInventory: (typeof inventoryItems.$inferSelect & { item?: typeof itemDefinitions.$inferSelect | null })[];
   members: (typeof factionMembers.$inferSelect)[];
+  memberCharacters: Pick<typeof characters.$inferSelect, 'id' | 'name' | 'level' | 'location' | 'status'>[];
   ledger: (typeof factionLedgerEntries.$inferSelect)[];
   controlledTerritories: (typeof territories.$inferSelect)[];
 };
@@ -67,14 +73,40 @@ export async function getFactionForCharacter(characterId: string): Promise<Facti
     return null;
   }
 
-  const [faction, members, ledger, controlledTerritories] = await Promise.all([
+  const [faction, members, ledger, controlledTerritories, armoryRows, characterInventory] = await Promise.all([
     db.query.factions.findFirst({ where: eq(factions.id, membership.factionId) }),
     db.query.factionMembers.findMany({ where: and(eq(factionMembers.factionId, membership.factionId), eq(factionMembers.status, 'active')) }),
     db.query.factionLedgerEntries.findMany({ where: eq(factionLedgerEntries.factionId, membership.factionId), orderBy: desc(factionLedgerEntries.createdAt), limit: 10 }),
     db.query.territories.findMany({ where: eq(territories.controlledByFactionId, membership.factionId) }),
+    db.query.factionInventoryItems.findMany({ where: eq(factionInventoryItems.factionId, membership.factionId), with: { item: true }, orderBy: desc(factionInventoryItems.updatedAt), limit: 100 }),
+    db.query.inventoryItems.findMany({ where: eq(inventoryItems.characterId, characterId), with: { item: true }, orderBy: desc(inventoryItems.updatedAt), limit: 100 }),
   ]);
 
-  return { membership, faction: faction ?? null, members, ledger, controlledTerritories };
+  const memberCharacters = members.length > 0
+    ? await db
+        .select({
+          id: characters.id,
+          name: characters.name,
+          level: characters.level,
+          location: characters.location,
+          status: characters.status,
+        })
+        .from(characters)
+        .where(inArray(characters.id, members.map((member) => member.characterId)))
+    : [];
+
+  const armory = armoryRows.map((row) => ({
+    ...row,
+    exposure: calculateInventoryExposure({
+      quantity: row.quantity,
+      basePrice: row.item?.basePrice ?? 0,
+      baseRisk: row.item?.baseRisk ?? 0,
+      isIllegal: row.item?.isIllegal ?? false,
+      rarity: row.item?.rarity ?? 'common',
+    }),
+  }));
+
+  return { membership, faction: faction ?? null, members, memberCharacters, ledger, controlledTerritories, armory, characterInventory };
 }
 
 export async function listTerritories() {
@@ -134,6 +166,212 @@ export async function transferFactionFunds(input: { userId: string; factionId: s
     await tx.insert(factionLedgerEntries).values({ factionId: faction.id, characterId: character.id, entryType: 'withdraw', amount: -amount, balanceAfter: newBalance, description: 'Faction bank withdrawal.' });
     await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, visibility: 'faction', type: 'faction_withdrawal', payload: { factionId: faction.id, amount } });
     return { ok: true as const, faction: updatedFaction };
+  });
+}
+
+
+async function addCharacterInventoryQuantity(tx: Tx, input: { characterId: string; itemKey: string; quantity: number; metadata?: Record<string, unknown> }) {
+  const quantity = Math.max(1, Math.floor(input.quantity));
+
+  const [inventoryItem] = await tx
+    .insert(inventoryItems)
+    .values({
+      characterId: input.characterId,
+      itemKey: input.itemKey,
+      quantity,
+      metadata: input.metadata ?? {},
+    })
+    .onConflictDoUpdate({
+      target: [inventoryItems.characterId, inventoryItems.itemKey],
+      set: {
+        quantity: sql`${inventoryItems.quantity} + ${quantity}`,
+        updatedAt: sql`now()`,
+      },
+    })
+    .returning();
+
+  return inventoryItem;
+}
+
+async function addFactionInventoryQuantity(tx: Tx, input: { factionId: string; itemKey: string; quantity: number; metadata?: Record<string, unknown> }) {
+  const quantity = Math.max(1, Math.floor(input.quantity));
+
+  const [armoryItem] = await tx
+    .insert(factionInventoryItems)
+    .values({
+      factionId: input.factionId,
+      itemKey: input.itemKey,
+      quantity,
+      metadata: input.metadata ?? {},
+    })
+    .onConflictDoUpdate({
+      target: [factionInventoryItems.factionId, factionInventoryItems.itemKey],
+      set: {
+        quantity: sql`${factionInventoryItems.quantity} + ${quantity}`,
+        updatedAt: sql`now()`,
+      },
+    })
+    .returning();
+
+  return armoryItem;
+}
+
+async function decrementFactionInventoryQuantity(tx: Tx, input: { factionInventoryItemId: string; quantity: number }) {
+  const quantity = Math.max(1, Math.floor(input.quantity));
+  const [updated] = await tx
+    .update(factionInventoryItems)
+    .set({
+      quantity: sql`${factionInventoryItems.quantity} - ${quantity}`,
+      updatedAt: sql`now()`,
+    })
+    .where(and(eq(factionInventoryItems.id, input.factionInventoryItemId), sql`${factionInventoryItems.quantity} >= ${quantity}`))
+    .returning();
+
+  if (!updated) {
+    return { ok: false as const };
+  }
+
+  if (updated.quantity <= 0) {
+    await tx.delete(factionInventoryItems).where(eq(factionInventoryItems.id, updated.id));
+  }
+
+  return { ok: true as const, armoryItem: updated.quantity <= 0 ? null : updated };
+}
+
+export async function transferFactionInventory(input: {
+  userId: string;
+  factionId: string;
+  characterId: string;
+  action: 'deposit' | 'withdraw';
+  inventoryItemId?: string;
+  factionInventoryItemId?: string;
+  quantity: number;
+}) {
+  return db.transaction(async (tx) => {
+    const characterRow = await getOwnedCharacter(tx, input.userId, input.characterId);
+
+    if (!characterRow) {
+      return { ok: false as const, code: 'not_found', message: 'Character not found.' };
+    }
+
+    const character = await refreshCharacterResources(tx, characterRow);
+
+    if (character.status !== 'free') {
+      return { ok: false as const, code: 'forbidden', message: 'Character is not available for faction armory actions.' };
+    }
+
+    const cooldown = await assertActionUnlocked(tx, character.id, 'faction_inventory');
+
+    if (!cooldown.ok) {
+      return cooldown;
+    }
+
+    const membership = await getActiveMembership(tx, character.id);
+
+    if (!membership || membership.factionId !== input.factionId) {
+      return { ok: false as const, code: 'forbidden', message: 'Character is not an active member of this faction.' };
+    }
+
+    const faction = await tx.query.factions.findFirst({ where: eq(factions.id, input.factionId) });
+
+    if (!faction) {
+      return { ok: false as const, code: 'not_found', message: 'Faction not found.' };
+    }
+
+    const quantity = Math.max(1, Math.floor(input.quantity));
+
+    if (input.action === 'deposit') {
+      if (!input.inventoryItemId) {
+        return { ok: false as const, code: 'bad_request', message: 'Inventory item is required for armory deposits.' };
+      }
+
+      const inventoryItem = await tx.query.inventoryItems.findFirst({
+        where: and(eq(inventoryItems.id, input.inventoryItemId), eq(inventoryItems.characterId, character.id)),
+        with: { item: true },
+      });
+
+      const action = calculateFactionInventoryAction({
+        action: 'deposit',
+        role: membership.role,
+        quantity,
+        availableQuantity: inventoryItem?.quantity ?? 0,
+      });
+
+      if (!inventoryItem || !inventoryItem.item || !action.canAttempt) {
+        return { ok: false as const, code: 'forbidden', message: 'Not enough personal inventory is available for this armory deposit.' };
+      }
+
+      const [updatedInventoryItem] = await tx
+        .update(inventoryItems)
+        .set({ quantity: sql`${inventoryItems.quantity} - ${action.quantity}`, updatedAt: sql`now()` })
+        .where(and(eq(inventoryItems.id, inventoryItem.id), sql`${inventoryItems.quantity} >= ${action.quantity}`))
+        .returning();
+
+      if (!updatedInventoryItem) {
+        return { ok: false as const, code: 'conflict', message: 'Inventory changed before the armory deposit could be reserved.' };
+      }
+
+      if (updatedInventoryItem.quantity <= 0) {
+        await tx.delete(inventoryItems).where(eq(inventoryItems.id, updatedInventoryItem.id));
+      }
+
+      const armoryItem = await addFactionInventoryQuantity(tx, {
+        factionId: faction.id,
+        itemKey: inventoryItem.itemKey,
+        quantity: action.quantity,
+        metadata: { depositedByCharacterId: character.id, depositedByCharacterName: character.name },
+      });
+
+      await tx.update(factionMembers).set({ contributionPoints: membership.contributionPoints + action.contributionPoints }).where(and(eq(factionMembers.factionId, faction.id), eq(factionMembers.characterId, character.id)));
+      await tx.insert(factionLedgerEntries).values({ factionId: faction.id, characterId: character.id, entryType: 'armory_deposit', amount: 0, balanceAfter: faction.bank, description: `Deposited ${action.quantity} x ${inventoryItem.item.name} into the faction armory.`, metadata: { itemKey: inventoryItem.itemKey, quantity: action.quantity } });
+      await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, visibility: 'faction', type: 'faction_armory_deposit', payload: { factionId: faction.id, itemKey: inventoryItem.itemKey, itemName: inventoryItem.item.name, quantity: action.quantity } });
+      await setActionCooldown({ tx, characterId: character.id, actionType: 'faction_inventory', cooldownSeconds: action.cooldownSeconds, metadata: { action: 'deposit', itemKey: inventoryItem.itemKey, quantity: action.quantity } });
+
+      return { ok: true as const, data: { armoryItem, inventoryItem: updatedInventoryItem.quantity <= 0 ? null : updatedInventoryItem, quantity: action.quantity } };
+    }
+
+    if (!input.factionInventoryItemId) {
+      return { ok: false as const, code: 'bad_request', message: 'Faction inventory item is required for armory withdrawals.' };
+    }
+
+    const armoryItem = await tx.query.factionInventoryItems.findFirst({
+      where: and(eq(factionInventoryItems.id, input.factionInventoryItemId), eq(factionInventoryItems.factionId, faction.id)),
+      with: { item: true },
+    });
+
+    const action = calculateFactionInventoryAction({
+      action: 'withdraw',
+      role: membership.role,
+      quantity,
+      availableQuantity: armoryItem?.quantity ?? 0,
+    });
+
+    if (!action.hasPermission) {
+      return { ok: false as const, code: 'forbidden', message: 'Only lieutenants and above can withdraw from the faction armory.' };
+    }
+
+    if (!armoryItem || !armoryItem.item || !action.canAttempt) {
+      return { ok: false as const, code: 'forbidden', message: 'Not enough faction armory stock is available for this withdrawal.' };
+    }
+
+    const armoryUpdate = await decrementFactionInventoryQuantity(tx, { factionInventoryItemId: armoryItem.id, quantity: action.quantity });
+
+    if (!armoryUpdate.ok) {
+      return { ok: false as const, code: 'conflict', message: 'Faction armory stock changed before the withdrawal could be completed.' };
+    }
+
+    const inventoryItem = await addCharacterInventoryQuantity(tx, {
+      characterId: character.id,
+      itemKey: armoryItem.itemKey,
+      quantity: action.quantity,
+      metadata: { withdrawnFromFactionId: faction.id, withdrawnFromFactionName: faction.name },
+    });
+
+    await tx.insert(factionLedgerEntries).values({ factionId: faction.id, characterId: character.id, entryType: 'armory_withdrawal', amount: 0, balanceAfter: faction.bank, description: `Withdrew ${action.quantity} x ${armoryItem.item.name} from the faction armory.`, metadata: { itemKey: armoryItem.itemKey, quantity: action.quantity } });
+    await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, visibility: 'faction', type: 'faction_armory_withdrawal', payload: { factionId: faction.id, itemKey: armoryItem.itemKey, itemName: armoryItem.item.name, quantity: action.quantity } });
+    await setActionCooldown({ tx, characterId: character.id, actionType: 'faction_inventory', cooldownSeconds: action.cooldownSeconds, metadata: { action: 'withdraw', itemKey: armoryItem.itemKey, quantity: action.quantity } });
+
+    return { ok: true as const, data: { armoryItem: armoryUpdate.armoryItem, inventoryItem, quantity: action.quantity } };
   });
 }
 

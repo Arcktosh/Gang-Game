@@ -7,6 +7,121 @@ export function calculateScaledTrainingEnergyCost(input: TrainingCostInput): num
   return Math.max(input.baseEnergyCost, Math.floor(input.baseEnergyCost + input.currentStat * 0.15));
 }
 
+export type TimedProgressionPlanInput = {
+  baseEnergyCost: number;
+  baseCashCost: number;
+  baseDurationSeconds: number;
+  currentStat?: number;
+  now?: Date;
+};
+
+export type TimedProgressionPlan = {
+  energyCost: number;
+  cashCost: number;
+  durationSeconds: number;
+  startedAt: Date;
+  dueAt: Date;
+};
+
+export function calculateTimedProgressionPlan(input: TimedProgressionPlanInput): TimedProgressionPlan {
+  const startedAt = input.now ?? new Date();
+  const currentStat = Math.max(0, Math.floor(input.currentStat ?? 0));
+  const baseDurationSeconds = Math.max(60, Math.floor(input.baseDurationSeconds));
+  const statDurationPenalty = currentStat > 0 ? Math.floor(currentStat / 10) * 60 : 0;
+  const durationSeconds = Math.min(86_400, baseDurationSeconds + statDurationPenalty);
+  const energyCost = calculateScaledTrainingEnergyCost({
+    baseEnergyCost: Math.max(0, Math.floor(input.baseEnergyCost)),
+    currentStat,
+  });
+  const cashCost = Math.max(0, Math.floor(input.baseCashCost));
+
+  return {
+    energyCost,
+    cashCost,
+    durationSeconds,
+    startedAt,
+    dueAt: new Date(startedAt.getTime() + durationSeconds * 1000),
+  };
+}
+
+export type CourseRequirementInput = {
+  characterLevel: number;
+  completedCourseKeys: string[];
+  requiredLevel?: number | null;
+  prerequisiteCourseKey?: string | null;
+};
+
+export type CourseRequirementResult =
+  | { ok: true; code: 'ok'; message: 'Course requirements met.' }
+  | { ok: false; code: 'level_required'; message: string; requiredLevel: number }
+  | { ok: false; code: 'course_required'; message: string; prerequisiteCourseKey: string };
+
+export function evaluateCourseRequirements(input: CourseRequirementInput): CourseRequirementResult {
+  const characterLevel = Math.max(1, Math.floor(input.characterLevel));
+  const requiredLevel = Math.max(1, Math.floor(input.requiredLevel ?? 1));
+
+  if (characterLevel < requiredLevel) {
+    return {
+      ok: false,
+      code: 'level_required',
+      message: `Requires level ${requiredLevel}.`,
+      requiredLevel,
+    };
+  }
+
+  const prerequisiteCourseKey = input.prerequisiteCourseKey?.trim();
+
+  if (prerequisiteCourseKey && !new Set(input.completedCourseKeys).has(prerequisiteCourseKey)) {
+    return {
+      ok: false,
+      code: 'course_required',
+      message: `Requires course ${prerequisiteCourseKey}.`,
+      prerequisiteCourseKey,
+    };
+  }
+
+  return { ok: true, code: 'ok', message: 'Course requirements met.' };
+}
+
+export type ProgressionQueueSnapshotInput = {
+  training: Array<{ status: string; dueAt?: Date | string | null }>;
+  courses: Array<{ status: string; dueAt?: Date | string | null }>;
+  now?: Date;
+};
+
+export type ProgressionQueueSnapshot = {
+  activeTraining: number;
+  activeCourses: number;
+  overdueCompletions: number;
+  nextDueAt: Date | null;
+};
+
+function coerceDate(value: Date | string | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function summarizeProgressionQueue(input: ProgressionQueueSnapshotInput): ProgressionQueueSnapshot {
+  const now = input.now ?? new Date();
+  const scheduledTraining = input.training.filter((entry) => entry.status === 'scheduled');
+  const scheduledCourses = input.courses.filter((entry) => entry.status === 'scheduled');
+  const dueDates = [...scheduledTraining, ...scheduledCourses]
+    .map((entry) => coerceDate(entry.dueAt))
+    .filter((date): date is Date => Boolean(date))
+    .sort((left, right) => left.getTime() - right.getTime());
+
+  return {
+    activeTraining: scheduledTraining.length,
+    activeCourses: scheduledCourses.length,
+    overdueCompletions: dueDates.filter((date) => date.getTime() <= now.getTime()).length,
+    nextDueAt: dueDates[0] ?? null,
+  };
+}
+
 export function calculateExperienceForLevel(level: number): number {
   const normalizedLevel = Math.max(1, Math.floor(level));
   return Math.pow(normalizedLevel - 1, 2) * 100;

@@ -22,6 +22,7 @@ import {
   listCharacterPortfolio,
   listCharactersForUser,
   listCourses,
+  listCharacterProgression,
   listFactions,
   listFinanceMarket,
   listGamblingGames,
@@ -109,6 +110,7 @@ export default async function DashboardPage() {
     safetyProfile,
     announcements,
     actionLocks,
+    characterProgression,
   ] = activeCharacter
     ? await Promise.all([
         db.query.jobDefinitions.findMany(),
@@ -161,6 +163,7 @@ export default async function DashboardPage() {
         }),
         listActiveAnnouncements(),
         listActiveActionLocks(activeCharacter.id),
+        listCharacterProgression(activeCharacter.id),
       ])
     : [
         [],
@@ -199,6 +202,7 @@ export default async function DashboardPage() {
         null,
         [],
         [],
+        { training: [], courses: [], queue: { activeTraining: 0, activeCourses: 0, overdueCompletions: 0, nextDueAt: null } },
       ];
 
   return (
@@ -257,6 +261,7 @@ export default async function DashboardPage() {
         messageCenter={messageCenter}
         safetyProfile={safetyProfile}
         actionLocks={actionLocks}
+        characterProgression={characterProgression}
       />
     </GamePageShell>
   );

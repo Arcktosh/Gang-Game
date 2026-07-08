@@ -5261,3 +5261,221 @@ node scripts/validate-runtime-proof.mjs
 
 Full `pnpm typecheck`, `pnpm test`, and runtime proof still require the installed local workspace.
 
+
+
+---
+
+## Pass 76: Market Event Formula Foundation
+
+Added the first deterministic supply/demand event foundation in `@drugdeal/game` without adding runtime breadth before installed-environment proof. The economy helpers now expose market pressure snapshots, copied market-event definitions, and an impact calculator that adjusts supply, demand, volatility, risk, and bounded price output for shortage, surplus, demand spike, crackdown, and route-disruption scenarios.
+
+This pass keeps events formula-level only. Runtime scheduling, database persistence, API/UI surfacing, newspaper/news effects, and balance tuning remain follow-up work after local proof.
+
+Validation performed in the sandbox:
+
+```bash
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/economy.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+
+---
+
+## Pass 77: Market Event Scheduling and News Payload Helpers
+
+Extended the Feature Pass 76 market-event foundation with deterministic shared helpers that are safe to validate without database/runtime dependencies. The game package can now choose a cadence-bucket market event per location/item/seed, calculate upcoming/active/expired lifecycle status, and generate a market-category newspaper article payload with metadata for later persistence.
+
+This pass keeps runtime breadth intentionally small: no database table, worker publisher, API response, or UI panel was added yet. The next market-event implementation pass should persist scheduled occurrences, expose active events through market routes, and publish generated article payloads through the existing newspaper system.
+
+Validation performed in the sandbox:
+
+```bash
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/economy.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/__tests__/economy-progress.test.ts
+```
+
+The second check used temporary `node:test`/`node:assert` declaration stubs because the uploaded workspace has no installed `@types/node`. Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+---
+
+## Pass 78: Market Event Persistence, API Surfacing, UI Alerts, and Worker Publishing
+
+Closed the first runtime wiring slice for the market-event system introduced in passes 76 and 77. Market events now have a `market_events` database migration/schema, query helpers to schedule deterministic occurrences from current market rows, active-event retrieval with impact previews, automatic newspaper article publication for active unpublished events, and expiry handling.
+
+Runtime wiring added:
+
+- `runMarketEventTick()` schedules occurrences per market location, publishes active unpublished events to `newspaper_articles`, and marks old scheduled events expired.
+- The worker market tick now calls the persisted event tick instead of logging a placeholder.
+- `/api/market` now returns `activeEvents` alongside market rows.
+- The Market page displays live event alert cards with item, risk delta, lifecycle status, and price-impact preview.
+- Root/database package scripts now include `db:apply:market-events` for the new migration.
+
+Validation performed in the sandbox:
+
+```bash
+node scripts/validate-migrations.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/economy.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/__tests__/economy-progress.test.ts
+```
+
+A dependency-backed TypeScript check over the changed DB/worker/web files was attempted but blocked because the uploaded workspace has no installed `drizzle-orm`, Next/React, workspace package type links, or `@types/node`. Full migration, worker, API, UI, typecheck, tests, and runtime proof still require the installed local workspace.
+
+
+---
+
+## Pass 79: Player-to-Player Trade Offers
+
+Added a larger economy/multiplayer slice for reserved-inventory player trades. The new `player_trade_offers` migration and schema reserve seller inventory when a private offer is created, require the buyer to explicitly accept before money changes hands, return reserved inventory on cancel/expiry, and record player events plus financial transactions for accepted trades and handling fees.
+
+Runtime/API/UI wiring added:
+
+- `calculatePlayerTradeQuote()` and `calculatePlayerTradeExpiry()` shared helpers in `@drugdeal/game`.
+- Database query helpers for trade-center retrieval, candidate listing, offer creation, acceptance, cancellation, and expiry.
+- `POST /api/trades`, `GET /api/trades`, and `POST /api/trades/[tradeOfferId]` routes with auth, rate limiting, idempotency, and validator schemas.
+- `/trades` browser page with nearby recipient selection, inventory-backed offer creation, received-offer acceptance, sent-offer cancellation, and recent trade history.
+- Worker `trade-tick` to expire open offers and return reserved inventory.
+- Root/database package scripts now include `db:apply:player-trades` for migration application.
+
+Validation performed in the sandbox:
+
+```bash
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/__tests__/economy-progress.test.ts
+node scripts/validate-docs.mjs
+node scripts/validate-migrations.mjs
+```
+
+Changed DB/web/worker/validator TypeScript files were syntax-transpiled with the local TypeScript compiler API. Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+---
+
+## Pass 80: Player Trade Build Fix and Exposure Summary
+
+Fixed the dependency-backed `packages/db` build failure reported after Pass 79 by adding the player-trade cooldown keys to the shared `GameActionType` union used by action locks. Accepting private trade offers now checks the buyer's accept cooldown before any money or inventory movement.
+
+This pass also adds a larger trade-hardening slice: shared player-trade summary formulas calculate open sent/received exposure, reserved inventory value, pending buyer cost, completed trade volume, seller payout, fees, cancellations, and expiries. The trade-center query now returns that summary, and the `/trades` page displays it as a quick exposure panel above offer creation and offer lists.
+
+Validation performed in the sandbox:
+
+```bash
+node scripts/validate-docs.mjs
+node scripts/validate-migrations.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/economy.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/__tests__/economy-progress.test.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+
+
+---
+
+## Pass 81: Timed Progression and Course Prerequisites
+
+Closed the first progression-depth slice for training and education. Shared game helpers now calculate timed progression plans, course requirement results, and active progression queue summaries. Training and education API actions now schedule progression rows with due times and action cooldown metadata instead of awarding stat gains immediately.
+
+Runtime wiring added:
+
+- `0038_progression_timers.sql` adds `due_at` columns, progression due indexes, required course levels, and prerequisite-course metadata.
+- `completeDueProgression()` completes scheduled training/course rows, grants stat/XP/level/max-nerve rewards, and records completion events.
+- Worker `progression-tick` runs due progression completion every minute.
+- The dashboard disables locked courses, shows course requirement reasons, starts timed training/education, and displays active training/course queue items.
+
+Validation performed in the sandbox:
+
+```bash
+node scripts/validate-docs.mjs
+node scripts/validate-migrations.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/progression.ts packages/game/src/__tests__/economy-progress.test.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+---
+
+## Pass 82: Inventory Item Actions
+
+Added a larger item-system slice covering item rarity, consumable effects, inventory exposure summaries, and direct item transfers. Shared game helpers now normalize rarity, calculate rarity value multipliers, evaluate consumable effects against bounded character resources, and summarize inventory stack value/risk.
+
+Runtime/API/UI wiring added:
+
+- `0039_inventory_item_actions.sql` introduces the `item_rarity` enum, rarity backfill, and first-aid consumable metadata.
+- Database inventory helpers list stack exposure summaries, use consumables with cooldown/idempotency support, and transfer item stacks to free same-location characters.
+- `GET, POST /api/inventory` exposes inventory profile retrieval plus `use` and `transfer` actions.
+- `/inventory` adds a dedicated browser page for stack summaries, consumable controls, transfer candidates, and risk review.
+- The game sidebar now links to Inventory.
+
+Validation performed in the sandbox:
+
+```bash
+node scripts/validate-migrations.mjs
+node scripts/validate-docs.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/inventory.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/progression.ts packages/game/src/inventory.ts packages/game/src/index.ts packages/game/src/__tests__/economy-progress.test.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+---
+
+## Pass 83: Legal Resolution and Jail Activities
+
+Closed a broader legal-gameplay slice while keeping the system fictional and abstract. The legal module now has shared deterministic formulas for fine settlement, bail settlement, court-hearing outcomes, and jail-only activities. These helpers expose bounded costs, release reductions, heat changes, stat gains, and cooldown-friendly metadata without adding real-world procedural detail.
+
+Runtime/API/UI wiring added:
+
+- `POST /api/legal/jail` supports `pay_fine`, `post_bail`, and `jail_activity` actions with auth, rate limiting, idempotency, and jail-activity cooldowns.
+- `POST /api/legal/court` supports abstract court hearings with auth, rate limiting, idempotency, and court cooldowns.
+- Database legal helpers settle active jail sentences, debit cash/bank payment sources, resolve court outcomes, perform jail-only activities, update character status/release windows, write legal-service logs, financial transactions, and player events.
+- The Legal page now shows estimated fine/bail settlement costs and exposes fine, bail, court, and jail-activity controls alongside existing lawyer, bribe, and hospital-care actions.
+- `GameActionType` and validators now cover legal court and jail-activity actions.
+
+Validation performed in the sandbox:
+
+```bash
+node scripts/validate-docs.mjs
+node scripts/validate-migrations.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/legal.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/legal.ts packages/game/src/__tests__/legal.test.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+## Feature Pass 84 - Faction operations and idempotent migration runner
+
+- Added `packages/db/scripts/apply-migrations.ts`, a tracked SQL migration runner that creates `schema_migrations`, hashes migration contents, applies missing `packages/db/drizzle/*.sql` files in filename order, and skips already-applied files.
+- Added `pnpm db:apply:all` at the root and database package levels, then updated `scripts/prove-mvp-runtime.mjs` to use the idempotent runner.
+- Added migration-runner validation to the runtime-proof audit and relaxed migration coverage validation when the all-runner is present.
+- Added faction member profile data to faction detail queries.
+- Expanded the Factions page with faction bank forms, boss-only member role updates, member permission summaries, and territory scout/claim/reinforce/attack controls with cooldown feedback.
+- Restored `.github/workflows/ci.yml` with Node 22, Corepack, pnpm install, and `pnpm validate:ci`.
+
+
+## Feature Pass 85 - Faction armory
+
+- Added `faction_inventory_items` with idempotent SQL migration `0040_faction_armory.sql`, schema mappings, and dedicated apply scripts while preserving the all-migration runner path.
+- Added shared game helpers for faction armory permissions, normalized transfer quantities, contribution credit, cooldowns, and availability checks.
+- Added authenticated faction armory deposit/withdraw DB logic, `/api/factions/:factionId/inventory`, member contribution/event/ledger logging, and Factions page controls for stocked armory and personal-stack deposits.
+- Static validation covered migration ordering and targeted TypeScript checks for shared faction formulas; full dependency-backed proof remains local-environment work.
+
+## Feature Pass 86 - Contract command center and scoped assignments
+
+- Fixed the Factions page nullable faction id usage reported by the local Next.js typecheck by routing armory/bank/leave forms through the already-derived `ownFactionId` guard.
+- Added shared contract scope helpers for public board contracts, private assignments, and faction-only tasks, including faction posting permissions and scoped acceptance validation.
+- Expanded contract DB queries so public contracts remain globally visible, private contracts are only visible to their assignee, and faction contracts are visible to active members of the sponsoring faction.
+- Extended contract creation to support optional `assignedToCharacterId` and `factionId`, validate assignees, require lieutenant+ faction role for faction task posting, preserve escrow/cooldown/idempotency behavior, and keep private/faction activity out of public newspaper promotion.
+- Added a dedicated `/contracts` player page with public posting, private assignment, faction task creation, visible-contract acceptance, and posted/assigned/faction activity completion or cancellation controls.
+- Added `/contracts` to the game sidebar and static MVP/playable-action validators so the contract board is treated as a first-class player page.
+
+Static validation performed in the sandbox:
+
+```bash
+node scripts/validate-mvp-pages.mjs
+node scripts/validate-playable-actions.mjs
+node scripts/validate-docs.mjs
+node scripts/validate-migrations.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/factions.ts packages/game/src/contracts.ts
+```
+
+Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+

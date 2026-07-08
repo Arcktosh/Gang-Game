@@ -53,45 +53,10 @@ docker compose ps
 
 The default compose images use AWS Public ECR mirrors of the official PostgreSQL and Redis images to avoid Docker Hub fetch failures/rate limits. To force Docker Hub instead, set `POSTGRES_IMAGE=docker.io/library/postgres:16-alpine` and `REDIS_IMAGE=docker.io/library/redis:7-alpine` in `.env`.
 
-Apply the database in the canonical order documented in `docs/migration-guide.md`. The root convenience scripts include all current migrations through `db:apply:loan-defaulting`.
+Apply the database with the tracked all-migration runner documented in `docs/migration-guide.md`. It records applied SQL files in `schema_migrations` and skips them on later runs.
 
 ```bash
-pnpm db:apply:initial
-pnpm db:apply:auth
-pnpm db:apply:progression
-pnpm db:seed
-pnpm db:apply:gameplay
-pnpm db:apply:risk
-pnpm db:apply:legal
-pnpm db:apply:factions
-pnpm db:apply:shops
-pnpm db:apply:finance
-pnpm db:apply:gambling
-pnpm db:apply:contracts
-pnpm db:apply:achievements
-pnpm db:apply:seasons
-pnpm db:apply:admin
-pnpm db:apply:pvp
-pnpm db:apply:equipment
-pnpm db:apply:vehicles
-pnpm db:apply:crafting
-pnpm db:apply:contacts
-pnpm db:apply:notifications
-pnpm db:apply:messages
-pnpm db:apply:newspaper-social
-pnpm db:apply:shop-ops
-pnpm db:apply:moderation
-pnpm db:apply:enforcement
-pnpm db:apply:enforcement-ops
-pnpm db:apply:idempotency
-pnpm db:apply:hardening
-pnpm db:apply:admin-roles
-pnpm db:apply:job-lifecycle
-pnpm db:apply:monetization
-pnpm db:apply:auth-recovery
-pnpm db:apply:runtime-repair
-pnpm db:apply:loans
-pnpm db:apply:loan-defaulting
+pnpm db:apply:all
 ```
 
 Start the app and worker:

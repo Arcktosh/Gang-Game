@@ -753,3 +753,37 @@ node scripts/validate-site-quality.mjs
 node scripts/validate-runtime-proof.mjs
 ```
 
+
+## Feature Pass 82 validation note
+
+Inventory item action wiring was checked with dependency-light static validation and targeted TypeScript checks in the sandbox.
+
+```bash
+node scripts/validate-migrations.mjs
+node scripts/validate-docs.mjs
+node scripts/audit-route-contracts.mjs
+node scripts/validate-playable-actions.mjs
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck packages/game/src/inventory.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck /tmp/node-test-stubs.d.ts packages/game/src/economy.ts packages/game/src/progression.ts packages/game/src/inventory.ts packages/game/src/index.ts packages/game/src/__tests__/economy-progress.test.ts
+tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --jsx preserve --strict --skipLibCheck --baseUrl apps/web/src /tmp/web-stubs.d.ts apps/web/src/app/api/inventory/route.ts apps/web/src/app/(game)/inventory/page.tsx
+```
+
+Full dependency-backed workspace typecheck, route runtime proof, and database migration proof still require the installed local workspace.
+
+## Feature Pass 83 sandbox validation note
+
+The sandbox pass added legal resolution and jail-activity code only. Dependency-backed install/build/runtime proof was intentionally not run here. Static validation completed with docs, migrations, legal-recovery validator, route-contract audit, MVP gameplay/playable-action validators, direct TypeScript checks for `packages/game/src/legal.ts` and its test file, plus TypeScript transpile diagnostics for the changed DB/API/validator/page files.
+
+## Feature Pass 84 validation notes
+
+- `pnpm db:apply:all` now uses `packages/db/scripts/apply-migrations.ts` to create `schema_migrations`, validate migration checksums, skip already-applied scripts, and apply newly added SQL files in filename order.
+- `scripts/prove-mvp-runtime.mjs` now calls `db:apply:all` during the migration phase so runtime proof no longer needs a hard-coded SQL script list.
+- Static validation was updated so migration coverage passes when the all-migration runner is present.
+- Full dependency-backed typecheck/build/test and live database migration proof still need to run in the installed local environment.
+
+
+## Feature Pass 85 static validation
+
+- `node scripts/validate-migrations.mjs` passed with migration `0040_faction_armory.sql` in sequence.
+- Targeted TypeScript check passed for shared faction armory formulas and the related package-game test with local node-test stubs.
+- Full dependency-backed package builds, application typecheck, API route compilation, PostgreSQL migration execution, and runtime proof were not run in this sandbox.

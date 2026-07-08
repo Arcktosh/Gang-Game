@@ -14,6 +14,8 @@ import { startNotificationsTick } from './ticks/notifications-tick';
 import { startEnforcementExpiryTick } from './ticks/enforcement-expiry-tick';
 import { startMaintenanceTick } from './ticks/maintenance-tick';
 import { startLoanTick } from './ticks/loan-tick';
+import { startTradeTick } from './ticks/trade-tick';
+import { startProgressionTick } from './ticks/progression-tick';
 
 async function main() {
   console.log('worker starting');
@@ -33,6 +35,8 @@ async function main() {
   startEnforcementExpiryTick();
   startMaintenanceTick();
   startLoanTick();
+  startTradeTick();
+  startProgressionTick();
 }
 
 main().catch((error) => {

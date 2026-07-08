@@ -1,5 +1,17 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { calculateBribeAttempt, calculateCareService, calculateHeatDecay, calculateLawyerService } from '@drugdeal/game';
+import {
+  calculateBailSettlement,
+  calculateBribeAttempt,
+  calculateCareService,
+  calculateCourtOutcome,
+  calculateFineSettlement,
+  calculateHeatDecay,
+  calculateJailActivity,
+  calculateLawyerService,
+  type CourtPlea,
+  type JailActivity,
+  type LegalPaymentSource,
+} from '@drugdeal/game';
 import { db } from '../client';
 import { characters, financialTransactions, hospitalStays, jailSentences, legalServiceLogs, playerEvents } from '../schema';
 
@@ -245,4 +257,246 @@ export async function buyHospitalCare(input: { tx: Tx; character: CharacterRow; 
   });
 
   return { ok: true as const, character: updatedCharacter, care, releasedAt: newRelease };
+}
+
+function getRemainingSentenceSeconds(releaseAt: Date) {
+  return Math.max(0, Math.ceil((releaseAt.getTime() - Date.now()) / 1000));
+}
+
+function debitSourcePatch(character: CharacterRow, paymentSource: LegalPaymentSource, cost: number) {
+  return paymentSource === 'bank'
+    ? { bank: character.bank - cost }
+    : { cash: character.cash - cost };
+}
+
+export async function settleJailPayment(input: {
+  tx: Tx;
+  character: CharacterRow;
+  userId: string;
+  action: 'pay_fine' | 'post_bail';
+  paymentSource: LegalPaymentSource;
+}) {
+  const activeSentence = await input.tx.query.jailSentences.findFirst({
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
+  });
+
+  if (!activeSentence) {
+    return { ok: false as const, code: 'not_jailed', message: 'No active jail sentence found.' };
+  }
+
+  const settlementInput = {
+    fine: activeSentence.fine,
+    severity: activeSentence.severity,
+    remainingSeconds: getRemainingSentenceSeconds(activeSentence.releaseAt),
+    cash: input.character.cash,
+    bank: input.character.bank,
+    paymentSource: input.paymentSource,
+  };
+  const settlement = input.action === 'pay_fine' ? calculateFineSettlement(settlementInput) : calculateBailSettlement(settlementInput);
+
+  if (!settlement.canAfford) {
+    return { ok: false as const, code: 'insufficient_funds', message: `Not enough ${input.paymentSource} to complete this settlement.` };
+  }
+
+  const nextHeat = Math.max(0, input.character.heat - settlement.heatReduction);
+  const [updatedCharacter] = await input.tx
+    .update(characters)
+    .set({
+      ...debitSourcePatch(input.character, input.paymentSource, settlement.cost),
+      heat: nextHeat,
+      legalReputation: input.character.legalReputation + (input.action === 'pay_fine' ? 1 : 0),
+      status: 'free',
+      statusUntil: null,
+      statusReason: null,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(characters.id, input.character.id))
+    .returning();
+
+  const [updatedSentence] = await input.tx
+    .update(jailSentences)
+    .set({
+      status: 'completed',
+      completedAt: sql`now()`,
+      releaseAt: sql`now()`,
+    })
+    .where(eq(jailSentences.id, activeSentence.id))
+    .returning();
+
+  const serviceType = input.action === 'pay_fine' ? 'fine_settlement' : 'bail_settlement';
+  const [log] = await input.tx
+    .insert(legalServiceLogs)
+    .values({
+      characterId: input.character.id,
+      serviceType,
+      serviceTier: input.paymentSource,
+      cost: settlement.cost,
+      heatBefore: input.character.heat,
+      heatAfter: nextHeat,
+      success: true,
+      metadata: { settlement, jailSentenceId: activeSentence.id },
+    })
+    .returning();
+
+  await input.tx.insert(financialTransactions).values({
+    characterId: input.character.id,
+    type: input.paymentSource,
+    amount: String(-settlement.cost),
+    description: input.action === 'pay_fine' ? 'Paid jail fine' : 'Posted bail',
+    metadata: { settlement, jailSentenceId: activeSentence.id },
+  });
+
+  await input.tx.insert(playerEvents).values({
+    userId: input.userId,
+    characterId: input.character.id,
+    type: input.action === 'pay_fine' ? 'jail_fine_paid' : 'bail_posted',
+    payload: { jailSentenceId: activeSentence.id, paymentSource: input.paymentSource, cost: settlement.cost, heatBefore: input.character.heat, heatAfter: nextHeat },
+  });
+
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, settlement, log };
+}
+
+export async function requestCourtHearing(input: { tx: Tx; character: CharacterRow; userId: string; plea: CourtPlea }) {
+  const activeSentence = await input.tx.query.jailSentences.findFirst({
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
+  });
+
+  if (!activeSentence) {
+    return { ok: false as const, code: 'not_jailed', message: 'No active jail sentence found.' };
+  }
+
+  const outcome = calculateCourtOutcome({
+    severity: activeSentence.severity,
+    heat: input.character.heat,
+    legalReputation: input.character.legalReputation,
+    intelligence: input.character.intelligence,
+    remainingSeconds: getRemainingSentenceSeconds(activeSentence.releaseAt),
+    fine: activeSentence.fine,
+    plea: input.plea,
+  });
+  const nextFine = Math.max(0, activeSentence.fine + outcome.fineDelta);
+  const currentReleaseMs = activeSentence.releaseAt.getTime();
+  const adjustedReleaseAt = outcome.releaseNow
+    ? new Date()
+    : new Date(Math.max(Date.now(), currentReleaseMs - outcome.sentenceReductionSeconds * 1000 + outcome.sentenceExtensionSeconds * 1000));
+  const nextStatus = outcome.releaseNow || adjustedReleaseAt.getTime() <= Date.now() ? 'free' : input.character.status;
+  const nextHeat = Math.max(0, input.character.heat - outcome.heatReduction);
+
+  const [updatedSentence] = await input.tx
+    .update(jailSentences)
+    .set({
+      fine: nextFine,
+      releaseAt: adjustedReleaseAt,
+      status: nextStatus === 'free' ? 'completed' : 'active',
+      completedAt: nextStatus === 'free' ? sql`now()` : null,
+    })
+    .where(eq(jailSentences.id, activeSentence.id))
+    .returning();
+
+  const [updatedCharacter] = await input.tx
+    .update(characters)
+    .set({
+      heat: nextHeat,
+      legalReputation: input.character.legalReputation + outcome.legalReputationGain,
+      status: nextStatus,
+      statusUntil: nextStatus === 'free' ? null : adjustedReleaseAt,
+      statusReason: nextStatus === 'free' ? null : input.character.statusReason,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(characters.id, input.character.id))
+    .returning();
+
+  const [log] = await input.tx
+    .insert(legalServiceLogs)
+    .values({
+      characterId: input.character.id,
+      serviceType: 'court_hearing',
+      serviceTier: input.plea,
+      cost: 0,
+      heatBefore: input.character.heat,
+      heatAfter: nextHeat,
+      success: outcome.outcome === 'dismissed' || outcome.outcome === 'reduced',
+      metadata: { outcome, jailSentenceId: activeSentence.id, fineBefore: activeSentence.fine, fineAfter: nextFine, releaseAt: adjustedReleaseAt },
+    })
+    .returning();
+
+  await input.tx.insert(playerEvents).values({
+    userId: input.userId,
+    characterId: input.character.id,
+    type: 'court_hearing_resolved',
+    payload: { jailSentenceId: activeSentence.id, outcome, releaseAt: adjustedReleaseAt, fineBefore: activeSentence.fine, fineAfter: nextFine },
+  });
+
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, outcome, log };
+}
+
+export async function performJailActivity(input: { tx: Tx; character: CharacterRow; userId: string; activity: JailActivity }) {
+  const activeSentence = await input.tx.query.jailSentences.findFirst({
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
+  });
+
+  if (!activeSentence) {
+    return { ok: false as const, code: 'not_jailed', message: 'No active jail sentence found.' };
+  }
+
+  const activity = calculateJailActivity({
+    activity: input.activity,
+    severity: activeSentence.severity,
+    remainingSeconds: getRemainingSentenceSeconds(activeSentence.releaseAt),
+    intelligence: input.character.intelligence,
+    labour: input.character.labour,
+    endurance: input.character.endurance,
+    strength: input.character.strength,
+  });
+  const adjustedReleaseAt = activity.releaseNow ? new Date() : new Date(Math.max(Date.now(), activeSentence.releaseAt.getTime() - activity.releaseReductionSeconds * 1000));
+  const nextStatus = activity.releaseNow || adjustedReleaseAt.getTime() <= Date.now() ? 'free' : input.character.status;
+
+  const [updatedSentence] = await input.tx
+    .update(jailSentences)
+    .set({
+      releaseAt: adjustedReleaseAt,
+      status: nextStatus === 'free' ? 'completed' : 'active',
+      completedAt: nextStatus === 'free' ? sql`now()` : null,
+    })
+    .where(eq(jailSentences.id, activeSentence.id))
+    .returning();
+
+  const [updatedCharacter] = await input.tx
+    .update(characters)
+    .set({
+      intelligence: input.character.intelligence + activity.intelligenceGain,
+      labour: input.character.labour + activity.labourGain,
+      strength: input.character.strength + activity.strengthGain,
+      endurance: input.character.endurance + activity.enduranceGain,
+      experience: input.character.experience + activity.experience,
+      status: nextStatus,
+      statusUntil: nextStatus === 'free' ? null : adjustedReleaseAt,
+      statusReason: nextStatus === 'free' ? null : input.character.statusReason,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(characters.id, input.character.id))
+    .returning();
+
+  const [log] = await input.tx
+    .insert(legalServiceLogs)
+    .values({
+      characterId: input.character.id,
+      serviceType: 'jail_activity',
+      serviceTier: input.activity,
+      cost: 0,
+      heatBefore: input.character.heat,
+      heatAfter: input.character.heat,
+      success: true,
+      metadata: { activity, jailSentenceId: activeSentence.id, releaseAt: adjustedReleaseAt },
+    })
+    .returning();
+
+  await input.tx.insert(playerEvents).values({
+    userId: input.userId,
+    characterId: input.character.id,
+    type: 'jail_activity_completed',
+    payload: { jailSentenceId: activeSentence.id, activity, releaseAt: adjustedReleaseAt },
+  });
+
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, activity, log };
 }

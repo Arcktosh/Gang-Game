@@ -11,7 +11,7 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 
 ## Current MVP readiness summary
 
-- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, and richer banking statements/CSV export are in place after Feature Pass 75.
+- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, richer banking statements/CSV export, and deterministic market-event formula/scheduling/news helpers plus first-pass persistence/API/UI/worker wiring are in place after Feature Pass 84.
 
 - [x] Monorepo, web app, worker app, shared packages, database package.
 - [x] Auth/session foundation.
@@ -50,6 +50,7 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 - [x] Static release-readiness validation for runbook, backup/restore, environment, Docker, README links, and package scripts.
 - [~] Final lint/format/typecheck/test policy. Static repo validation is runnable without installed package dependencies; `pnpm validate:ci` now chains static validation, typecheck, and tests after install, and static validation includes representative route-contract, MVP page/gameplay, admin RBAC, job lifecycle, and legal recovery drift checks.
 - [x] Automated static migration validation.
+- [x] Idempotent all-migration runner with `schema_migrations` tracking and checksum validation.
 - [x] Automated static documentation drift validation.
 - [x] Automated static CI workflow validation.
 - [x] Automated static all-route observability validation.
@@ -112,9 +113,9 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 - [x] Job promotion system.
 - [~] Job resignation/firing system. Player resignation exists; admin firing remains future depth.
 - [~] Job-related stat progression. Job rank, shift count, total earned, wage scaling, and XP progression exist; deeper stat growth remains future depth.
-- [ ] Training cooldown tuning.
-- [ ] Course prerequisites.
-- [ ] Course completion timers/worker.
+- [~] Training cooldown tuning.
+- [x] Course prerequisites.
+- [x] Course completion timers/worker.
 - [~] Diminishing returns and scaled training cost.
 
 ## Phase 4 - Crimes, police, legal, jail, and hospital
@@ -142,9 +143,9 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Jail sentence calculation.
 - [ ] Crime skill progression.
 - [~] Crime cooldown tuning.
-- [ ] Court outcome flow.
-- [ ] Bail/fine payment flow.
-- [ ] Jail-only gameplay actions.
+- [x] Court outcome flow.
+- [x] Bail/fine payment flow.
+- [x] Jail-only gameplay actions.
 - [x] Hospital treatment options.
 - [~] Injury model and temporary stat penalties. Health loss exists; temporary stat penalties remain post-MVP depth.
 
@@ -165,9 +166,9 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Queued crafting jobs.
 - [x] Crafting completion worker.
 - [~] Vehicle cargo/smuggling/delivery groundwork.
-- [ ] Item rarity.
-- [ ] Item transfer between players.
-- [ ] Consumable item effects.
+- [x] Item rarity metadata and UI exposure summaries.
+- [x] Direct same-location item transfer between players.
+- [x] Consumable item effects for metadata/default medical items.
 - [ ] Advanced item mod slots.
 - [ ] Rare item affixes.
 - [ ] Faction armory crafting.
@@ -207,18 +208,19 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Gambling cooldowns and table limits.
 - [x] Newspaper event generation for large wins.
 - [~] Regional price model.
-- [ ] Supply/demand model.
-- [ ] Market event generation.
+- [x] Supply/demand model: deterministic market pressure, event-impact, scheduling, lifecycle, persistence, worker surfacing, and news-payload helpers exist.
+- [x] Market event generation: event catalog, impact calculator, deterministic scheduling, persistence, API/UI surfacing, and newspaper payload builders exist.
 - [ ] Inflation controls.
 - [ ] Passive income controls.
 - [x] Money sinks.
 - [x] Bank deposits/withdrawals.
 - [x] Bank transaction history API/UI, filtered statements, summaries, and CSV export.
 - [x] Loans and fictional debt collection, including partial repayments, overdue/default handling, and admin exposure visibility. Loan offers, bank funding, partial repayment/full payoff, ledger, overdue/default worker handling, unresolved-loan guardrails, and dashboard controls exist.
-- [ ] Player-to-player trade.
+- [x] Player-to-player trade offers with reserved inventory, same-location recipient controls, accept/cancel/expiry, fee sink, API routes, worker expiry, and browser UI.
+- [x] Inventory page, consumable-use API, direct same-location item transfer API, rarity backfill, and value/risk exposure summaries.
 - [x] Finance chart data endpoints.
 - [x] Finance chart UI.
-- [ ] Market-news impact model.
+- [x] Market-news impact model with article payload generation and worker publishing.
 - [ ] Gambling tournaments.
 - [ ] Player-hosted tables.
 
@@ -242,16 +244,16 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Accept/complete/cancel contract lifecycle.
 - [x] Contract expiry worker.
 - [~] Faction chat.
-- [ ] Faction ranks and permissions.
-- [ ] Faction inventory.
-- [ ] Faction contracts.
+- [x] Faction ranks and permissions.
+- [x] Faction inventory/armory with member deposits, lieutenant+ withdrawals, exposure summaries, cooldowns, API route, and Factions page controls.
+- [x] Faction contracts.
 - [ ] Faction shop permissions.
-- [ ] Territory map UI.
+- [~] Territory map UI. Territory operations are browser-accessible through the Factions page; a visual map remains future polish.
 - [ ] Territory upgrades/taxes.
 - [ ] Formal war UI.
 - [ ] Diplomacy: alliance, truce, trade agreement, surrender terms.
 - [ ] Faction contribution leaderboards.
-- [ ] Private assigned contracts.
+- [x] Private assigned contracts.
 - [ ] Multi-step contract chains.
 
 ## Phase 9 - Shops and marketplace
@@ -388,8 +390,8 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [~] Security review.
 - [ ] Abuse prevention.
 - [ ] Bot detection.
-- [ ] Backups.
-- [ ] Restore runbook.
+- [~] Backups.
+- [x] Restore runbook.
 - [ ] Load testing.
 
 ## Recommended next pass
@@ -518,3 +520,55 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Bank statement filters for transfer/loan banking actions.
 - [x] Bank statement summary totals for inflow, outflow, and net movement.
 - [x] CSV export for recent bank statements.
+
+
+## Feature Pass 76 - Market event formula foundation
+
+- [x] Add market pressure snapshot helper for normalized supply/demand/volatility pricing.
+- [x] Add deterministic market event catalog and impact calculator.
+- [x] Cover market event helper behavior with package-game formula tests.
+- [x] First-pass market-event persistence, API/UI surfacing, and worker newspaper publishing wiring.
+
+
+## Feature Pass 77 market event scheduling/news helpers
+
+- [x] Deterministic market-event occurrence scheduling helper.
+- [x] Market-event lifecycle status helper.
+- [x] Market-event newspaper payload helper.
+- [x] Persist active market events in the database.
+- [x] Surface active market events through API/UI and worker-published newspaper articles.
+- [ ] Validate market-event migration, worker publishing, and API/UI behavior in installed runtime proof.
+
+
+## Feature Pass 78 market event persistence/API/UI worker wiring
+
+- [x] `market_events` migration/schema and apply scripts.
+- [x] Scheduling, active-event retrieval, publishing, expiry, and worker tick helpers.
+- [x] `/api/market` active-event response and Market page alert cards.
+- [ ] Installed-environment proof of migration, worker publishing, newspaper insertion, and UI rendering.
+
+## Feature Pass 80 player-trade build fix and exposure summary
+
+- [x] Add player-trade action-lock keys to the shared DB action type union.
+- [x] Enforce buyer accept cooldown checks before accepting private trade offers.
+- [x] Add shared player-trade summary formulas and coverage for open exposure, completed volume, fees, cancelled, and expired offers.
+- [x] Surface trade exposure summary data through trade-center queries and the `/trades` page.
+- [ ] Installed-environment proof of migration, worker expiry, API routes, UI rendering, and package builds.
+
+
+
+## Feature Pass 81 timed progression and course prerequisites
+
+- [x] Add progression timer migration/schema fields for due training and course completions.
+- [x] Add shared timed progression and course-requirement formulas.
+- [x] Convert training/course starts to scheduled completion rows with cooldown metadata.
+- [x] Add worker completion tick for due training/course rewards.
+- [x] Surface active training/course queue and locked-course reasons on the dashboard.
+- [ ] Installed-environment proof of migration, worker tick, API routes, and dashboard rendering.
+
+
+## Feature Pass 84 faction operations and migration runner
+
+- [x] Added `pnpm db:apply:all` with migration tracking and checksum validation.
+- [x] Runtime proof now uses the all-migration runner so newly added SQL files are picked up automatically.
+- [x] Faction bank, member rank, permission, and territory action controls are browser-accessible from `/factions`.

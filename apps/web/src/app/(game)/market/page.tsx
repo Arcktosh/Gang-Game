@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { db, inventoryItems, listActiveActionLocks, listMarketForLocation } from '@drugdeal/db';
+import { db, inventoryItems, listActiveActionLocks, listActiveMarketEventsForLocation, listMarketForLocation } from '@drugdeal/db';
 import { GameActionForm } from '@/features/game/action-form';
 import {
   Card,
@@ -13,8 +13,9 @@ import {
 
 export default async function MarketPage() {
   const { character } = await getActiveGameContext();
-  const [market, inventory, actionLocks] = await Promise.all([
+  const [market, activeEvents, inventory, actionLocks] = await Promise.all([
     listMarketForLocation(character.location),
+    listActiveMarketEventsForLocation(character.location),
     db.query.inventoryItems.findMany({ where: eq(inventoryItems.characterId, character.id) }),
     listActiveActionLocks(character.id),
   ]);
@@ -26,6 +27,35 @@ export default async function MarketPage() {
       eyebrow={character.location}
       description="Buy and sell location-specific items while monitoring supply, demand, and inventory."
     >
+      {activeEvents.length > 0 ? (
+        <Card title="Active market alerts" meta={`${activeEvents.length} live`}>
+          <div className="compact-market-grid">
+            {activeEvents.map((event) => (
+              <article key={event.id} className="compact-market-card">
+                <div className="compact-market-card__header">
+                  <strong>{event.event.name}</strong>
+                  <span>{event.item?.name ?? event.itemKey}</span>
+                </div>
+                <p>{event.event.description}</p>
+                <dl className="compact-market-card__stats">
+                  <div>
+                    <dt>Window</dt>
+                    <dd>{event.status}</dd>
+                  </div>
+                  <div>
+                    <dt>Risk</dt>
+                    <dd>{event.event.riskDelta >= 0 ? '+' : ''}{event.event.riskDelta}</dd>
+                  </div>
+                  <div>
+                    <dt>Price impact</dt>
+                    <dd>{event.impact?.ok ? `${event.impact.priceDeltaPercent}%` : 'Pending'}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </Card>
+      ) : null}
       <Grid>
         <Card title="Local market" meta={`${market.length} items`}>
           {market.length > 0 ? (

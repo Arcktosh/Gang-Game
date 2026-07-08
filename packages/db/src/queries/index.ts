@@ -17,6 +17,7 @@ export * from './seasons';
 export * from './admin';
 export * from './pvp';
 export * from './equipment';
+export * from './inventory';
 
 export * from './vehicles';
 
@@ -24,6 +25,7 @@ export * from './crafting';
 export * from './contacts';
 export * from './notifications';
 export * from './messages';
+export * from './trades';
 
 export {
   acceptOpenContract,

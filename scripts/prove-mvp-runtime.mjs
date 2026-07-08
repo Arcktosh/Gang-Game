@@ -22,46 +22,9 @@ const backupFile = process.env.BACKUP_FILE ?? `${backupDir}/drugdeal-game-mvp-pr
 const defaultDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
 let useCurrentDatabase = parseBoolean(process.env.MVP_PROOF_USE_CURRENT_DATABASE, false);
 
-const migrationScripts = [
-  'db:apply:initial',
-  'db:apply:auth',
-  'db:apply:progression',
-  'db:seed',
-  'db:apply:gameplay',
-  'db:apply:risk',
-  'db:apply:legal',
-  'db:apply:factions',
-  'db:apply:shops',
-  'db:apply:finance',
-  'db:apply:gambling',
-  'db:apply:contracts',
-  'db:apply:achievements',
-  'db:apply:seasons',
-  'db:apply:admin',
-  'db:apply:pvp',
-  'db:apply:equipment',
-  'db:apply:vehicles',
-  'db:apply:crafting',
-  'db:apply:contacts',
-  'db:apply:notifications',
-  'db:apply:messages',
-  'db:apply:newspaper-social',
-  'db:apply:shop-ops',
-  'db:apply:moderation',
-  'db:apply:enforcement',
-  'db:apply:enforcement-ops',
-  'db:apply:idempotency',
-  'db:apply:hardening',
-  'db:apply:admin-roles',
-  'db:apply:job-lifecycle',
-  'db:apply:monetization',
-  'db:apply:auth-recovery',
-  'db:apply:runtime-repair',
-  'db:apply:loans',
-  'db:apply:loan-defaulting',
-];
+const migrationScripts = ['db:apply:all'];
 
-const proofCommandSummary = 'pnpm install, docker compose up -d, migrations, pnpm validate:static, pnpm typecheck, pnpm test, SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime, pnpm db:backup, pnpm db:restore';
+const proofCommandSummary = 'pnpm install, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm test, SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime, pnpm db:backup, pnpm db:restore';
 
 const validationScripts = ['validate:static', 'typecheck', 'test'];
 const results = [{ step: 'proof-command-summary', ok: true, command: proofCommandSummary }];

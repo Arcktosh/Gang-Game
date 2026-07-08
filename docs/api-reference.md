@@ -1,6 +1,6 @@
 # API Surface Reference
 
-Current as of Feature Pass 73. Feature Pass 73 adds economy-manager loan exposure visibility for active, overdue, defaulted, and repaid loans.
+Current as of Feature Pass 84. Feature Pass 84 keeps the API surface stable and expands browser coverage for faction bank, member-rank, and territory action routes.
 
 This is the current human-readable API route map. It is intentionally lighter than a formal OpenAPI spec, but `pnpm validate:docs` now checks that every concrete route file under `apps/web/src/app/api/**/route.ts` is represented here.
 
@@ -42,10 +42,15 @@ This is the current human-readable API route map. It is intentionally lighter th
 - `POST` `/api/legal/lawyer`
 - `POST` `/api/legal/bribe`
 - `POST` `/api/legal/hospital` - legal-page alias for buying hospital care.
+- `POST` `/api/legal/jail` - settle jail fines, post bail, or perform jail-only activities.
+- `POST` `/api/legal/court` - request abstract court hearings for active jail sentences.
 
 ## Inventory, markets, finance, and gambling
 
 - `GET, POST` `/api/market`
+- `GET, POST` `/api/inventory` - list item stacks, rarity/value/risk summaries, use consumables, and directly transfer inventory to same-location characters.
+- `GET, POST` `/api/trades` - list private trade center data and create reserved-inventory trade offers.
+- `POST` `/api/trades/:tradeOfferId` - accept or cancel an open private trade offer.
 - `GET, POST` `/api/equipment`
 - `GET, POST` `/api/vehicles`
 - `GET, POST` `/api/crafting`
@@ -69,7 +74,7 @@ This is the current human-readable API route map. It is intentionally lighter th
 - `POST` `/api/shops/listings`
 - `POST` `/api/shops/purchase`
 - `POST` `/api/shops/actions`
-- `GET, POST` `/api/contracts`
+- `GET, POST` `/api/contracts` - list visible public/private/faction contracts and post escrow-backed public contracts, private assignments, or faction tasks.
 - `POST` `/api/contracts/:contractId/accept`
 - `POST` `/api/contracts/:contractId/complete`
 - `POST` `/api/contracts/:contractId/cancel`
@@ -81,6 +86,7 @@ This is the current human-readable API route map. It is intentionally lighter th
 - `POST` `/api/factions/:factionId/leave`
 - `PATCH` `/api/factions/:factionId/members`
 - `POST` `/api/factions/:factionId/bank`
+- `POST` `/api/factions/:factionId/inventory`
 - `GET` `/api/territories`
 - `POST` `/api/territories/actions`
 - `GET, POST` `/api/faction-wars`
@@ -191,6 +197,9 @@ Current high-risk coverage includes:
 - `POST /api/finance`
 - `POST /api/economy/sinks`
 - `POST /api/economy/loans`
+- `POST /api/inventory`
+- `POST /api/trades`
+- `POST /api/trades/:tradeOfferId`
 - `POST /api/admin/characters/:characterId/adjust`
 - `POST /api/admin/characters/:characterId/enforce`
 - `POST /api/enforcements/appeals`
@@ -215,7 +224,7 @@ Behavior:
 
 ## Mutation safety notes
 
-High-risk mutation routes should combine rate limiting, optional idempotency keys, and database-level conditional writes. First-pass conditional-write coverage includes market buy/sell, player bank deposits/withdrawals, money-sink purchases, loan funding/partial-repayment/full-payoff/default-state handling, shop listing creation/cancellation/purchase, shop ads, gambling wagers, jobs, crimes, contracts, finance trades, admin balance adjustments, and enforcement cash penalties.
+High-risk mutation routes should combine rate limiting, optional idempotency keys, and database-level conditional writes. First-pass conditional-write coverage includes market buy/sell, player bank deposits/withdrawals, money-sink purchases, loan funding/partial-repayment/full-payoff/default-state handling, player trade reservation/acceptance/cancellation, inventory consumable use/direct transfer, shop listing creation/cancellation/purchase, shop ads, gambling wagers, jobs, crimes, contracts, finance trades, admin balance adjustments, and enforcement cash penalties.
 
 Clients should send `Idempotency-Key` on retryable mutation requests. Server-side conditional writes are a second line of defense for concurrent requests and stale balance/resource reads.
 

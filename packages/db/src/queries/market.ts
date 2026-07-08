@@ -1,11 +1,19 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
+import {
+  buildMarketEventNewsArticle,
+  calculateMarketEventImpact,
+  hydrateMarketEventOccurrence,
+  scheduleMarketEventOccurrence,
+} from '@drugdeal/game';
 import { db } from '../client';
 import {
   characters,
   financialTransactions,
   inventoryItems,
   itemDefinitions,
+  marketEvents,
   marketPrices,
+  newspaperArticles,
   playerEvents,
 } from '../schema';
 import { assertActionUnlocked, refreshCharacterResources, setActionCooldown } from './action-state';
@@ -48,6 +56,243 @@ async function getLatestMarketPrice(tx: any, location: string, itemKey: string) 
     where: and(eq(marketPrices.location, location), eq(marketPrices.itemKey, itemKey)),
     orderBy: desc(marketPrices.createdAt),
   });
+}
+
+
+function normalizeMarketLocation(location?: string | null) {
+  const normalized = location?.trim().toLowerCase();
+  return normalized || 'starter-city';
+}
+
+function marketEventSlug(input: { eventId: string; eventKey: string; location: string; itemKey: string }) {
+  const base = [input.eventKey, input.location, input.itemKey]
+    .join('-')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+    .slice(0, 72);
+
+  return `${base || 'market-event'}-${input.eventId.slice(0, 8)}`;
+}
+
+export async function listMarketLocations() {
+  const rows = await db
+    .select({ location: marketPrices.location })
+    .from(marketPrices)
+    .groupBy(marketPrices.location);
+
+  return rows.map((row) => row.location).filter((location): location is string => Boolean(location));
+}
+
+export async function scheduleMarketEventsForLocation(input: { location?: string | null; now?: Date; seed?: string | number | null; cadenceHours?: number; limit?: number } = {}) {
+  const location = normalizeMarketLocation(input.location);
+  const now = input.now ?? new Date();
+  const market = await listMarketForLocation(location);
+  const limit = Math.min(Math.max(input.limit ?? market.length, 1), 25);
+  const scheduled = [];
+
+  for (const entry of market.slice(0, limit)) {
+    const occurrence = scheduleMarketEventOccurrence({
+      location,
+      itemKey: entry.itemKey,
+      now,
+      seed: input.seed ?? 'market-worker',
+      cadenceHours: input.cadenceHours,
+    });
+
+    if (!occurrence || occurrence.status === 'expired') {
+      continue;
+    }
+
+    const [row] = await db
+      .insert(marketEvents)
+      .values({
+        eventKey: occurrence.eventKey,
+        location: occurrence.location,
+        itemKey: occurrence.itemKey ?? entry.itemKey,
+        status: 'scheduled',
+        startsAt: occurrence.startsAt,
+        endsAt: occurrence.endsAt,
+        metadata: {
+          source: 'market_event_scheduler',
+          eventKind: occurrence.event.kind,
+          durationHours: occurrence.event.durationHours,
+          cadenceHours: input.cadenceHours ?? null,
+          supplyMultiplier: occurrence.event.supplyMultiplier,
+          demandMultiplier: occurrence.event.demandMultiplier,
+          volatilityDelta: occurrence.event.volatilityDelta,
+          riskDelta: occurrence.event.riskDelta,
+        },
+      })
+      .onConflictDoUpdate({
+        target: [marketEvents.eventKey, marketEvents.location, marketEvents.itemKey, marketEvents.startsAt],
+        set: {
+          endsAt: occurrence.endsAt,
+          updatedAt: sql`now()`,
+          metadata: sql`${marketEvents.metadata} || ${JSON.stringify({ lastScheduledAt: now.toISOString() })}::jsonb`,
+        },
+      })
+      .returning();
+
+    scheduled.push(row);
+  }
+
+  return scheduled;
+}
+
+export async function listActiveMarketEventsForLocation(location: string, now = new Date()) {
+  const normalizedLocation = normalizeMarketLocation(location);
+  const rows = await db.query.marketEvents.findMany({
+    where: and(
+      eq(marketEvents.location, normalizedLocation),
+      lte(marketEvents.startsAt, now),
+      gt(marketEvents.endsAt, now),
+    ),
+    orderBy: desc(marketEvents.startsAt),
+    limit: 25,
+  });
+
+  const activeEvents = await Promise.all(
+    rows.map(async (row) => {
+      const occurrence = hydrateMarketEventOccurrence({
+        eventKey: row.eventKey,
+        location: row.location,
+        itemKey: row.itemKey,
+        startsAt: row.startsAt,
+        endsAt: row.endsAt,
+        now,
+      });
+
+      if (!occurrence) {
+        return null;
+      }
+
+      const [item, price] = await Promise.all([
+        db.query.itemDefinitions.findFirst({ where: eq(itemDefinitions.key, row.itemKey) }),
+        getLatestMarketPrice(db, row.location, row.itemKey),
+      ]);
+      const impact = price
+        ? calculateMarketEventImpact({
+            basePrice: price.price,
+            supply: price.supply,
+            demand: price.demand,
+            volatility: 0,
+            eventKey: row.eventKey,
+          })
+        : null;
+
+      return {
+        id: row.id,
+        eventKey: row.eventKey,
+        location: row.location,
+        itemKey: row.itemKey,
+        startsAt: row.startsAt,
+        endsAt: row.endsAt,
+        status: occurrence.status,
+        event: occurrence.event,
+        item: item
+          ? {
+              key: item.key,
+              name: item.name,
+              category: item.category,
+              description: item.description,
+            }
+          : null,
+        impact,
+        publishedArticleId: row.publishedArticleId,
+      };
+    }),
+  );
+
+  return activeEvents.filter((event): event is Exclude<(typeof activeEvents)[number], null> => event !== null);
+}
+
+export async function publishActiveMarketEventArticles(input: { location?: string | null; now?: Date; limit?: number } = {}) {
+  const location = input.location ? normalizeMarketLocation(input.location) : null;
+  const now = input.now ?? new Date();
+  const limit = Math.min(Math.max(input.limit ?? 10, 1), 25);
+  const rows = await db.query.marketEvents.findMany({
+    where: location
+      ? and(eq(marketEvents.location, location), isNull(marketEvents.publishedArticleId), lte(marketEvents.startsAt, now), gt(marketEvents.endsAt, now))
+      : and(isNull(marketEvents.publishedArticleId), lte(marketEvents.startsAt, now), gt(marketEvents.endsAt, now)),
+    orderBy: desc(marketEvents.startsAt),
+    limit,
+  });
+
+  const published = [];
+
+  for (const row of rows) {
+    const occurrence = hydrateMarketEventOccurrence({
+      eventKey: row.eventKey,
+      location: row.location,
+      itemKey: row.itemKey,
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+      now,
+    });
+
+    if (!occurrence) {
+      continue;
+    }
+
+    const item = await db.query.itemDefinitions.findFirst({ where: eq(itemDefinitions.key, row.itemKey) });
+    const articlePayload = buildMarketEventNewsArticle({ occurrence, itemName: item?.name ?? row.itemKey });
+
+    const result = await db.transaction(async (tx) => {
+      const [article] = await tx
+        .insert(newspaperArticles)
+        .values({
+          authorCharacterId: null,
+          location: row.location,
+          category: articlePayload.category,
+          title: articlePayload.title,
+          slug: marketEventSlug({ eventId: row.id, eventKey: row.eventKey, location: row.location, itemKey: row.itemKey }),
+          excerpt: articlePayload.excerpt,
+          body: articlePayload.body,
+          visibility: 'public',
+          isPublished: true,
+          metadata: { ...articlePayload.metadata, marketEventId: row.id },
+        })
+        .returning();
+
+      const [updatedEvent] = await tx
+        .update(marketEvents)
+        .set({ publishedArticleId: article.id, status: 'published', updatedAt: sql`now()` })
+        .where(and(eq(marketEvents.id, row.id), isNull(marketEvents.publishedArticleId)))
+        .returning();
+
+      return { article, marketEvent: updatedEvent };
+    });
+
+    if (result.marketEvent) {
+      published.push(result);
+    }
+  }
+
+  return published;
+}
+
+export async function expireMarketEvents(now = new Date()) {
+  return db
+    .update(marketEvents)
+    .set({ status: 'expired', updatedAt: sql`now()` })
+    .where(and(lte(marketEvents.endsAt, now), eq(marketEvents.status, 'scheduled')))
+    .returning();
+}
+
+export async function runMarketEventTick(input: { now?: Date; seed?: string | number | null; cadenceHours?: number; locations?: string[] } = {}) {
+  const now = input.now ?? new Date();
+  const locations = input.locations?.length ? input.locations : await listMarketLocations();
+  const scheduled = [];
+
+  for (const location of locations.length ? locations : ['starter-city']) {
+    scheduled.push(...await scheduleMarketEventsForLocation({ location, now, seed: input.seed, cadenceHours: input.cadenceHours }));
+  }
+
+  const published = await publishActiveMarketEventArticles({ now });
+  const expired = await expireMarketEvents(now);
+
+  return { scheduled, published, expired };
 }
 
 export async function buyMarketItem(input: { userId: string; characterId: string; itemKey: string; quantity: number }) {

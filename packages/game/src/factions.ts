@@ -19,6 +19,10 @@ export function canWithdrawFactionFunds(role: FactionRole) {
   return factionRoleRank[role] >= factionRoleRank.underboss;
 }
 
+export function canManageFactionArmory(role: FactionRole) {
+  return factionRoleRank[role] >= factionRoleRank.lieutenant;
+}
+
 export function canSetFactionRole(actorRole: FactionRole, targetRole: FactionRole) {
   if (actorRole !== 'boss') {
     return false;
@@ -59,5 +63,29 @@ export function calculateTerritoryAction(input: {
       (input.action !== 'reinforce' || input.controlledByOwnFaction) &&
       (input.action !== 'claim' || input.isUncontrolled) &&
       (input.action !== 'attack' || !input.controlledByOwnFaction),
+  };
+}
+
+
+export type FactionInventoryAction = 'deposit' | 'withdraw';
+
+export function calculateFactionInventoryAction(input: {
+  action: FactionInventoryAction;
+  role: FactionRole;
+  quantity: number;
+  availableQuantity: number;
+}) {
+  const quantity = Math.max(1, Math.floor(input.quantity));
+  const availableQuantity = Math.max(0, Math.floor(input.availableQuantity));
+  const requiresArmoryAccess = input.action === 'withdraw';
+  const hasPermission = !requiresArmoryAccess || canManageFactionArmory(input.role);
+  const contributionPoints = input.action === 'deposit' ? quantity : 0;
+
+  return {
+    quantity,
+    cooldownSeconds: input.action === 'deposit' ? 20 : 45,
+    contributionPoints,
+    hasPermission,
+    canAttempt: hasPermission && availableQuantity >= quantity,
   };
 }

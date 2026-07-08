@@ -22,3 +22,4 @@ export * from './crafting';
 export * from './contacts';
 
 export * from './notifications';
+export * from './inventory';

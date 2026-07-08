@@ -80,11 +80,16 @@
     "validate:in-progress-closures": "node scripts/validate-in-progress-closures.mjs",
     "db:apply:runtime-repair": "pnpm --filter @drugdeal/db db:apply:runtime-repair",
     "db:apply:loans": "pnpm --filter @drugdeal/db db:apply:loans",
-    "db:apply:loan-defaulting": "pnpm --filter @drugdeal/db db:apply:loan-defaulting"
+    "db:apply:loan-defaulting": "pnpm --filter @drugdeal/db db:apply:loan-defaulting",
+    "db:apply:market-events": "pnpm --filter @drugdeal/db db:apply:market-events",
+    "db:apply:player-trades": "pnpm --filter @drugdeal/db db:apply:player-trades",
+    "db:apply:progression-timers": "pnpm --filter @drugdeal/db db:apply:progression-timers",
+    "db:apply:inventory-actions": "pnpm --filter @drugdeal/db db:apply:inventory-actions",
+    "db:apply:all": "pnpm --filter @drugdeal/db db:apply:all",
+    "db:apply:faction-armory": "pnpm --filter @drugdeal/db db:apply:faction-armory"
   },
   "devDependencies": {
     "@types/node": "latest",
-    "eslint": "latest",
     "prettier": "latest",
     "typescript": "latest",
     "tsx": "latest"

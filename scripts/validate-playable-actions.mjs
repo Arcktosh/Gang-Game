@@ -28,6 +28,7 @@ const requiredPageActions = [
   ['legal', 'apps/web/src/app/(game)/legal/page.tsx', ['/api/legal/lawyer', '/api/legal/bribe', '/api/legal/hospital']],
   ['market', 'apps/web/src/app/(game)/market/page.tsx', ['/api/market', "action: 'buy'", "action: 'sell'"]],
   ['shops', 'apps/web/src/app/(game)/shops/page.tsx', ['/api/shops/purchase', '/api/shops/actions', '/api/shops/listings']],
+  ['contracts', 'apps/web/src/app/(game)/contracts/page.tsx', ['/api/contracts', '/accept', '/complete', '/cancel']],
   ['messages', 'apps/web/src/app/(game)/messages/page.tsx', ['/api/messages', "action: 'send'", 'recipientCharacterId']],
   ['factions', 'apps/web/src/app/(game)/factions/page.tsx', ['/api/factions', '/join', '/leave']],
 ];

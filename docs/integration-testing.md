@@ -24,39 +24,11 @@ RUN_DB_INTEGRATION_TESTS=true
 pnpm install
 docker compose up -d
 createdb drugdeal_game_test || true
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:initial
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:seed
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:auth
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:progression
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:gameplay
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:risk
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:legal
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:factions
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:shops
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:finance
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:gambling
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:contracts
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:achievements
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:seasons
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:admin
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:pvp
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:equipment
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:vehicles
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:crafting
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:contacts
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:notifications
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:messages
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:newspaper-social
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:shop-ops
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:moderation
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:enforcement
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:enforcement-ops
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:idempotency
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:hardening
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:admin-roles
-DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:job-lifecycle
+DATABASE_URL=$TEST_DATABASE_URL pnpm db:apply:all
 RUN_DB_INTEGRATION_TESTS=true TEST_DATABASE_URL=$TEST_DATABASE_URL pnpm test:integration
 ```
+
+`pnpm db:apply:all` records applied SQL files in `schema_migrations`, validates migration checksums, and applies newly added migration scripts automatically in filename order.
 
 The same path is available as a proof helper:
 

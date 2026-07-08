@@ -1,4 +1,9 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, lte, sql } from 'drizzle-orm';
+import {
+  calculateTimedProgressionPlan,
+  evaluateCourseRequirements,
+  summarizeProgressionQueue,
+} from '@drugdeal/game';
 import { db } from '../client';
 import {
   characters,
@@ -15,6 +20,11 @@ const courseStats = ['intelligence', 'labour', 'endurance'] as const;
 
 type TrainableStat = (typeof trainableStats)[number];
 type CourseStat = (typeof courseStats)[number];
+type Tx = any;
+
+type CharacterRow = typeof characters.$inferSelect;
+type TrainingSessionRow = typeof trainingSessions.$inferSelect;
+type CourseEnrollmentRow = typeof courseEnrollments.$inferSelect;
 
 function isTrainableStat(value: string): value is TrainableStat {
   return trainableStats.includes(value as TrainableStat);
@@ -22,6 +32,22 @@ function isTrainableStat(value: string): value is TrainableStat {
 
 function isCourseStat(value: string): value is CourseStat {
   return courseStats.includes(value as CourseStat);
+}
+
+function statValue(character: CharacterRow, stat: TrainableStat | CourseStat) {
+  return Math.max(0, Number(character[stat] ?? 0));
+}
+
+function nextExperienceSql(experienceGain: number) {
+  return sql`greatest(0, ${characters.experience} + ${Math.max(0, Math.floor(experienceGain))})`;
+}
+
+function nextLevelSql(experienceGain: number) {
+  return sql`greatest(1, floor(sqrt((${nextExperienceSql(experienceGain)}) / 100.0))::integer + 1)`;
+}
+
+function nextMaxNerveSql(experienceGain: number) {
+  return sql`greatest(${characters.maxNerve}, 20 + (${nextLevelSql(experienceGain)} - 1))`;
 }
 
 export async function listTrainingActivities() {
@@ -60,16 +86,23 @@ export async function completeTraining(input: { userId: string; characterId: str
       return { ok: false as const, code: 'not_found', message: 'Training activity not found.' };
     }
 
-    if (refreshedCharacter.energy < activity.energyCost) {
+    if (!isTrainableStat(activity.stat)) {
+      return { ok: false as const, code: 'server_error', message: 'Unsupported training stat.' };
+    }
+
+    const plan = calculateTimedProgressionPlan({
+      baseEnergyCost: activity.energyCost,
+      baseCashCost: activity.cashCost,
+      baseDurationSeconds: activity.durationSeconds,
+      currentStat: statValue(refreshedCharacter, activity.stat),
+    });
+
+    if (refreshedCharacter.energy < plan.energyCost) {
       return { ok: false as const, code: 'forbidden', message: 'Not enough energy.' };
     }
 
-    if (refreshedCharacter.cash < activity.cashCost) {
+    if (refreshedCharacter.cash < plan.cashCost) {
       return { ok: false as const, code: 'forbidden', message: 'Not enough cash.' };
-    }
-
-    if (!isTrainableStat(activity.stat)) {
-      return { ok: false as const, code: 'server_error', message: 'Unsupported training stat.' };
     }
 
     const [session] = await tx
@@ -77,21 +110,20 @@ export async function completeTraining(input: { userId: string; characterId: str
       .values({
         characterId: refreshedCharacter.id,
         activityKey: activity.key,
+        status: 'scheduled',
         stat: activity.stat,
         statGain: activity.statGain,
-        energyCost: activity.energyCost,
-        cashCost: activity.cashCost,
-        completedAt: sql`now()`,
+        energyCost: plan.energyCost,
+        cashCost: plan.cashCost,
+        dueAt: plan.dueAt,
       })
       .returning();
 
     const [updatedCharacter] = await tx
       .update(characters)
       .set({
-        [activity.stat]: refreshedCharacter[activity.stat] + activity.statGain,
-        cash: refreshedCharacter.cash - activity.cashCost,
-        energy: refreshedCharacter.energy - activity.energyCost,
-        experience: refreshedCharacter.experience + activity.experienceGain,
+        cash: refreshedCharacter.cash - plan.cashCost,
+        energy: refreshedCharacter.energy - plan.energyCost,
         updatedAt: sql`now()`,
       })
       .where(eq(characters.id, refreshedCharacter.id))
@@ -100,14 +132,15 @@ export async function completeTraining(input: { userId: string; characterId: str
     await tx.insert(playerEvents).values({
       userId: input.userId,
       characterId: refreshedCharacter.id,
-      type: 'training_completed',
+      type: 'training_started',
       payload: {
         activityKey: activity.key,
         activityName: activity.name,
         stat: activity.stat,
         statGain: activity.statGain,
-        energyCost: activity.energyCost,
-        cashCost: activity.cashCost,
+        energyCost: plan.energyCost,
+        cashCost: plan.cashCost,
+        dueAt: plan.dueAt.toISOString(),
       },
     });
 
@@ -115,11 +148,11 @@ export async function completeTraining(input: { userId: string; characterId: str
       tx,
       characterId: refreshedCharacter.id,
       actionType: 'training',
-      cooldownSeconds: activity.durationSeconds,
-      metadata: { activityKey: activity.key },
+      cooldownSeconds: plan.durationSeconds,
+      metadata: { activityKey: activity.key, sessionId: session.id, dueAt: plan.dueAt.toISOString() },
     });
 
-    return { ok: true as const, data: { session, character: updatedCharacter, lock } };
+    return { ok: true as const, data: { session, character: updatedCharacter, lock, dueAt: plan.dueAt } };
   });
 }
 
@@ -151,16 +184,37 @@ export async function completeCourse(input: { userId: string; characterId: strin
       return { ok: false as const, code: 'not_found', message: 'Course not found.' };
     }
 
-    if (refreshedCharacter.energy < course.energyCost) {
+    if (!isCourseStat(course.stat)) {
+      return { ok: false as const, code: 'server_error', message: 'Unsupported course stat.' };
+    }
+
+    const completedCourses = await tx.query.courseEnrollments.findMany({
+      where: and(eq(courseEnrollments.characterId, refreshedCharacter.id), eq(courseEnrollments.status, 'completed')),
+    });
+    const requirement = evaluateCourseRequirements({
+      characterLevel: refreshedCharacter.level,
+      completedCourseKeys: completedCourses.map((enrollment: CourseEnrollmentRow) => enrollment.courseKey),
+      requiredLevel: course.requiredLevel,
+      prerequisiteCourseKey: course.prerequisiteCourseKey,
+    });
+
+    if (!requirement.ok) {
+      return { ok: false as const, code: requirement.code, message: requirement.message };
+    }
+
+    const plan = calculateTimedProgressionPlan({
+      baseEnergyCost: course.energyCost,
+      baseCashCost: course.cashCost,
+      baseDurationSeconds: course.durationSeconds,
+      currentStat: statValue(refreshedCharacter, course.stat),
+    });
+
+    if (refreshedCharacter.energy < plan.energyCost) {
       return { ok: false as const, code: 'forbidden', message: 'Not enough energy.' };
     }
 
-    if (refreshedCharacter.cash < course.cashCost) {
+    if (refreshedCharacter.cash < plan.cashCost) {
       return { ok: false as const, code: 'forbidden', message: 'Not enough cash.' };
-    }
-
-    if (!isCourseStat(course.stat)) {
-      return { ok: false as const, code: 'server_error', message: 'Unsupported course stat.' };
     }
 
     const [enrollment] = await tx
@@ -168,21 +222,20 @@ export async function completeCourse(input: { userId: string; characterId: strin
       .values({
         characterId: refreshedCharacter.id,
         courseKey: course.key,
+        status: 'scheduled',
         stat: course.stat,
         statGain: course.statGain,
-        cashCost: course.cashCost,
-        energyCost: course.energyCost,
-        completedAt: sql`now()`,
+        cashCost: plan.cashCost,
+        energyCost: plan.energyCost,
+        dueAt: plan.dueAt,
       })
       .returning();
 
     const [updatedCharacter] = await tx
       .update(characters)
       .set({
-        [course.stat]: refreshedCharacter[course.stat] + course.statGain,
-        cash: refreshedCharacter.cash - course.cashCost,
-        energy: refreshedCharacter.energy - course.energyCost,
-        experience: refreshedCharacter.experience + course.experienceGain,
+        cash: refreshedCharacter.cash - plan.cashCost,
+        energy: refreshedCharacter.energy - plan.energyCost,
         updatedAt: sql`now()`,
       })
       .where(eq(characters.id, refreshedCharacter.id))
@@ -191,14 +244,15 @@ export async function completeCourse(input: { userId: string; characterId: strin
     await tx.insert(playerEvents).values({
       userId: input.userId,
       characterId: refreshedCharacter.id,
-      type: 'course_completed',
+      type: 'course_started',
       payload: {
         courseKey: course.key,
         courseName: course.name,
         stat: course.stat,
         statGain: course.statGain,
-        energyCost: course.energyCost,
-        cashCost: course.cashCost,
+        energyCost: plan.energyCost,
+        cashCost: plan.cashCost,
+        dueAt: plan.dueAt.toISOString(),
       },
     });
 
@@ -206,11 +260,155 @@ export async function completeCourse(input: { userId: string; characterId: strin
       tx,
       characterId: refreshedCharacter.id,
       actionType: 'education',
-      cooldownSeconds: course.durationSeconds,
-      metadata: { courseKey: course.key },
+      cooldownSeconds: plan.durationSeconds,
+      metadata: { courseKey: course.key, enrollmentId: enrollment.id, dueAt: plan.dueAt.toISOString() },
     });
 
-    return { ok: true as const, data: { enrollment, character: updatedCharacter, lock } };
+    return { ok: true as const, data: { enrollment, character: updatedCharacter, lock, dueAt: plan.dueAt } };
+  });
+}
+
+async function completeTrainingSession(tx: Tx, session: TrainingSessionRow) {
+  if (!isTrainableStat(session.stat)) {
+    await tx.update(trainingSessions).set({ status: 'cancelled' }).where(eq(trainingSessions.id, session.id));
+    return null;
+  }
+
+  const character = await tx.query.characters.findFirst({ where: eq(characters.id, session.characterId) });
+
+  if (!character) {
+    await tx.update(trainingSessions).set({ status: 'cancelled' }).where(eq(trainingSessions.id, session.id));
+    return null;
+  }
+
+  const [updatedCharacter] = await tx
+    .update(characters)
+    .set({
+      [session.stat]: sql`${characters[session.stat]} + ${session.statGain}`,
+      experience: nextExperienceSql(Math.max(1, session.statGain * 2)),
+      level: nextLevelSql(Math.max(1, session.statGain * 2)),
+      maxNerve: nextMaxNerveSql(Math.max(1, session.statGain * 2)),
+      nerve: sql`least(${characters.nerve}, ${nextMaxNerveSql(Math.max(1, session.statGain * 2))})`,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(characters.id, session.characterId))
+    .returning();
+
+  const [updatedSession] = await tx
+    .update(trainingSessions)
+    .set({ status: 'completed', completedAt: sql`now()` })
+    .where(and(eq(trainingSessions.id, session.id), eq(trainingSessions.status, 'scheduled')))
+    .returning();
+
+  if (updatedCharacter && updatedSession) {
+    await tx.insert(playerEvents).values({
+      userId: character.userId,
+      characterId: character.id,
+      type: 'training_completed',
+      payload: {
+        activityKey: session.activityKey,
+        stat: session.stat,
+        statGain: session.statGain,
+        sessionId: session.id,
+      },
+    });
+  }
+
+  return updatedSession ?? null;
+}
+
+async function completeCourseEnrollment(tx: Tx, enrollment: CourseEnrollmentRow) {
+  if (!isCourseStat(enrollment.stat)) {
+    await tx.update(courseEnrollments).set({ status: 'cancelled' }).where(eq(courseEnrollments.id, enrollment.id));
+    return null;
+  }
+
+  const [character, course] = await Promise.all([
+    tx.query.characters.findFirst({ where: eq(characters.id, enrollment.characterId) }),
+    tx.query.courseDefinitions.findFirst({ where: eq(courseDefinitions.key, enrollment.courseKey) }),
+  ]);
+
+  if (!character || !course) {
+    await tx.update(courseEnrollments).set({ status: 'cancelled' }).where(eq(courseEnrollments.id, enrollment.id));
+    return null;
+  }
+
+  const experienceGain = Math.max(1, course.experienceGain);
+  const [updatedCharacter] = await tx
+    .update(characters)
+    .set({
+      [enrollment.stat]: sql`${characters[enrollment.stat]} + ${enrollment.statGain}`,
+      experience: nextExperienceSql(experienceGain),
+      level: nextLevelSql(experienceGain),
+      maxNerve: nextMaxNerveSql(experienceGain),
+      nerve: sql`least(${characters.nerve}, ${nextMaxNerveSql(experienceGain)})`,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(characters.id, enrollment.characterId))
+    .returning();
+
+  const [updatedEnrollment] = await tx
+    .update(courseEnrollments)
+    .set({ status: 'completed', completedAt: sql`now()` })
+    .where(and(eq(courseEnrollments.id, enrollment.id), eq(courseEnrollments.status, 'scheduled')))
+    .returning();
+
+  if (updatedCharacter && updatedEnrollment) {
+    await tx.insert(playerEvents).values({
+      userId: character.userId,
+      characterId: character.id,
+      type: 'course_completed',
+      payload: {
+        courseKey: enrollment.courseKey,
+        courseName: course.name,
+        stat: enrollment.stat,
+        statGain: enrollment.statGain,
+        enrollmentId: enrollment.id,
+      },
+    });
+  }
+
+  return updatedEnrollment ?? null;
+}
+
+export async function completeDueProgression(limit = 50) {
+  return db.transaction(async (tx) => {
+    const batchSize = Math.max(1, Math.min(250, Math.floor(limit)));
+    const [trainingDue, coursesDue] = await Promise.all([
+      tx.query.trainingSessions.findMany({
+        where: and(eq(trainingSessions.status, 'scheduled'), lte(trainingSessions.dueAt, sql`now()`)),
+        orderBy: asc(trainingSessions.dueAt),
+        limit: batchSize,
+      }),
+      tx.query.courseEnrollments.findMany({
+        where: and(eq(courseEnrollments.status, 'scheduled'), lte(courseEnrollments.dueAt, sql`now()`)),
+        orderBy: asc(courseEnrollments.dueAt),
+        limit: batchSize,
+      }),
+    ]);
+
+    let completedTraining = 0;
+    let completedCourses = 0;
+
+    for (const session of trainingDue as TrainingSessionRow[]) {
+      const completed = await completeTrainingSession(tx, session);
+      if (completed) {
+        completedTraining += 1;
+      }
+    }
+
+    for (const enrollment of coursesDue as CourseEnrollmentRow[]) {
+      const completed = await completeCourseEnrollment(tx, enrollment);
+      if (completed) {
+        completedCourses += 1;
+      }
+    }
+
+    return {
+      completedTraining,
+      completedCourses,
+      processed: completedTraining + completedCourses,
+    };
   });
 }
 
@@ -228,5 +426,5 @@ export async function listCharacterProgression(characterId: string) {
     }),
   ]);
 
-  return { training, courses };
+  return { training, courses, queue: summarizeProgressionQueue({ training, courses }) };
 }

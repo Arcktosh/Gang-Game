@@ -39,6 +39,7 @@ type GameActionFormProps = {
   disabledReason?: ReactNode;
   cooldown?: ActionCooldown;
   hidden?: boolean;
+  method?: 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 };
 
 function createIdempotencyKey(endpoint: string) {
@@ -84,6 +85,7 @@ export function GameActionForm({
   disabledReason,
   cooldown = null,
   hidden = false,
+  method = 'POST',
 }: GameActionFormProps) {
   const router = useRouter();
   const toast = useToast();
@@ -138,7 +140,7 @@ export function GameActionForm({
     setIsPending(true);
     try {
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method,
         headers: {
           'content-type': 'application/json',
           ...(idempotent ? { 'idempotency-key': createIdempotencyKey(endpoint) } : {}),

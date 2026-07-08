@@ -1,4 +1,4 @@
-import { buyMarketItem, listMarketForLocation, sellMarketItem } from '@drugdeal/db';
+import { buyMarketItem, listActiveMarketEventsForLocation, listMarketForLocation, sellMarketItem } from '@drugdeal/db';
 import { marketActionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { withIdempotency } from '@/lib/idempotency';
@@ -9,8 +9,11 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 export async function GET(request: NextRequest) {
   return withApiObservability(request, async () => {
     const location = request.nextUrl.searchParams.get('location') ?? 'starter-city';
-    const market = await listMarketForLocation(location);
-    return jsonOk({ location, market });
+    const [market, activeEvents] = await Promise.all([
+      listMarketForLocation(location),
+      listActiveMarketEventsForLocation(location),
+    ]);
+    return jsonOk({ location, market, activeEvents });
   });
 }
 

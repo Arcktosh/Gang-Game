@@ -50,7 +50,13 @@
     "db:apply:runtime-repair": "tsx scripts/run-sql-file.ts drizzle/0033_runtime_schema_repair.sql",
     "db:apply:loans": "tsx scripts/run-sql-file.ts drizzle/0034_character_loans.sql",
     "db:apply:loan-defaulting": "tsx scripts/run-sql-file.ts drizzle/0035_loan_defaulting.sql",
-    "db:prepare:mvp-proof": "tsx scripts/prepare-mvp-proof-database.ts"
+    "db:apply:market-events": "tsx scripts/run-sql-file.ts drizzle/0036_market_events.sql",
+    "db:prepare:mvp-proof": "tsx scripts/prepare-mvp-proof-database.ts",
+    "db:apply:player-trades": "tsx scripts/run-sql-file.ts drizzle/0037_player_trade_offers.sql",
+    "db:apply:progression-timers": "tsx scripts/run-sql-file.ts drizzle/0038_progression_timers.sql",
+    "db:apply:inventory-actions": "tsx scripts/run-sql-file.ts drizzle/0039_inventory_item_actions.sql",
+    "db:apply:all": "tsx scripts/apply-migrations.ts",
+    "db:apply:faction-armory": "tsx scripts/run-sql-file.ts drizzle/0040_faction_armory.sql"
   },
   "dependencies": {
     "drizzle-orm": "latest",
@@ -58,6 +64,7 @@
     "@drugdeal/game": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^26.1.0",
     "drizzle-kit": "latest",
     "typescript": "latest",
     "tsx": "latest"

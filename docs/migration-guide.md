@@ -9,6 +9,27 @@ pnpm install
 cp .env.example .env
 docker compose up -d
 
+pnpm db:apply:all
+```
+
+`pnpm db:apply:all` runs every SQL file under `packages/db/drizzle` in filename order, records successful files in `schema_migrations`, and skips files already recorded on later runs. This is the preferred migration command for local proof, staging, and production-like deployments.
+
+## Existing databases created with the older one-script-at-a-time flow
+
+The new runner tracks migrations by filename and checksum. For a database that was already migrated before `schema_migrations` existed, first baseline the migrations that are already present, then run the normal apply command for newer files. Example for a database known to be current through `0039_inventory_item_actions.sql`:
+
+```bash
+DB_MIGRATIONS_BASELINE_THROUGH=0039 pnpm --filter @drugdeal/db db:apply:all
+pnpm db:apply:all
+```
+
+Do not baseline beyond the last migration you have actually applied. If a checksum mismatch is reported, inspect the SQL drift manually before setting `DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH=true`.
+
+## Legacy single-file application order
+
+The individual scripts remain available for targeted repair, but the idempotent all-migration runner should be used for normal setup. The historical manual order was:
+
+```bash
 pnpm db:apply:initial
 pnpm db:apply:auth
 pnpm db:apply:progression
@@ -45,6 +66,11 @@ pnpm db:apply:auth-recovery
 pnpm db:apply:runtime-repair
 pnpm db:apply:loans
 pnpm db:apply:loan-defaulting
+pnpm db:apply:market-events
+pnpm db:apply:player-trades
+pnpm db:apply:progression-timers
+pnpm db:apply:inventory-actions
+
 ```
 
 ## Migration map
@@ -87,11 +113,16 @@ pnpm db:apply:loan-defaulting
 | `db:apply:runtime-repair` | `0033_runtime_schema_repair.sql` | Runtime schema compatibility repairs for installed MVP proof |
 | `db:apply:loans` | `0034_character_loans.sql` | Character loan ledger, status indexes, and one-active-loan guard |
 | `db:apply:loan-defaulting` | `0035_loan_defaulting.sql` | Loan default worker indexes and one-unresolved-loan guard |
+| `db:apply:market-events` | `0036_market_events.sql` | Market event scheduling, publishing, and active-event lookup |
+| `db:apply:player-trades` | `0037_player_trade_offers.sql` | Reserved-inventory player-to-player trade offers |
+| `db:apply:progression-timers` | `0038_progression_timers.sql` | Timed training/course completions and course prerequisites |
+| `db:apply:inventory-actions` | `0039_inventory_item_actions.sql` | Item rarity enum, rarity backfill, and consumable metadata |
+| `db:apply:faction-armory` | `0040_faction_armory.sql` | Faction armory storage and stock indexes |
 
 ## Notes
 
-- The migration scripts currently apply raw SQL files directly. They are convenient for local development, but a production deployment should use a single managed migration flow.
-- The current SQL files are incremental. Apply them in order on a fresh database.
+- `pnpm db:apply:all` is the managed migration flow for this repository and records applied files in `schema_migrations`.
+- The current SQL files are incremental and are applied in filename order by the all-migration runner.
 - Some older README snippets were shorter than the current migration chain. This guide supersedes those snippets.
 
 
@@ -102,7 +133,7 @@ Feature Pass 56 confirms the root workspace exposes `pnpm db:apply:admin-roles` 
 
 ## Feature Pass 56 runtime proof
 
-The full migration and seed chain above is now encoded in `scripts/prove-mvp-runtime.mjs` and can be executed with `pnpm prove:mvp-runtime` in a fully installed environment.
+The runtime proof now uses the idempotent `pnpm db:apply:all` migration runner and can be executed with `pnpm prove:mvp-runtime` in a fully installed environment.
 
 
 ## Feature Pass 55 integration proof
@@ -131,3 +162,30 @@ Feature Pass 70 adds `0034_character_loans.sql` and `pnpm db:apply:loans`. Apply
 ## Feature Pass 71 loan defaulting
 
 Feature Pass 71 adds `0035_loan_defaulting.sql` and `pnpm db:apply:loan-defaulting`. Apply it after `pnpm db:apply:loans`.
+
+
+## Feature Pass 78 market events
+
+Feature Pass 78 adds `0036_market_events.sql` and `pnpm db:apply:market-events`. Apply it after `pnpm db:apply:loan-defaulting`.
+
+## Feature Pass 79 player trades
+
+Feature Pass 79 adds `0037_player_trade_offers.sql` and `pnpm db:apply:player-trades`. Apply it after `pnpm db:apply:market-events`.
+
+
+## Feature Pass 81 progression timers
+
+Feature Pass 81 adds `0038_progression_timers.sql` and `pnpm db:apply:progression-timers`. Apply it after `pnpm db:apply:player-trades`.
+
+## Feature Pass 82 inventory item actions
+
+Feature Pass 82 adds `0039_inventory_item_actions.sql` and `pnpm db:apply:inventory-actions`. Apply it after `pnpm db:apply:progression-timers`.
+
+
+## Feature Pass 84 idempotent migration runner
+
+Feature Pass 84 adds `packages/db/scripts/apply-migrations.ts`, `pnpm db:apply:all`, checksum validation, `schema_migrations` tracking, and `DB_MIGRATIONS_BASELINE_THROUGH` support for databases that were previously migrated with the legacy one-script-at-a-time flow.
+
+## Feature Pass 85 faction armory
+
+Feature Pass 85 adds `0040_faction_armory.sql` and `pnpm db:apply:faction-armory`. Apply it after `pnpm db:apply:inventory-actions`, or prefer `pnpm db:apply:all` so the migration runner applies only migrations not yet recorded in `schema_migrations`.

@@ -53,6 +53,26 @@ if (!rootPackage.scripts?.['validate:static']?.includes('pnpm validate:runtime-p
   errors.push('package.json validate:static must include pnpm validate:runtime-proof.');
 }
 
+if (!exists('packages/db/scripts/apply-migrations.ts')) {
+  errors.push('packages/db/scripts/apply-migrations.ts is missing.');
+} else {
+  const migrationRunner = read('packages/db/scripts/apply-migrations.ts');
+  for (const term of ['schema_migrations', 'DB_MIGRATIONS_BASELINE_THROUGH', 'DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH', 'sha256']) {
+    if (!migrationRunner.includes(term)) {
+      errors.push(`packages/db/scripts/apply-migrations.ts must include ${term}.`);
+    }
+  }
+}
+
+if (!rootPackage.scripts?.['db:apply:all']) {
+  errors.push('package.json is missing db:apply:all.');
+}
+
+const dbPackage = json('packages/db/package.json');
+if (!dbPackage.scripts?.['db:apply:all']?.includes('apply-migrations.ts')) {
+  errors.push('packages/db/package.json db:apply:all must run scripts/apply-migrations.ts.');
+}
+
 if (!exists('scripts/prove-mvp-runtime.mjs')) {
   errors.push('scripts/prove-mvp-runtime.mjs is missing.');
 } else {
@@ -65,11 +85,7 @@ if (!exists('scripts/prove-mvp-runtime.mjs')) {
     'pnpm install',
     'docker',
     'compose',
-    'db:apply:initial',
-    'db:apply:admin-roles',
-    'db:apply:job-lifecycle',
-    'db:apply:monetization',
-    'db:apply:loan-defaulting',
+    'db:apply:all',
     'validate:static',
     'typecheck',
     'test',
@@ -87,10 +103,8 @@ if (!exists('scripts/prove-mvp-runtime.mjs')) {
     }
   }
 
-  const migrationMatches = [...proofScript.matchAll(/'db:apply:[^']+'|'db:seed'/g)].map((match) => match[0].replaceAll("'", ''));
-  const uniqueMigrationCommands = new Set(migrationMatches);
-  if (uniqueMigrationCommands.size < 36) {
-    errors.push(`scripts/prove-mvp-runtime.mjs should include the full 36-step migration/seed chain, found ${uniqueMigrationCommands.size}.`);
+  if (!proofScript.includes("'db:apply:all'")) {
+    errors.push('scripts/prove-mvp-runtime.mjs should use the idempotent db:apply:all migration runner.');
   }
 }
 

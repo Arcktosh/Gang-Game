@@ -18,6 +18,7 @@ export const adminRole = pgEnum('admin_role', ['none', 'support', 'moderator', '
 export const characterStatus = pgEnum('character_status', ['free', 'traveling', 'jailed', 'hospitalized']);
 export const eventVisibility = pgEnum('event_visibility', ['private', 'faction', 'public', 'admin']);
 export const itemCategory = pgEnum('item_category', ['drug', 'gear', 'weapon', 'armor', 'vehicle', 'tool', 'medical', 'collectible']);
+export const itemRarity = pgEnum('item_rarity', ['common', 'uncommon', 'rare', 'epic', 'legendary']);
 export const transactionType = pgEnum('transaction_type', ['cash', 'bank', 'stock', 'crypto', 'shop', 'system']);
 export const travelStatus = pgEnum('travel_status', ['scheduled', 'completed', 'cancelled', 'intercepted']);
 export const messageThreadType = pgEnum('message_thread_type', ['direct', 'group', 'faction']);
@@ -231,6 +232,7 @@ export const itemDefinitions = pgTable('item_definitions', {
   basePrice: integer('base_price').notNull(),
   baseRisk: integer('base_risk').notNull().default(0),
   isIllegal: boolean('is_illegal').notNull().default(false),
+  rarity: itemRarity('rarity').notNull().default('common'),
   equipSlot: equipmentSlot('equip_slot'),
   maxDurability: integer('max_durability').notNull().default(0),
   statModifiers: jsonb('stat_modifiers').notNull().default({}),
@@ -303,6 +305,62 @@ export const marketPrices = pgTable(
   }),
 );
 
+export const marketEvents = pgTable(
+  'market_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventKey: text('event_key').notNull(),
+    location: text('location').notNull(),
+    itemKey: text('item_key')
+      .notNull()
+      .references(() => itemDefinitions.key, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('scheduled'),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    publishedArticleId: uuid('published_article_id').references(() => newspaperArticles.id, { onDelete: 'set null' }),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    eventLocationItemStartsUnique: uniqueIndex('market_events_event_location_item_starts_unique').on(table.eventKey, table.location, table.itemKey, table.startsAt),
+    locationWindowIdx: index('market_events_location_window_idx').on(table.location, table.startsAt, table.endsAt),
+    statusWindowIdx: index('market_events_status_window_idx').on(table.status, table.startsAt, table.endsAt),
+    publishedArticleIdx: index('market_events_published_article_idx').on(table.publishedArticleId),
+  }),
+);
+
+export const playerTradeOffers = pgTable(
+  'player_trade_offers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sellerCharacterId: uuid('seller_character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    buyerCharacterId: uuid('buyer_character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    itemKey: text('item_key')
+      .notNull()
+      .references(() => itemDefinitions.key, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    priceEach: integer('price_each').notNull(),
+    status: text('status').notNull().default('open'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    sellerStatusCreatedIdx: index('player_trade_offers_seller_status_created_idx').on(table.sellerCharacterId, table.status, table.createdAt),
+    buyerStatusCreatedIdx: index('player_trade_offers_buyer_status_created_idx').on(table.buyerCharacterId, table.status, table.createdAt),
+    statusExpiresIdx: index('player_trade_offers_status_expires_idx').on(table.status, table.expiresAt),
+    itemStatusIdx: index('player_trade_offers_item_status_idx').on(table.itemKey, table.status),
+  }),
+);
+
 export const jobDefinitions = pgTable('job_definitions', {
   key: text('key').primaryKey(),
   name: text('name').notNull(),
@@ -326,6 +384,7 @@ export const jobRuns = pgTable(
       .references(() => jobDefinitions.key),
     payout: integer('payout').notNull(),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    dueAt: timestamp('due_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
@@ -719,6 +778,29 @@ export const factionMembers = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.factionId, table.characterId] }),
     characterIdx: index('faction_members_character_idx').on(table.characterId),
+  }),
+);
+
+
+export const factionInventoryItems = pgTable(
+  'faction_inventory_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    factionId: uuid('faction_id')
+      .notNull()
+      .references(() => factions.id, { onDelete: 'cascade' }),
+    itemKey: text('item_key')
+      .notNull()
+      .references(() => itemDefinitions.key, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull().default(0),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    factionItemUnique: uniqueIndex('faction_inventory_items_faction_item_unique').on(table.factionId, table.itemKey),
+    factionUpdatedIdx: index('faction_inventory_items_faction_updated_idx').on(table.factionId, table.updatedAt),
+    itemIdx: index('faction_inventory_items_item_idx').on(table.itemKey),
   }),
 );
 
@@ -1142,10 +1224,12 @@ export const trainingSessions = pgTable(
     energyCost: integer('energy_cost').notNull().default(0),
     cashCost: integer('cash_cost').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    dueAt: timestamp('due_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
     characterStartedAtIdx: index('training_sessions_character_started_at_idx').on(table.characterId, table.startedAt),
+    statusDueAtIdx: index('training_sessions_status_due_at_idx').on(table.status, table.dueAt),
   }),
 );
 
@@ -1159,6 +1243,8 @@ export const courseDefinitions = pgTable('course_definitions', {
   statGain: integer('stat_gain').notNull().default(1),
   experienceGain: integer('experience_gain').notNull().default(5),
   durationSeconds: integer('duration_seconds').notNull().default(7200),
+  requiredLevel: integer('required_level').notNull().default(1),
+  prerequisiteCourseKey: text('prerequisite_course_key'),
 });
 
 export const courseEnrollments = pgTable(
@@ -1177,10 +1263,12 @@ export const courseEnrollments = pgTable(
     cashCost: integer('cash_cost').notNull().default(0),
     energyCost: integer('energy_cost').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    dueAt: timestamp('due_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
     characterStartedAtIdx: index('course_enrollments_character_started_at_idx').on(table.characterId, table.startedAt),
+    statusDueAtIdx: index('course_enrollments_status_due_at_idx').on(table.status, table.dueAt),
   }),
 );
 
@@ -2261,6 +2349,8 @@ export const charactersRelations = relations(characters, ({ one, many }) => ({
   enforcementAppeals: many(enforcementAppeals),
   contacts: many(characterContacts),
   contactAssignments: many(contactAssignments),
+  tradeOffersCreated: many(playerTradeOffers, { relationName: 'tradeSeller' }),
+  tradeOffersReceived: many(playerTradeOffers, { relationName: 'tradeBuyer' }),
 }));
 
 
@@ -2274,6 +2364,15 @@ export const itemDefinitionsRelations = relations(itemDefinitions, ({ many }) =>
   craftingJobInputs: many(craftingJobInputs),
   shopListings: many(shopListings),
   marketPrices: many(marketPrices),
+  marketEvents: many(marketEvents),
+  playerTradeOffers: many(playerTradeOffers),
+  factionInventoryItems: many(factionInventoryItems),
+}));
+
+
+export const factionInventoryItemsRelations = relations(factionInventoryItems, ({ one }) => ({
+  faction: one(factions, { fields: [factionInventoryItems.factionId], references: [factions.id] }),
+  item: one(itemDefinitions, { fields: [factionInventoryItems.itemKey], references: [itemDefinitions.key] }),
 }));
 
 export const inventoryItemsRelations = relations(inventoryItems, ({ one, many }) => ({
@@ -2312,6 +2411,18 @@ export const shopLedgerEntriesRelations = relations(shopLedgerEntries, ({ one })
   seller: one(characters, { fields: [shopLedgerEntries.sellerCharacterId], references: [characters.id], relationName: 'seller' }),
   buyer: one(characters, { fields: [shopLedgerEntries.buyerCharacterId], references: [characters.id], relationName: 'buyer' }),
   item: one(itemDefinitions, { fields: [shopLedgerEntries.itemKey], references: [itemDefinitions.key] }),
+}));
+
+
+export const marketEventsRelations = relations(marketEvents, ({ one }) => ({
+  item: one(itemDefinitions, { fields: [marketEvents.itemKey], references: [itemDefinitions.key] }),
+  publishedArticle: one(newspaperArticles, { fields: [marketEvents.publishedArticleId], references: [newspaperArticles.id] }),
+}));
+
+export const playerTradeOffersRelations = relations(playerTradeOffers, ({ one }) => ({
+  seller: one(characters, { fields: [playerTradeOffers.sellerCharacterId], references: [characters.id], relationName: 'tradeSeller' }),
+  buyer: one(characters, { fields: [playerTradeOffers.buyerCharacterId], references: [characters.id], relationName: 'tradeBuyer' }),
+  item: one(itemDefinitions, { fields: [playerTradeOffers.itemKey], references: [itemDefinitions.key] }),
 }));
 
 export const newspaperArticlesRelations = relations(newspaperArticles, ({ one, many }) => ({

@@ -56,8 +56,15 @@ function main() {
     .filter(([name]) => name.startsWith('db:apply:'))
     .map(([name, command]) => ({ name, command: String(command) }));
 
+  const hasApplyAllRunner =
+    Boolean(scripts['db:apply:all']) && String(scripts['db:apply:all']).includes('apply-migrations.ts');
+
   const uncoveredMigrations = migrations.filter((migration) => {
     if (OPTIONAL_SEED_MIGRATIONS.has(migration.file)) {
+      return false;
+    }
+
+    if (hasApplyAllRunner) {
       return false;
     }
 
@@ -74,6 +81,7 @@ function main() {
     firstMigration: migrations[0]?.file ?? null,
     lastMigration: migrations.at(-1)?.file ?? null,
     applyScriptCount: applyScripts.length,
+    hasApplyAllRunner,
     gaps,
     duplicateNumbers,
     uncoveredMigrations: uncoveredMigrations.map((migration) => migration.file),

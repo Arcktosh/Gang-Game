@@ -101,6 +101,7 @@ type TrainingActivity = {
   energyCost: number;
   cashCost: number;
   statGain: number;
+  durationSeconds: number;
 };
 type Course = {
   key: string;
@@ -110,6 +111,9 @@ type Course = {
   energyCost: number;
   cashCost: number;
   statGain: number;
+  durationSeconds: number;
+  requiredLevel?: number;
+  prerequisiteCourseKey?: string | null;
 };
 type MarketItem = {
   itemKey: string;
@@ -884,6 +888,35 @@ type PvpProfile = {
 
 type ActionLock = { actionType: string; lockedUntil: string | Date; metadata?: unknown };
 
+type CharacterProgressionHistory = {
+  training: {
+    id: string;
+    activityKey: string;
+    status: string;
+    stat: string;
+    statGain: number;
+    dueAt?: string | Date | null;
+    completedAt?: string | Date | null;
+    startedAt: string | Date;
+  }[];
+  courses: {
+    id: string;
+    courseKey: string;
+    status: string;
+    stat: string;
+    statGain: number;
+    dueAt?: string | Date | null;
+    completedAt?: string | Date | null;
+    startedAt: string | Date;
+  }[];
+  queue: {
+    activeTraining: number;
+    activeCourses: number;
+    overdueCompletions: number;
+    nextDueAt?: string | Date | null;
+  };
+};
+
 type CharacterPanelProps = {
   characters: Character[];
   jobs: Job[];
@@ -922,6 +955,7 @@ type CharacterPanelProps = {
   messageCenter: MessageCenter;
   safetyProfile: SafetyProfile;
   actionLocks?: ActionLock[];
+  characterProgression: CharacterProgressionHistory;
 };
 
 
@@ -1039,6 +1073,7 @@ export function CharacterPanel({
   messageCenter,
   safetyProfile,
   actionLocks = [],
+  characterProgression,
 }: CharacterPanelProps) {
   const router = useRouter();
   const toast = useToast();
@@ -1799,6 +1834,52 @@ export function CharacterPanel({
   const gamblingProfit = gamblingSummary?.totals?.profit ?? 0;
   const gamblingWagerCount = gamblingSummary?.totals?.count ?? 0;
   const gamblingTableLimit = gamblingSummary?.tableLimit ?? 0;
+  const completedCourseKeys = new Set(
+    characterProgression.courses
+      .filter((course) => course.status === 'completed')
+      .map((course) => course.courseKey),
+  );
+  const activeTrainingQueue = characterProgression.training.filter(
+    (session) => session.status === 'scheduled',
+  );
+  const activeCourseQueue = characterProgression.courses.filter(
+    (course) => course.status === 'scheduled',
+  );
+  const nextProgressionDueAt = characterProgression.queue.nextDueAt;
+
+  function getCharacterStat(stat: string) {
+    switch (stat) {
+      case 'strength':
+      case 'stamina':
+      case 'defense':
+      case 'dexterity':
+      case 'endurance':
+      case 'intelligence':
+      case 'labour':
+        return activeCharacter[stat];
+      default:
+        return 0;
+    }
+  }
+
+  function scaledTrainingEnergy(activity: TrainingActivity) {
+    const currentStat = getCharacterStat(activity.stat);
+    return Math.max(activity.energyCost, Math.floor(activity.energyCost + currentStat * 0.15));
+  }
+
+  function courseRequirementMessage(course: Course) {
+    const requiredLevel = course.requiredLevel ?? 1;
+
+    if (activeCharacter.level < requiredLevel) {
+      return `Requires level ${requiredLevel}`;
+    }
+
+    if (course.prerequisiteCourseKey && !completedCourseKeys.has(course.prerequisiteCourseKey)) {
+      return `Requires ${course.prerequisiteCourseKey}`;
+    }
+
+    return null;
+  }
   const filteredNotifications = notificationCenter
     ? notificationCenter.recent.filter((item) => {
         if (notificationCategoryFilter !== 'all' && item.category !== notificationCategoryFilter)
@@ -2627,26 +2708,35 @@ export function CharacterPanel({
           title="Training"
           items={trainingActivities}
           empty="No training available."
-          render={(activity) => (
-            <button
-              disabled={isSubmitting || !isAvailable || hasActionCooldown('training')}
-              onClick={() =>
-                runAction(
-                  '/api/training',
-                  { characterId: activeCharacter.id, activityKey: activity.key },
-                  `Completed ${activity.name}.`,
-                )
-              }
-            >
-              {cooldownButtonLabel(
-                'training',
-                <>
-                  {activity.name} · +{activity.statGain} {activity.stat} · {activity.energyCost}{' '}
-                  energy
-                </>,
-              )}
-            </button>
-          )}
+          render={(activity) => {
+            const energyCost = scaledTrainingEnergy(activity);
+            return (
+              <button
+                disabled={
+                  isSubmitting ||
+                  !isAvailable ||
+                  hasActionCooldown('training') ||
+                  activeCharacter.energy < energyCost ||
+                  activeCharacter.cash < activity.cashCost
+                }
+                onClick={() =>
+                  runAction(
+                    '/api/training',
+                    { characterId: activeCharacter.id, activityKey: activity.key },
+                    `Started ${activity.name}.`,
+                  )
+                }
+              >
+                {cooldownButtonLabel(
+                  'training',
+                  <>
+                    Start {activity.name} · +{activity.statGain} {activity.stat} · {energyCost}{' '}
+                    energy · {formatRemainingTime(activity.durationSeconds * 1000)}
+                  </>,
+                )}
+              </button>
+            );
+          }}
         />
 
         <ActionCard
@@ -2654,26 +2744,61 @@ export function CharacterPanel({
           title="Education"
           items={courses}
           empty="No courses available."
-          render={(course) => (
-            <button
-              disabled={isSubmitting || !isAvailable || hasActionCooldown('education')}
-              onClick={() =>
-                runAction(
-                  '/api/education',
-                  { characterId: activeCharacter.id, courseKey: course.key },
-                  `Completed ${course.name}.`,
-                )
-              }
-            >
-              {cooldownButtonLabel(
-                'education',
-                <>
-                  {course.name} · +{course.statGain} {course.stat} · ${course.cashCost}
-                </>,
-              )}
-            </button>
-          )}
+          render={(course) => {
+            const requirement = courseRequirementMessage(course);
+            return (
+              <button
+                disabled={
+                  isSubmitting ||
+                  !isAvailable ||
+                  hasActionCooldown('education') ||
+                  Boolean(requirement) ||
+                  activeCharacter.energy < course.energyCost ||
+                  activeCharacter.cash < course.cashCost
+                }
+                onClick={() =>
+                  runAction(
+                    '/api/education',
+                    { characterId: activeCharacter.id, courseKey: course.key },
+                    `Started ${course.name}.`,
+                  )
+                }
+              >
+                {cooldownButtonLabel(
+                  'education',
+                  <>
+                    {requirement ? `${course.name} · ${requirement}` : `Start ${course.name}`} · +
+                    {course.statGain} {course.stat} · ${course.cashCost} ·{' '}
+                    {formatRemainingTime(course.durationSeconds * 1000)}
+                  </>,
+                )}
+              </button>
+            );
+          }}
         />
+
+        <article className="card" hidden={!isSectionActive('dashboard-actions')}>
+          <h3 style={{ marginTop: 0 }}>Training queue</h3>
+          <p style={{ color: '#a1a1aa', marginTop: 0 }}>
+            Active training {activeTrainingQueue.length} · active courses {activeCourseQueue.length}
+            {nextProgressionDueAt ? ` · next completion ${formatDateTime(nextProgressionDueAt)}` : ''}
+          </p>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {[...activeTrainingQueue, ...activeCourseQueue].length ? (
+              [...activeTrainingQueue, ...activeCourseQueue].slice(0, 6).map((entry) => (
+                <div key={entry.id} style={{ borderTop: '1px solid #27272a', paddingTop: 8 }}>
+                  <strong>{'activityKey' in entry ? entry.activityKey : entry.courseKey}</strong>
+                  <p style={{ color: '#a1a1aa', margin: '4px 0 0' }}>
+                    +{entry.statGain} {entry.stat} · due{' '}
+                    {entry.dueAt ? formatDateTime(entry.dueAt) : 'soon'}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <span style={{ color: '#a1a1aa' }}>No active training or education timers.</span>
+            )}
+          </div>
+        </article>
 
         <ActionCard
           hidden={!isSectionActive('dashboard-actions')}

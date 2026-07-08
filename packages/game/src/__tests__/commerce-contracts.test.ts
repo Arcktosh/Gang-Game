@@ -75,3 +75,26 @@ test('contract completion gates location and required delivery inventory', () =>
     { ok: true },
   );
 });
+
+test('faction armory actions normalize quantity and gate withdrawals by rank', async () => {
+  const { calculateFactionInventoryAction, canManageFactionArmory } = await import('../index');
+
+  assert.equal(canManageFactionArmory('runner'), false);
+  assert.equal(canManageFactionArmory('lieutenant'), true);
+  assert.deepEqual(calculateFactionInventoryAction({ action: 'deposit', role: 'recruit', quantity: 2.8, availableQuantity: 5 }), {
+    quantity: 2,
+    cooldownSeconds: 20,
+    contributionPoints: 2,
+    hasPermission: true,
+    canAttempt: true,
+  });
+  assert.deepEqual(calculateFactionInventoryAction({ action: 'withdraw', role: 'soldier', quantity: 2, availableQuantity: 5 }), {
+    quantity: 2,
+    cooldownSeconds: 45,
+    contributionPoints: 0,
+    hasPermission: false,
+    canAttempt: false,
+  });
+  assert.equal(calculateFactionInventoryAction({ action: 'withdraw', role: 'captain', quantity: 6, availableQuantity: 5 }).canAttempt, false);
+  assert.equal(calculateFactionInventoryAction({ action: 'withdraw', role: 'captain', quantity: 5, availableQuantity: 5 }).canAttempt, true);
+});

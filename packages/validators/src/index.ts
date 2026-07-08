@@ -186,6 +186,51 @@ export const marketActionSchema = marketTradeSchema.extend({
 
 
 
+
+
+export const inventoryProfileQuerySchema = z.object({
+  characterId: uuidSchema,
+});
+
+export const inventoryActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('use'),
+    characterId: uuidSchema,
+    inventoryItemId: uuidSchema,
+  }),
+  z.object({
+    action: z.literal('transfer'),
+    characterId: uuidSchema,
+    recipientCharacterId: uuidSchema,
+    inventoryItemId: uuidSchema,
+    quantity: z.coerce.number().int().min(1).max(1000),
+  }),
+]);
+
+export const tradeCenterQuerySchema = z.object({
+  characterId: uuidSchema,
+});
+
+export const createPlayerTradeOfferSchema = z.object({
+  characterId: uuidSchema,
+  recipientCharacterId: uuidSchema,
+  itemKey: z.string().trim().min(1).max(64),
+  quantity: z.coerce.number().int().min(1).max(1000),
+  priceEach: z.coerce.number().int().min(1).max(1_000_000),
+  expiresInHours: z.coerce.number().int().min(1).max(168).optional().default(24),
+});
+
+export const playerTradeOfferActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('accept'),
+    characterId: uuidSchema,
+  }),
+  z.object({
+    action: z.literal('cancel'),
+    characterId: uuidSchema,
+  }),
+]);
+
 export const checkoutIntentSchema = z.object({
   productKey: z.string().trim().min(2).max(64),
   characterId: uuidSchema.optional(),
@@ -215,6 +260,29 @@ export const hospitalCareSchema = z.object({
   service: z.enum(['basic', 'private', 'specialist']),
 });
 
+export const jailActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('pay_fine'),
+    characterId: uuidSchema,
+    paymentSource: z.enum(['cash', 'bank']).optional().default('cash'),
+  }),
+  z.object({
+    action: z.literal('post_bail'),
+    characterId: uuidSchema,
+    paymentSource: z.enum(['cash', 'bank']).optional().default('cash'),
+  }),
+  z.object({
+    action: z.literal('jail_activity'),
+    characterId: uuidSchema,
+    activity: z.enum(['library', 'work_detail', 'fitness_yard']),
+  }),
+]);
+
+export const courtHearingSchema = z.object({
+  characterId: uuidSchema,
+  plea: z.enum(['responsible', 'contest', 'defer']),
+});
+
 export const factionBankActionSchema = z.object({
   characterId: uuidSchema,
   action: z.enum(['deposit', 'withdraw']),
@@ -230,6 +298,21 @@ export const factionMemberRoleSchema = z.object({
 export const factionLeaveSchema = z.object({
   characterId: uuidSchema,
 });
+
+export const factionInventoryActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('deposit'),
+    characterId: uuidSchema,
+    inventoryItemId: uuidSchema,
+    quantity: z.coerce.number().int().min(1).max(1000),
+  }),
+  z.object({
+    action: z.literal('withdraw'),
+    characterId: uuidSchema,
+    factionInventoryItemId: uuidSchema,
+    quantity: z.coerce.number().int().min(1).max(1000),
+  }),
+]);
 
 export const territoryActionSchema = z.object({
   characterId: uuidSchema,
@@ -415,6 +498,8 @@ export const createContractSchema = z.object({
   quantity: z.coerce.number().int().min(0).max(1000).optional().default(0),
   reward: z.coerce.number().int().min(25).max(1_000_000),
   expiresInHours: z.coerce.number().int().min(1).max(168).optional().default(24),
+  assignedToCharacterId: uuidSchema.optional(),
+  factionId: uuidSchema.optional(),
 });
 
 export const contractCharacterActionSchema = z.object({

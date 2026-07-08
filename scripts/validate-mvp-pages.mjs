@@ -9,6 +9,7 @@ const requiredPages = [
   ['legal', 'apps/web/src/app/(game)/legal/page.tsx'],
   ['market', 'apps/web/src/app/(game)/market/page.tsx'],
   ['shops', 'apps/web/src/app/(game)/shops/page.tsx'],
+  ['contracts', 'apps/web/src/app/(game)/contracts/page.tsx'],
   ['messages', 'apps/web/src/app/(game)/messages/page.tsx'],
   ['newspaper', 'apps/web/src/app/(game)/newspaper/page.tsx'],
   ['factions', 'apps/web/src/app/(game)/factions/page.tsx'],

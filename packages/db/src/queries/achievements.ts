@@ -73,14 +73,14 @@ async function countMetric(tx: Tx, characterId: string, metricKey: string, windo
         tx
           .select({ count: sql<number>`count(*)::int` })
           .from(trainingSessions)
-          .where(withWindow(eq(trainingSessions.characterId, characterId), trainingSessions.startedAt, window)),
+          .where(withWindow(and(eq(trainingSessions.characterId, characterId), eq(trainingSessions.status, 'completed')), trainingSessions.completedAt, window)),
       );
     case 'courses_completed':
       return firstCount(
         tx
           .select({ count: sql<number>`count(*)::int` })
           .from(courseEnrollments)
-          .where(withWindow(eq(courseEnrollments.characterId, characterId), courseEnrollments.startedAt, window)),
+          .where(withWindow(and(eq(courseEnrollments.characterId, characterId), eq(courseEnrollments.status, 'completed')), courseEnrollments.completedAt, window)),
       );
     case 'market_trades': {
       const eventTypes = EVENT_METRIC_TYPES.market_trades;
