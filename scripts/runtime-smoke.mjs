@@ -147,14 +147,22 @@ async function healthStep() {
   };
 
   if (missingSecurityHeaders.length > 0) {
-    return fail('health-security-headers', 'Health response is missing baseline security headers.', {
-      ...details,
-      missingSecurityHeaders,
-    });
+    return fail(
+      'health-security-headers',
+      'Health response is missing baseline security headers.',
+      {
+        ...details,
+        missingSecurityHeaders,
+      },
+    );
   }
 
   if (returnedRequestId !== requestId) {
-    return fail('health-request-id', 'Health response did not preserve the supplied request id.', details);
+    return fail(
+      'health-request-id',
+      'Health response did not preserve the supplied request id.',
+      details,
+    );
   }
 
   if (!hasJsonContentType(response) || !body || typeof body !== 'object') {
@@ -164,8 +172,17 @@ async function healthStep() {
   if (response.ok) {
     const data = body.data;
 
-    if (data?.status !== 'ok' || data?.service !== 'web-api' || !data?.runtime || !data?.environment) {
-      return fail('health-success-shape', 'Healthy response is missing expected status, runtime, or environment fields.', details);
+    if (
+      data?.status !== 'ok' ||
+      data?.service !== 'web-api' ||
+      !data?.runtime ||
+      !data?.environment
+    ) {
+      return fail(
+        'health-success-shape',
+        'Healthy response is missing expected status, runtime, or environment fields.',
+        details,
+      );
     }
 
     return pass('health', details);
@@ -174,10 +191,18 @@ async function healthStep() {
   const code = body.error?.code;
 
   if (!STRICT_HEALTH_OK && response.status === 500 && code === 'server_error') {
-    return warn('health-degraded', 'Health endpoint is reachable but reports degraded server environment.', details);
+    return warn(
+      'health-degraded',
+      'Health endpoint is reachable but reports degraded server environment.',
+      details,
+    );
   }
 
-  return fail('health-status', `Health endpoint returned unexpected status ${response.status}.`, details);
+  return fail(
+    'health-status',
+    `Health endpoint returned unexpected status ${response.status}.`,
+    details,
+  );
 }
 
 async function authMeStep() {
@@ -193,7 +218,11 @@ async function authMeStep() {
   };
 
   if (missingHeaders(response, REQUIRED_SECURITY_HEADERS).length > 0) {
-    return fail('auth-me-security-headers', 'Auth me response is missing baseline security headers.', details);
+    return fail(
+      'auth-me-security-headers',
+      'Auth me response is missing baseline security headers.',
+      details,
+    );
   }
 
   if (response.status !== 401) {
@@ -201,7 +230,11 @@ async function authMeStep() {
   }
 
   if (body?.error?.code !== 'unauthorized') {
-    return fail('auth-me-error-shape', 'Unauthenticated /api/auth/me should return the standard unauthorized error shape.', details);
+    return fail(
+      'auth-me-error-shape',
+      'Unauthenticated /api/auth/me should return the standard unauthorized error shape.',
+      details,
+    );
   }
 
   return pass('auth-me-unauthorized', details);
@@ -227,15 +260,27 @@ async function crossOriginMutationStep() {
   };
 
   if (missingHeaders(response, REQUIRED_SECURITY_HEADERS).length > 0) {
-    return fail('cross-origin-security-headers', 'Cross-origin rejection response is missing baseline security headers.', details);
+    return fail(
+      'cross-origin-security-headers',
+      'Cross-origin rejection response is missing baseline security headers.',
+      details,
+    );
   }
 
   if (response.status !== 403) {
-    return fail('cross-origin-rejection', 'Cross-origin unsafe mutation should be rejected with 403.', details);
+    return fail(
+      'cross-origin-rejection',
+      'Cross-origin unsafe mutation should be rejected with 403.',
+      details,
+    );
   }
 
   if (body?.error?.code !== 'forbidden') {
-    return fail('cross-origin-error-shape', 'Cross-origin rejection should use the standard forbidden error shape.', details);
+    return fail(
+      'cross-origin-error-shape',
+      'Cross-origin rejection should use the standard forbidden error shape.',
+      details,
+    );
   }
 
   return pass('cross-origin-rejection', details);
@@ -252,7 +297,11 @@ async function standardNotFoundStep() {
   };
 
   if (missingHeaders(response, REQUIRED_SECURITY_HEADERS).length > 0) {
-    return fail('not-found-security-headers', '404 response is missing baseline security headers.', details);
+    return fail(
+      'not-found-security-headers',
+      '404 response is missing baseline security headers.',
+      details,
+    );
   }
 
   if (!response.headers.get('x-request-id')) {
@@ -300,15 +349,21 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(JSON.stringify({
-    summary: {
-      checkedAt: new Date().toISOString(),
-      baseUrl: BASE_URL,
-      timeoutMs: TIMEOUT_MS,
-      ok: false,
-      errors: 1,
-    },
-    results: [fail('runtime-smoke', error instanceof Error ? error.message : String(error))],
-  }, null, 2));
+  console.error(
+    JSON.stringify(
+      {
+        summary: {
+          checkedAt: new Date().toISOString(),
+          baseUrl: BASE_URL,
+          timeoutMs: TIMEOUT_MS,
+          ok: false,
+          errors: 1,
+        },
+        results: [fail('runtime-smoke', error instanceof Error ? error.message : String(error))],
+      },
+      null,
+      2,
+    ),
+  );
   process.exitCode = 1;
 });

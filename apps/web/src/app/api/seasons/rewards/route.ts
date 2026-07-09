@@ -13,7 +13,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:seasons:rewards', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:seasons:rewards', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -29,7 +33,12 @@ export async function POST(request: NextRequest) {
 
     if (!result.ok) {
       const status = result.code === 'not_found' ? 404 : result.code === 'conflict' ? 409 : 403;
-      return jsonError(result.code, result.message, status, 'details' in result ? result.details : undefined);
+      return jsonError(
+        result.code,
+        result.message,
+        status,
+        'details' in result ? result.details : undefined,
+      );
     }
 
     return jsonOk(result.data);

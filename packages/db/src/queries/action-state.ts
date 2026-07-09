@@ -42,7 +42,10 @@ type CharacterRow = typeof characters.$inferSelect;
 
 export async function refreshCharacterResources(tx: Tx, character: CharacterRow) {
   const now = new Date();
-  const statusExpired = character.status !== 'free' && character.statusUntil !== null && character.statusUntil.getTime() <= now.getTime();
+  const statusExpired =
+    character.status !== 'free' &&
+    character.statusUntil !== null &&
+    character.statusUntil.getTime() <= now.getTime();
   const regenerated = calculateRegeneratedResources({
     energy: character.energy,
     nerve: character.nerve,
@@ -97,7 +100,11 @@ export async function getActiveActionLock(tx: Tx, characterId: string, actionTyp
   });
 }
 
-export async function assertActionUnlocked(tx: Tx, characterId: string, actionType: GameActionType) {
+export async function assertActionUnlocked(
+  tx: Tx,
+  characterId: string,
+  actionType: GameActionType,
+) {
   const lock = await getActiveActionLock(tx, characterId, actionType);
 
   if (!lock) {
@@ -144,6 +151,9 @@ export async function setActionCooldown(input: {
 
 export async function listActiveActionLocks(characterId: string) {
   return db.query.characterActionLocks.findMany({
-    where: and(eq(characterActionLocks.characterId, characterId), gt(characterActionLocks.lockedUntil, sql`now()`)),
+    where: and(
+      eq(characterActionLocks.characterId, characterId),
+      gt(characterActionLocks.lockedUntil, sql`now()`),
+    ),
   });
 }

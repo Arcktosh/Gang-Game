@@ -35,7 +35,7 @@ requireIncludes('apps/web/src/app/layout.tsx', [
   'applicationName',
   'openGraph',
   'twitter',
-  'manifest: \'/manifest.webmanifest\'',
+  "manifest: '/manifest.webmanifest'",
   'export const viewport',
   'Skip to main content',
   'id="main-content"',
@@ -43,7 +43,7 @@ requireIncludes('apps/web/src/app/layout.tsx', [
 
 requireIncludes('apps/web/src/app/manifest.ts', [
   'MetadataRoute.Manifest',
-  'display: \'standalone\'',
+  "display: 'standalone'",
   'theme_color',
   'start_url',
   'shortcuts',
@@ -51,10 +51,26 @@ requireIncludes('apps/web/src/app/manifest.ts', [
   '/icons/maskable-icon.svg',
 ]);
 
-requireIncludes('apps/web/src/app/robots.ts', ['MetadataRoute.Robots', 'sitemap', 'disallow', '/api']);
-requireIncludes('apps/web/src/app/sitemap.ts', ['MetadataRoute.Sitemap', '/onboarding', '/privacy', '/terms', '/rules']);
+requireIncludes('apps/web/src/app/robots.ts', [
+  'MetadataRoute.Robots',
+  'sitemap',
+  'disallow',
+  '/api',
+]);
+requireIncludes('apps/web/src/app/sitemap.ts', [
+  'MetadataRoute.Sitemap',
+  '/onboarding',
+  '/privacy',
+  '/terms',
+  '/rules',
+]);
 
-for (const relativePath of ['apps/web/public/icons/icon.svg', 'apps/web/public/icons/maskable-icon.svg', 'apps/web/public/icons/apple-touch-icon.svg', 'apps/web/public/opengraph-image.svg']) {
+for (const relativePath of [
+  'apps/web/public/icons/icon.svg',
+  'apps/web/public/icons/maskable-icon.svg',
+  'apps/web/public/icons/apple-touch-icon.svg',
+  'apps/web/public/opengraph-image.svg',
+]) {
   requireFile(relativePath);
 }
 
@@ -90,21 +106,35 @@ requireIncludes('apps/web/src/features/game/action-form.tsx', [
   'className="action-form__control"',
 ]);
 
-requireIncludes('apps/web/src/app/page.tsx', ['aria-labelledby="home-title"', 'className="button-link button-link--primary"', 'aria-label="Primary site links"']);
+requireIncludes('apps/web/src/app/page.tsx', [
+  'aria-labelledby="home-title"',
+  'className="button-link button-link--primary"',
+  'aria-label="Primary site links"',
+]);
 
 const packageJson = JSON.parse(requireFile('package.json'));
-if (!packageJson.scripts?.['validate:site-quality']) {
-  errors.push('package.json is missing validate:site-quality.');
-}
-if (!packageJson.scripts?.['validate:static']?.includes('pnpm validate:site-quality')) {
-  errors.push('package.json validate:static must include pnpm validate:site-quality.');
+if (
+  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
+    'scripts/validate-site-quality.mjs',
+  )
+) {
+  errors.push('package.json validate:static must include scripts/validate-site-quality.mjs.');
 }
 
-requireIncludes('docs/site-quality.md', ['Accessibility', 'Responsive design', 'PWA', 'SEO', 'Validation']);
+requireIncludes('docs/site-quality.md', [
+  'Accessibility',
+  'Responsive design',
+  'PWA',
+  'SEO',
+  'Validation',
+]);
 requireIncludes('README.md', ['Feature Pass 60', 'site-quality']);
 requireIncludes('docs/project-status.md', ['Feature Pass 60', 'accessibility', 'PWA', 'SEO']);
 requireIncludes('docs/remaining-work.md', ['Feature Pass 60', 'Lighthouse']);
-requireIncludes('docs/feature-checklist.md', ['Feature Pass 60', 'Accessibility, responsive design, PWA, and SEO']);
+requireIncludes('docs/feature-checklist.md', [
+  'Feature Pass 60',
+  'Accessibility, responsive design, PWA, and SEO',
+]);
 requireIncludes('docs/validation-audit.md', ['validate:site-quality', 'site quality']);
 requireIncludes('docs/feature-history.md', ['Pass 60', 'Site Quality', 'validate:site-quality']);
 

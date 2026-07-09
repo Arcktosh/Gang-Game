@@ -69,7 +69,11 @@ export function combineEquipmentModifiers(modifiers: EquipmentModifiers[]): Equi
   return total;
 }
 
-export function applyDurabilityScale(modifiers: EquipmentModifiers, durability: number, maxDurability: number): EquipmentModifiers {
+export function applyDurabilityScale(
+  modifiers: EquipmentModifiers,
+  durability: number,
+  maxDurability: number,
+): EquipmentModifiers {
   if (maxDurability <= 0) {
     return modifiers;
   }
@@ -84,7 +88,11 @@ export function applyDurabilityScale(modifiers: EquipmentModifiers, durability: 
   return scaled;
 }
 
-export function calculateRepairCost(input: { basePrice: number; durability: number; maxDurability: number }) {
+export function calculateRepairCost(input: {
+  basePrice: number;
+  durability: number;
+  maxDurability: number;
+}) {
   const missingDurability = Math.max(0, input.maxDurability - input.durability);
   if (missingDurability === 0 || input.maxDurability <= 0) {
     return 0;
@@ -94,7 +102,11 @@ export function calculateRepairCost(input: { basePrice: number; durability: numb
   return Math.max(5, Math.ceil(input.basePrice * durabilityRatio * 0.35));
 }
 
-export function calculateEquipmentWear(input: { baseWear: number; durability: number; maxDurability: number }) {
+export function calculateEquipmentWear(input: {
+  baseWear: number;
+  durability: number;
+  maxDurability: number;
+}) {
   const wear = Math.max(1, Math.trunc(input.baseWear));
   return Math.max(0, input.durability - wear);
 }

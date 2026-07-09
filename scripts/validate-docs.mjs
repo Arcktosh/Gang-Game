@@ -36,7 +36,9 @@ function routePathFromFile(filePath) {
 
 function exportedMethods(source) {
   return httpMethods.filter((method) => {
-    const pattern = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\b|export\\s+const\\s+${method}\\b`);
+    const pattern = new RegExp(
+      `export\\s+(?:async\\s+)?function\\s+${method}\\b|export\\s+const\\s+${method}\\b`,
+    );
     return pattern.test(source);
   });
 }
@@ -44,7 +46,10 @@ function exportedMethods(source) {
 const notes = [];
 const errors = [];
 
-const apiRouteFiles = walkFiles(apiRoot, (filePath) => path.basename(filePath) === 'route.ts').sort();
+const apiRouteFiles = walkFiles(
+  apiRoot,
+  (filePath) => path.basename(filePath) === 'route.ts',
+).sort();
 const apiReferencePath = path.join(docsRoot, 'api-reference.md');
 const apiReference = read(apiReferencePath);
 
@@ -64,16 +69,22 @@ for (const route of actualRoutes) {
   }
 }
 
-const documentedRoutes = [...apiReference.matchAll(/`(\/api\/[A-Za-z0-9_:\/-]+)`/g)].map((match) => match[1]);
+const documentedRoutes = [...apiReference.matchAll(/`(\/api\/[A-Za-z0-9_:\/-]+)`/g)].map(
+  (match) => match[1],
+);
 const actualRouteSet = new Set(actualRoutes.map((entry) => entry.route));
 const ignoredDocumentedRoutes = new Set(['/api/auth/*', '/api/characters/*', '/api/admin/*']);
 for (const documentedRoute of documentedRoutes) {
   if (!actualRouteSet.has(documentedRoute) && !ignoredDocumentedRoutes.has(documentedRoute)) {
-    errors.push(`${documentedRoute} is documented in docs/api-reference.md but no matching route file exists.`);
+    errors.push(
+      `${documentedRoute} is documented in docs/api-reference.md but no matching route file exists.`,
+    );
   }
 }
 
-const duplicateDocumentedRoutes = documentedRoutes.filter((route, index) => documentedRoutes.indexOf(route) !== index);
+const duplicateDocumentedRoutes = documentedRoutes.filter(
+  (route, index) => documentedRoutes.indexOf(route) !== index,
+);
 for (const route of new Set(duplicateDocumentedRoutes)) {
   notes.push(`${route} appears more than once in docs/api-reference.md.`);
 }
@@ -85,7 +96,9 @@ if (!fs.existsSync(featureHistoryPath)) {
 const featureHistory = fs.existsSync(featureHistoryPath) ? read(featureHistoryPath) : '';
 const historicalPasses = [...featureHistory.matchAll(/^## Pass (\d+):/gm)].map((match) => match[1]);
 if (historicalPasses.length < 60) {
-  errors.push(`docs/feature-history.md only contains ${historicalPasses.length} pass sections; expected the consolidated historical pass trail.`);
+  errors.push(
+    `docs/feature-history.md only contains ${historicalPasses.length} pass sections; expected the consolidated historical pass trail.`,
+  );
 }
 for (const requiredPass of ['60', '70', '71', '72', '73']) {
   if (!historicalPasses.includes(requiredPass)) {
@@ -93,13 +106,21 @@ for (const requiredPass of ['60', '70', '71', '72', '73']) {
   }
 }
 
-const passFiles = walkFiles(docsRoot, (filePath) => /feature-pass-\d+\.md$/.test(filePath)).map((filePath) => path.basename(filePath)).sort();
+const passFiles = walkFiles(docsRoot, (filePath) => /feature-pass-\d+\.md$/.test(filePath))
+  .map((filePath) => path.basename(filePath))
+  .sort();
 if (passFiles.length > 0) {
-  errors.push(`Historical feature pass files should be consolidated into docs/feature-history.md: ${passFiles.join(', ')}.`);
+  errors.push(
+    `Historical feature pass files should be consolidated into docs/feature-history.md: ${passFiles.join(', ')}.`,
+  );
 }
 
 const migrationGuide = read(path.join(docsRoot, 'migration-guide.md'));
-const migrationFiles = walkFiles(path.join(repoRoot, 'packages/db/drizzle'), (filePath) => /\d{4}_.+\.sql$/.test(filePath)).map((filePath) => path.basename(filePath)).sort();
+const migrationFiles = walkFiles(path.join(repoRoot, 'packages/db/drizzle'), (filePath) =>
+  /\d{4}_.+\.sql$/.test(filePath),
+)
+  .map((filePath) => path.basename(filePath))
+  .sort();
 const latestMigration = migrationFiles.at(-1);
 if (latestMigration && !migrationGuide.includes(latestMigration)) {
   errors.push(`docs/migration-guide.md does not mention latest migration ${latestMigration}.`);

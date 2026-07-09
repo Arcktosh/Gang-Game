@@ -35,14 +35,19 @@ export function normalizeCraftingInputs(inputs: unknown): CraftingInputs {
     return {};
   }
 
-  const normalizedEntries: Array<[string, number]> = Object.entries(inputs as Record<string, unknown>)
+  const normalizedEntries: Array<[string, number]> = Object.entries(
+    inputs as Record<string, unknown>,
+  )
     .map(([key, value]) => [key, Math.max(0, Math.floor(Number(value) || 0))] as [string, number])
     .filter(([, value]) => value > 0);
 
   return Object.fromEntries(normalizedEntries);
 }
 
-export function calculateWorkshopBuildCost(workshopType: WorkshopType, existingWorkshopCount: number) {
+export function calculateWorkshopBuildCost(
+  workshopType: WorkshopType,
+  existingWorkshopCount: number,
+) {
   const baseByType: Record<WorkshopType, number> = {
     garage: 750,
     lab: 1_800,
@@ -59,18 +64,30 @@ export function calculateWorkshopUpgradeCost(level: number) {
   return Math.max(250, Math.round(500 * Math.pow(Math.max(1, level), 1.55)));
 }
 
-export function calculateCraftingDurationSeconds(recipe: CraftingRecipeLike, workshop?: WorkshopLike | null) {
+export function calculateCraftingDurationSeconds(
+  recipe: CraftingRecipeLike,
+  workshop?: WorkshopLike | null,
+) {
   const workshopSpeed = workshop ? Math.min(0.45, Math.max(0, (workshop.level - 1) * 0.06)) : 0;
   const conditionPenalty = workshop ? Math.max(0, (60 - workshop.condition) / 100) : 0.15;
   return Math.max(60, Math.round(recipe.durationSeconds * (1 - workshopSpeed + conditionPenalty)));
 }
 
-export function calculateCraftingRisk(recipe: CraftingRecipeLike, character: CraftingCharacterLike, workshop?: WorkshopLike | null) {
+export function calculateCraftingRisk(
+  recipe: CraftingRecipeLike,
+  character: CraftingCharacterLike,
+  workshop?: WorkshopLike | null,
+) {
   const skillReduction = Math.floor((character.intelligence + character.labour) / 12);
-  const workshopReduction = workshop ? Math.floor(workshop.level / 2) + (workshop.isHidden ? 1 : 0) : 0;
+  const workshopReduction = workshop
+    ? Math.floor(workshop.level / 2) + (workshop.isHidden ? 1 : 0)
+    : 0;
   const conditionPenalty = workshop ? Math.max(0, Math.floor((40 - workshop.condition) / 10)) : 1;
   const heatPenalty = Math.floor((character.heat ?? 0) / 25);
-  return Math.max(0, recipe.risk + conditionPenalty + heatPenalty - skillReduction - workshopReduction);
+  return Math.max(
+    0,
+    recipe.risk + conditionPenalty + heatPenalty - skillReduction - workshopReduction,
+  );
 }
 
 export function calculateCraftingCooldownSeconds(recipe: CraftingRecipeLike) {
@@ -103,6 +120,10 @@ export function canStartCrafting(recipe: CraftingRecipeLike, character: Crafting
   return { ok: failures.length === 0, failures };
 }
 
-export function summarizeCraftingJob(recipeName: string, outputQuantity: number, outputName: string) {
+export function summarizeCraftingJob(
+  recipeName: string,
+  outputQuantity: number,
+  outputName: string,
+) {
   return `${recipeName} queued: ${outputQuantity}x ${outputName}.`;
 }

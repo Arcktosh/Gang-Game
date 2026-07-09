@@ -29,7 +29,11 @@ import {
   summarizeConfigChange,
   validateModerationReason,
 } from '@drugdeal/game';
-import { adjustCharacterBank as adjustCharacterBankSafely, adjustCharacterCash as adjustCharacterCashSafely, decrementCharacterCash } from './transaction-safety';
+import {
+  adjustCharacterBank as adjustCharacterBankSafely,
+  adjustCharacterCash as adjustCharacterCashSafely,
+  decrementCharacterCash,
+} from './transaction-safety';
 
 export type ModerationReportKind = 'message' | 'article';
 export type ModerationReportStatus = 'reviewed' | 'dismissed' | 'actioned';
@@ -58,7 +62,6 @@ export type CharacterFlagType =
   | 'exploit_review'
   | 'suspended';
 
-
 export type AdminLoanExposureStatus = 'all' | 'active' | 'overdue' | 'defaulted' | 'repaid';
 
 function rowsFromExecuteResult(result: unknown) {
@@ -71,12 +74,14 @@ function normalizeAdminLoanStatus(status?: string): AdminLoanExposureStatus {
     : 'all';
 }
 
-export async function listAdminLoanExposure(input: {
-  status?: AdminLoanExposureStatus;
-  query?: string;
-  limit?: number;
-  offset?: number;
-} = {}) {
+export async function listAdminLoanExposure(
+  input: {
+    status?: AdminLoanExposureStatus;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+) {
   const status = normalizeAdminLoanStatus(input.status);
   const query = input.query?.trim().toLowerCase() ?? '';
   const likeQuery = `%${query}%`;
@@ -215,11 +220,37 @@ export async function listAdminLoanExposure(input: {
 export async function listAdminAudit(limit = 100, offset = 0) {
   const safeLimit = Math.max(1, Math.min(200, limit));
   const safeOffset = Math.max(0, Math.min(10_000, offset));
-  const [events, notes, adminLogs, activeFlags, enforcementRows, appealRows, sessionRows, inventoryRows] = await Promise.all([
-    db.query.playerEvents.findMany({ orderBy: desc(playerEvents.createdAt), limit: safeLimit, offset: safeOffset }),
-    db.query.moderationNotes.findMany({ orderBy: desc(moderationNotes.createdAt), limit: safeLimit, offset: safeOffset }),
-    db.query.adminActionLogs.findMany({ orderBy: desc(adminActionLogs.createdAt), limit: safeLimit, offset: safeOffset }),
-    db.query.characterFlags.findMany({ where: eq(characterFlags.isActive, true), orderBy: desc(characterFlags.createdAt), limit: safeLimit, offset: safeOffset }),
+  const [
+    events,
+    notes,
+    adminLogs,
+    activeFlags,
+    enforcementRows,
+    appealRows,
+    sessionRows,
+    inventoryRows,
+  ] = await Promise.all([
+    db.query.playerEvents.findMany({
+      orderBy: desc(playerEvents.createdAt),
+      limit: safeLimit,
+      offset: safeOffset,
+    }),
+    db.query.moderationNotes.findMany({
+      orderBy: desc(moderationNotes.createdAt),
+      limit: safeLimit,
+      offset: safeOffset,
+    }),
+    db.query.adminActionLogs.findMany({
+      orderBy: desc(adminActionLogs.createdAt),
+      limit: safeLimit,
+      offset: safeOffset,
+    }),
+    db.query.characterFlags.findMany({
+      where: eq(characterFlags.isActive, true),
+      orderBy: desc(characterFlags.createdAt),
+      limit: safeLimit,
+      offset: safeOffset,
+    }),
     db.execute(sql`
       select
         ce.id,
@@ -290,16 +321,33 @@ export async function listAdminAudit(limit = 100, offset = 0) {
     `),
   ]);
 
-  const activeEnforcements = Array.isArray(enforcementRows) ? enforcementRows : ((enforcementRows as any).rows ?? []);
+  const activeEnforcements = Array.isArray(enforcementRows)
+    ? enforcementRows
+    : ((enforcementRows as any).rows ?? []);
   const openAppeals = Array.isArray(appealRows) ? appealRows : ((appealRows as any).rows ?? []);
-  const recentSessions = Array.isArray(sessionRows) ? sessionRows : ((sessionRows as any).rows ?? []);
-  const inventoryHighlights = Array.isArray(inventoryRows) ? inventoryRows : ((inventoryRows as any).rows ?? []);
+  const recentSessions = Array.isArray(sessionRows)
+    ? sessionRows
+    : ((sessionRows as any).rows ?? []);
+  const inventoryHighlights = Array.isArray(inventoryRows)
+    ? inventoryRows
+    : ((inventoryRows as any).rows ?? []);
 
-  return { events, notes, adminLogs, activeFlags, activeEnforcements, openAppeals, recentSessions, inventoryHighlights };
+  return {
+    events,
+    notes,
+    adminLogs,
+    activeFlags,
+    activeEnforcements,
+    openAppeals,
+    recentSessions,
+    inventoryHighlights,
+  };
 }
 
-
-export async function listModerationQueue({ status = 'open', limit = 50 }: { status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'; limit?: number } = {}) {
+export async function listModerationQueue({
+  status = 'open',
+  limit = 50,
+}: { status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'; limit?: number } = {}) {
   const safeLimit = Math.max(1, Math.min(100, limit));
 
   const [messageRows, articleRows] = await Promise.all([
@@ -352,10 +400,20 @@ export async function listModerationQueue({ status = 'open', limit = 50 }: { sta
     `),
   ]);
 
-  const messageResultRows = Array.isArray(messageRows) ? messageRows : ((messageRows as any).rows ?? []);
-  const articleResultRows = Array.isArray(articleRows) ? articleRows : ((articleRows as any).rows ?? []);
-  const messages = Array.from(messageResultRows as any[]).map((row) => ({ kind: 'message' as const, ...row }));
-  const articles = Array.from(articleResultRows as any[]).map((row) => ({ kind: 'article' as const, ...row }));
+  const messageResultRows = Array.isArray(messageRows)
+    ? messageRows
+    : ((messageRows as any).rows ?? []);
+  const articleResultRows = Array.isArray(articleRows)
+    ? articleRows
+    : ((articleRows as any).rows ?? []);
+  const messages = Array.from(messageResultRows as any[]).map((row) => ({
+    kind: 'message' as const,
+    ...row,
+  }));
+  const articles = Array.from(articleResultRows as any[]).map((row) => ({
+    kind: 'article' as const,
+    ...row,
+  }));
 
   return {
     status,
@@ -381,16 +439,25 @@ export async function resolveModerationReport(input: {
 
   return db.transaction(async (tx) => {
     if (input.kind === 'message') {
-      const existing = await tx.query.messageReports.findFirst({ where: eq(messageReports.id, input.reportId) });
+      const existing = await tx.query.messageReports.findFirst({
+        where: eq(messageReports.id, input.reportId),
+      });
 
       if (!existing) {
         throw new Error('Message report not found.');
       }
 
-      const message = await tx.query.messages.findFirst({ where: eq(messages.id, existing.messageId) });
+      const message = await tx.query.messages.findFirst({
+        where: eq(messages.id, existing.messageId),
+      });
       const [report] = await tx
         .update(messageReports)
-        .set({ status: input.status, reviewedAt: sql`now()`, reviewedByUserId: input.adminUserId, resolutionNote: note })
+        .set({
+          status: input.status,
+          reviewedAt: sql`now()`,
+          reviewedByUserId: input.adminUserId,
+          resolutionNote: note,
+        })
         .where(eq(messageReports.id, input.reportId))
         .returning();
 
@@ -398,7 +465,11 @@ export async function resolveModerationReport(input: {
         characterId: message?.senderCharacterId ?? existing.reporterCharacterId,
         note: `[message report ${input.status}] ${note}`,
         severity: input.status === 'actioned' ? 'warning' : 'info',
-        metadata: { reportId: input.reportId, messageId: existing.messageId, reporterCharacterId: existing.reporterCharacterId },
+        metadata: {
+          reportId: input.reportId,
+          messageId: existing.messageId,
+          reporterCharacterId: existing.reporterCharacterId,
+        },
       });
 
       await tx.insert(adminActionLogs).values({
@@ -414,28 +485,45 @@ export async function resolveModerationReport(input: {
       return { report };
     }
 
-    const existing = await tx.query.newspaperArticleReports.findFirst({ where: eq(newspaperArticleReports.id, input.reportId) });
+    const existing = await tx.query.newspaperArticleReports.findFirst({
+      where: eq(newspaperArticleReports.id, input.reportId),
+    });
 
     if (!existing) {
       throw new Error('Article report not found.');
     }
 
-    const article = await tx.query.newspaperArticles.findFirst({ where: eq(newspaperArticles.id, existing.articleId) });
+    const article = await tx.query.newspaperArticles.findFirst({
+      where: eq(newspaperArticles.id, existing.articleId),
+    });
     const [report] = await tx
       .update(newspaperArticleReports)
-      .set({ status: input.status, reviewedAt: sql`now()`, reviewedByUserId: input.adminUserId, resolutionNote: note })
+      .set({
+        status: input.status,
+        reviewedAt: sql`now()`,
+        reviewedByUserId: input.adminUserId,
+        resolutionNote: note,
+      })
       .where(eq(newspaperArticleReports.id, input.reportId))
       .returning();
 
     if (input.hideArticle) {
-      await tx.update(newspaperArticles).set({ isPublished: false, updatedAt: sql`now()` }).where(eq(newspaperArticles.id, existing.articleId));
+      await tx
+        .update(newspaperArticles)
+        .set({ isPublished: false, updatedAt: sql`now()` })
+        .where(eq(newspaperArticles.id, existing.articleId));
     }
 
     await tx.insert(moderationNotes).values({
       characterId: article?.authorCharacterId ?? existing.reporterCharacterId,
       note: `[article report ${input.status}] ${note}`,
       severity: input.status === 'actioned' ? 'warning' : 'info',
-      metadata: { reportId: input.reportId, articleId: existing.articleId, reporterCharacterId: existing.reporterCharacterId, hideArticle: !!input.hideArticle },
+      metadata: {
+        reportId: input.reportId,
+        articleId: existing.articleId,
+        reporterCharacterId: existing.reporterCharacterId,
+        hideArticle: !!input.hideArticle,
+      },
     });
 
     await tx.insert(adminActionLogs).values({
@@ -452,7 +540,9 @@ export async function resolveModerationReport(input: {
   });
 }
 
-export async function listGameConfig({ includePrivate = false }: { includePrivate?: boolean } = {}) {
+export async function listGameConfig({
+  includePrivate = false,
+}: { includePrivate?: boolean } = {}) {
   return db.query.gameConfigEntries.findMany({
     where: includePrivate ? undefined : eq(gameConfigEntries.isPublic, true),
     orderBy: (table, { asc }) => [asc(table.category), asc(table.key)],
@@ -472,11 +562,15 @@ export async function upsertGameConfig(input: {
   const key = input.key.trim().toLowerCase();
 
   if (!/^[a-z0-9._-]{3,80}$/.test(key)) {
-    throw new Error('Config key must be 3-80 lowercase letters, numbers, dots, dashes, or underscores.');
+    throw new Error(
+      'Config key must be 3-80 lowercase letters, numbers, dots, dashes, or underscores.',
+    );
   }
 
   return db.transaction(async (tx) => {
-    const existing = await tx.query.gameConfigEntries.findFirst({ where: eq(gameConfigEntries.key, key) });
+    const existing = await tx.query.gameConfigEntries.findFirst({
+      where: eq(gameConfigEntries.key, key),
+    });
     const [entry] = await tx
       .insert(gameConfigEntries)
       .values({
@@ -526,7 +620,9 @@ export async function addCharacterFlag(input: {
   const severity = clampAdminSeverity(input.severity);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, input.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -546,7 +642,11 @@ export async function addCharacterFlag(input: {
     if (input.flagType === 'suspended') {
       await tx
         .update(characters)
-        .set({ status: 'jailed', statusReason: `Admin suspension: ${reason}`, updatedAt: sql`now()` })
+        .set({
+          status: 'jailed',
+          statusReason: `Admin suspension: ${reason}`,
+          updatedAt: sql`now()`,
+        })
         .where(eq(characters.id, input.characterId));
     }
 
@@ -569,9 +669,15 @@ export async function addCharacterFlag(input: {
   });
 }
 
-export async function resolveCharacterFlag(input: { adminUserId: string; flagId: string; reason?: string }) {
+export async function resolveCharacterFlag(input: {
+  adminUserId: string;
+  flagId: string;
+  reason?: string;
+}) {
   return db.transaction(async (tx) => {
-    const existing = await tx.query.characterFlags.findFirst({ where: eq(characterFlags.id, input.flagId) });
+    const existing = await tx.query.characterFlags.findFirst({
+      where: eq(characterFlags.id, input.flagId),
+    });
 
     if (!existing) {
       throw new Error('Flag not found.');
@@ -579,7 +685,12 @@ export async function resolveCharacterFlag(input: { adminUserId: string; flagId:
 
     const [flag] = await tx
       .update(characterFlags)
-      .set({ isActive: false, resolvedByUserId: input.adminUserId, resolvedAt: sql`now()`, updatedAt: sql`now()` })
+      .set({
+        isActive: false,
+        resolvedByUserId: input.adminUserId,
+        resolvedAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
       .where(eq(characterFlags.id, input.flagId))
       .returning();
 
@@ -597,18 +708,32 @@ export async function resolveCharacterFlag(input: { adminUserId: string; flagId:
   });
 }
 
-export async function adjustCharacterCash(input: { adminUserId: string; characterId: string; amount: number; reason: string }) {
+export async function adjustCharacterCash(input: {
+  adminUserId: string;
+  characterId: string;
+  amount: number;
+  reason: string;
+}) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, input.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const adjustment = calculateCashAdjustment({ currentCash: character.cash, amount: input.amount });
-    const safeAdjustment = await adjustCharacterCashSafely(tx, input.characterId, adjustment.deltaApplied);
+    const adjustment = calculateCashAdjustment({
+      currentCash: character.cash,
+      amount: input.amount,
+    });
+    const safeAdjustment = await adjustCharacterCashSafely(
+      tx,
+      input.characterId,
+      adjustment.deltaApplied,
+    );
 
     if (!safeAdjustment.ok) {
       throw new Error('Could not apply cash adjustment safely. Refresh and try again.');
@@ -630,7 +755,12 @@ export async function adjustCharacterCash(input: { adminUserId: string; characte
       characterId: input.characterId,
       visibility: 'admin',
       type: 'admin_cash_adjustment',
-      payload: { before: adjustment.before, after: actualAfter, amount: adjustment.deltaApplied, reason },
+      payload: {
+        before: adjustment.before,
+        after: actualAfter,
+        amount: adjustment.deltaApplied,
+        reason,
+      },
     });
 
     await tx.insert(adminActionLogs).values({
@@ -648,18 +778,32 @@ export async function adjustCharacterCash(input: { adminUserId: string; characte
   });
 }
 
-export async function adjustCharacterBank(input: { adminUserId: string; characterId: string; amount: number; reason: string }) {
+export async function adjustCharacterBank(input: {
+  adminUserId: string;
+  characterId: string;
+  amount: number;
+  reason: string;
+}) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, input.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const adjustment = calculateBankAdjustment({ currentBank: character.bank, amount: input.amount });
-    const safeAdjustment = await adjustCharacterBankSafely(tx, input.characterId, adjustment.deltaApplied);
+    const adjustment = calculateBankAdjustment({
+      currentBank: character.bank,
+      amount: input.amount,
+    });
+    const safeAdjustment = await adjustCharacterBankSafely(
+      tx,
+      input.characterId,
+      adjustment.deltaApplied,
+    );
 
     if (!safeAdjustment.ok) {
       throw new Error('Could not apply bank adjustment safely. Refresh and try again.');
@@ -691,11 +835,17 @@ export async function adjustCharacterBank(input: { adminUserId: string; characte
   });
 }
 
-export async function clearCharacterStatus(input: { adminUserId: string; characterId: string; reason: string }) {
+export async function clearCharacterStatus(input: {
+  adminUserId: string;
+  characterId: string;
+  reason: string;
+}) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, input.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -713,7 +863,11 @@ export async function clearCharacterStatus(input: { adminUserId: string; charact
       targetCharacterId: input.characterId,
       actionType: 'status_clear',
       summary: `Cleared status for ${character.name}.`,
-      beforeValue: { status: character.status, statusUntil: character.statusUntil, statusReason: character.statusReason },
+      beforeValue: {
+        status: character.status,
+        statusUntil: character.statusUntil,
+        statusReason: character.statusReason,
+      },
       afterValue: { status: updated.status },
       metadata: { reason },
     });
@@ -735,7 +889,10 @@ export async function listActiveAnnouncements(limit = 5) {
 }
 
 export async function listAdminAnnouncements(limit = 50) {
-  return db.query.systemAnnouncements.findMany({ orderBy: desc(systemAnnouncements.createdAt), limit: Math.max(1, Math.min(100, limit)) });
+  return db.query.systemAnnouncements.findMany({
+    orderBy: desc(systemAnnouncements.createdAt),
+    limit: Math.max(1, Math.min(100, limit)),
+  });
 }
 
 export async function createAnnouncement(input: {
@@ -783,8 +940,8 @@ export async function createAnnouncement(input: {
   });
 }
 
-
-export type EnforcementActionType = 'warning' | 'social_mute' | 'shop_restriction' | 'temporary_suspension' | 'cash_penalty';
+export type EnforcementActionType =
+  'warning' | 'social_mute' | 'shop_restriction' | 'temporary_suspension' | 'cash_penalty';
 export type EnforcementAppealStatus = 'open' | 'accepted' | 'rejected' | 'withdrawn';
 
 function getRestrictionLabel(actionType: EnforcementActionType) {
@@ -812,7 +969,9 @@ function calculateEndsAt(durationHours?: number | null) {
 }
 
 export async function listCharacterSafetyProfile(input: { userId: string; characterId: string }) {
-  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
+  const character = await db.query.characters.findFirst({
+    where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
+  });
 
   if (!character) {
     return null;
@@ -828,14 +987,25 @@ export async function listCharacterSafetyProfile(input: { userId: string; charac
       orderBy: desc(characterEnforcements.createdAt),
       limit: 20,
     }),
-    db.query.enforcementAppeals.findMany({ where: eq(enforcementAppeals.characterId, input.characterId), orderBy: desc(enforcementAppeals.createdAt), limit: 20 }),
-    db.query.moderationNotes.findMany({ where: eq(moderationNotes.characterId, input.characterId), orderBy: desc(moderationNotes.createdAt), limit: 10 }),
+    db.query.enforcementAppeals.findMany({
+      where: eq(enforcementAppeals.characterId, input.characterId),
+      orderBy: desc(enforcementAppeals.createdAt),
+      limit: 20,
+    }),
+    db.query.moderationNotes.findMany({
+      where: eq(moderationNotes.characterId, input.characterId),
+      orderBy: desc(moderationNotes.createdAt),
+      limit: 10,
+    }),
   ]);
 
   return { activeEnforcements, appeals, notes };
 }
 
-export async function hasActiveCharacterRestriction(input: { characterId: string; actionType: 'social_mute' | 'shop_restriction' | 'temporary_suspension' }) {
+export async function hasActiveCharacterRestriction(input: {
+  characterId: string;
+  actionType: 'social_mute' | 'shop_restriction' | 'temporary_suspension';
+}) {
   const enforcement = await db.query.characterEnforcements.findFirst({
     where: and(
       eq(characterEnforcements.characterId, input.characterId),
@@ -861,10 +1031,13 @@ export async function applyCharacterEnforcement(input: {
   const severity = clampAdminSeverity(input.severity ?? 1);
   const endsAt = calculateEndsAt(input.durationHours);
   const label = getRestrictionLabel(input.actionType);
-  const cashPenalty = input.actionType === 'cash_penalty' ? Math.max(0, Math.trunc(input.cashPenalty ?? 0)) : 0;
+  const cashPenalty =
+    input.actionType === 'cash_penalty' ? Math.max(0, Math.trunc(input.cashPenalty ?? 0)) : 0;
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, input.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -892,7 +1065,12 @@ export async function applyCharacterEnforcement(input: {
     if (input.actionType === 'temporary_suspension') {
       const [updated] = await tx
         .update(characters)
-        .set({ status: 'jailed', statusUntil: endsAt, statusReason: `Admin enforcement: ${reason}`, updatedAt: sql`now()` })
+        .set({
+          status: 'jailed',
+          statusUntil: endsAt,
+          statusReason: `Admin enforcement: ${reason}`,
+          updatedAt: sql`now()`,
+        })
         .where(eq(characters.id, input.characterId))
         .returning();
       updatedCharacter = updated;
@@ -913,7 +1091,13 @@ export async function applyCharacterEnforcement(input: {
         type: 'system',
         amount: String(updatedCharacter.cash - character.cash),
         description: `Admin cash penalty: ${reason}`,
-        metadata: { enforcementId: enforcement.id, before: character.cash, after: updatedCharacter.cash, cashPenalty, appliedPenalty },
+        metadata: {
+          enforcementId: enforcement.id,
+          before: character.cash,
+          after: updatedCharacter.cash,
+          cashPenalty,
+          appliedPenalty,
+        },
       });
     }
 
@@ -953,17 +1137,25 @@ export async function applyCharacterEnforcement(input: {
   });
 }
 
-export async function liftCharacterEnforcement(input: { adminUserId: string; enforcementId: string; reason: string }) {
+export async function liftCharacterEnforcement(input: {
+  adminUserId: string;
+  enforcementId: string;
+  reason: string;
+}) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const enforcement = await tx.query.characterEnforcements.findFirst({ where: eq(characterEnforcements.id, input.enforcementId) });
+    const enforcement = await tx.query.characterEnforcements.findFirst({
+      where: eq(characterEnforcements.id, input.enforcementId),
+    });
 
     if (!enforcement) {
       throw new Error('Enforcement not found.');
     }
 
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, enforcement.characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, enforcement.characterId),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -971,12 +1163,23 @@ export async function liftCharacterEnforcement(input: { adminUserId: string; enf
 
     const [updated] = await tx
       .update(characterEnforcements)
-      .set({ isActive: false, liftedByUserId: input.adminUserId, liftedAt: sql`now()`, updatedAt: sql`now()` })
+      .set({
+        isActive: false,
+        liftedByUserId: input.adminUserId,
+        liftedAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
       .where(eq(characterEnforcements.id, input.enforcementId))
       .returning();
 
-    if (enforcement.actionType === 'temporary_suspension' && character.statusReason?.startsWith('Admin enforcement:')) {
-      await tx.update(characters).set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
+    if (
+      enforcement.actionType === 'temporary_suspension' &&
+      character.statusReason?.startsWith('Admin enforcement:')
+    ) {
+      await tx
+        .update(characters)
+        .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
+        .where(eq(characters.id, character.id));
     }
 
     await tx.insert(moderationNotes).values({
@@ -1015,7 +1218,12 @@ export async function liftCharacterEnforcement(input: { adminUserId: string; enf
   });
 }
 
-export async function submitEnforcementAppeal(input: { userId: string; characterId: string; enforcementId: string; body: string }) {
+export async function submitEnforcementAppeal(input: {
+  userId: string;
+  characterId: string;
+  enforcementId: string;
+  body: string;
+}) {
   const body = input.body.trim();
 
   if (body.length < 10 || body.length > 1000) {
@@ -1023,13 +1231,20 @@ export async function submitEnforcementAppeal(input: { userId: string; character
   }
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
+    const character = await tx.query.characters.findFirst({
+      where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
+    });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const enforcement = await tx.query.characterEnforcements.findFirst({ where: and(eq(characterEnforcements.id, input.enforcementId), eq(characterEnforcements.characterId, input.characterId)) });
+    const enforcement = await tx.query.characterEnforcements.findFirst({
+      where: and(
+        eq(characterEnforcements.id, input.enforcementId),
+        eq(characterEnforcements.characterId, input.characterId),
+      ),
+    });
 
     if (!enforcement) {
       throw new Error('Enforcement not found.');
@@ -1040,7 +1255,14 @@ export async function submitEnforcementAppeal(input: { userId: string; character
       .values({ enforcementId: input.enforcementId, characterId: input.characterId, body })
       .onConflictDoUpdate({
         target: [enforcementAppeals.enforcementId, enforcementAppeals.characterId],
-        set: { body, status: 'open', reviewedByUserId: null, reviewedAt: null, resolutionNote: null, updatedAt: sql`now()` },
+        set: {
+          body,
+          status: 'open',
+          reviewedByUserId: null,
+          reviewedAt: null,
+          resolutionNote: null,
+          updatedAt: sql`now()`,
+        },
       })
       .returning();
 
@@ -1056,18 +1278,30 @@ export async function submitEnforcementAppeal(input: { userId: string; character
   });
 }
 
-export async function reviewEnforcementAppeal(input: { adminUserId: string; appealId: string; status: 'accepted' | 'rejected'; note: string; liftEnforcement?: boolean }) {
+export async function reviewEnforcementAppeal(input: {
+  adminUserId: string;
+  appealId: string;
+  status: 'accepted' | 'rejected';
+  note: string;
+  liftEnforcement?: boolean;
+}) {
   const note = validateModerationReason(input.note);
 
   return db.transaction(async (tx) => {
-    const appeal = await tx.query.enforcementAppeals.findFirst({ where: eq(enforcementAppeals.id, input.appealId) });
+    const appeal = await tx.query.enforcementAppeals.findFirst({
+      where: eq(enforcementAppeals.id, input.appealId),
+    });
 
     if (!appeal) {
       throw new Error('Appeal not found.');
     }
 
-    const enforcement = await tx.query.characterEnforcements.findFirst({ where: eq(characterEnforcements.id, appeal.enforcementId) });
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, appeal.characterId) });
+    const enforcement = await tx.query.characterEnforcements.findFirst({
+      where: eq(characterEnforcements.id, appeal.enforcementId),
+    });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, appeal.characterId),
+    });
 
     if (!enforcement || !character) {
       throw new Error('Appeal target not found.');
@@ -1075,7 +1309,13 @@ export async function reviewEnforcementAppeal(input: { adminUserId: string; appe
 
     const [updatedAppeal] = await tx
       .update(enforcementAppeals)
-      .set({ status: input.status, reviewedByUserId: input.adminUserId, reviewedAt: sql`now()`, resolutionNote: note, updatedAt: sql`now()` })
+      .set({
+        status: input.status,
+        reviewedByUserId: input.adminUserId,
+        reviewedAt: sql`now()`,
+        resolutionNote: note,
+        updatedAt: sql`now()`,
+      })
       .where(eq(enforcementAppeals.id, input.appealId))
       .returning();
 
@@ -1083,13 +1323,24 @@ export async function reviewEnforcementAppeal(input: { adminUserId: string; appe
     if (input.status === 'accepted' && input.liftEnforcement) {
       const [updatedEnforcement] = await tx
         .update(characterEnforcements)
-        .set({ isActive: false, liftedByUserId: input.adminUserId, liftedAt: sql`now()`, updatedAt: sql`now()` })
+        .set({
+          isActive: false,
+          liftedByUserId: input.adminUserId,
+          liftedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
         .where(eq(characterEnforcements.id, enforcement.id))
         .returning();
       lifted = updatedEnforcement;
 
-      if (enforcement.actionType === 'temporary_suspension' && character.statusReason?.startsWith('Admin enforcement:')) {
-        await tx.update(characters).set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
+      if (
+        enforcement.actionType === 'temporary_suspension' &&
+        character.statusReason?.startsWith('Admin enforcement:')
+      ) {
+        await tx
+          .update(characters)
+          .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
+          .where(eq(characters.id, character.id));
       }
     }
 
@@ -1198,7 +1449,9 @@ export async function expireDueCharacterEnforcements({ limit = 100 } = {}) {
       for update skip locked
     `);
 
-    const due = Array.from((Array.isArray(dueRows) ? dueRows : ((dueRows as any).rows ?? [])) as any[]);
+    const due = Array.from(
+      (Array.isArray(dueRows) ? dueRows : ((dueRows as any).rows ?? [])) as any[],
+    );
 
     if (!due.length) {
       return { expired: 0, enforcements: [] };
@@ -1218,7 +1471,10 @@ export async function expireDueCharacterEnforcements({ limit = 100 } = {}) {
         .where(eq(characterEnforcements.id, enforcement.id))
         .returning();
 
-      if (enforcement.actionType === 'temporary_suspension' && String(enforcement.statusReason ?? '').startsWith('Admin enforcement:')) {
+      if (
+        enforcement.actionType === 'temporary_suspension' &&
+        String(enforcement.statusReason ?? '').startsWith('Admin enforcement:')
+      ) {
         await tx
           .update(characters)
           .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
@@ -1288,7 +1544,9 @@ export async function getModerationTransparencySummary({ days = 30 } = {}) {
   return {
     days: safeDays,
     reports: Array.isArray(reportRows) ? reportRows : ((reportRows as any).rows ?? []),
-    enforcements: Array.isArray(enforcementRows) ? enforcementRows : ((enforcementRows as any).rows ?? []),
+    enforcements: Array.isArray(enforcementRows)
+      ? enforcementRows
+      : ((enforcementRows as any).rows ?? []),
     appeals: Array.isArray(appealRows) ? appealRows : ((appealRows as any).rows ?? []),
   };
 }

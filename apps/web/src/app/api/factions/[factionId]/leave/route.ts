@@ -5,7 +5,10 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest, context: { params: Promise<{ factionId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ factionId: string }> },
+) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -13,7 +16,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fa
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions:id:leave', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:factions:id:leave', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -26,7 +33,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fa
     }
 
     const { factionId } = await context.params;
-    const result = await leaveFaction({ userId: auth.userId, factionId, characterId: body.data.characterId });
+    const result = await leaveFaction({
+      userId: auth.userId,
+      factionId,
+      characterId: body.data.characterId,
+    });
 
     if (!result.ok) {
       return jsonError(result.code, result.message, result.code === 'not_found' ? 404 : 403);

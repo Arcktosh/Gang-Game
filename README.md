@@ -1,36 +1,28 @@
 # DrugDeal Game
 
-Text-based persistent browser MMO skeleton using Next.js, PostgreSQL, Drizzle ORM, Redis, shared TypeScript packages, and a worker service.
+Text-based persistent browser MMO built with Next.js, PostgreSQL, Drizzle ORM, Redis, shared TypeScript packages, and a worker service.
 
 > Safety note: gameplay systems are fictional and abstract. Crime/legal mechanics should stay game-like and avoid real-world operational detail.
 
 ## Fast retrieval path
 
-For future implementation passes, read these files first and avoid scanning the whole repo unless a task needs code-level detail:
+Read these first during future implementation passes:
 
 1. `docs/README.md` - documentation map and retrieval rules.
-2. `docs/current-state.md` - one-page current project state.
-3. `docs/next-task-brief.md` - highest-value next tasks and execution constraints.
-4. `docs/backlog-index.md` - compact map of remaining unstarted/thin feature areas.
-5. `docs/api-reference.md` - API route map when editing routes.
-6. `docs/migration-guide.md` - database order when editing schema/migrations.
-7. `docs/validation-audit.md` - validation commands and known proof gaps.
-8. `docs/mvp-release-runbook.md` - MVP release checklist and runtime validation gate.
-9. `docs/backup-restore.md` - backup and restore runbook.
-10. `docs/runtime-smoke.md` - live runtime smoke-test guide.
-11. `docs/privacy-policy.md` - public beta privacy-policy draft.
-12. `docs/terms-of-service.md` - public beta terms draft.
-13. `docs/community-rules.md` - public beta conduct rules.
-14. `docs/beta-test-plan.md` - public beta test plan.
-15. `docs/feature-history.md` - consolidated historical implementation audit trail.
+2. `docs/current-state.md` - compact project state and proof gaps.
+3. `docs/feature-checklist.md` - living production-readiness checklist.
+4. `docs/api-reference.md` - API route map when editing routes.
+5. `docs/migration-guide.md` - database setup and migration flow.
+6. `docs/validation-audit.md` - validation commands and known proof gaps.
+7. `docs/feature-history.md` - consolidated historical implementation audit trail.
 
-Historical implementation notes are consolidated in `docs/feature-history.md`; do not read that first during normal task planning.
+Public launch references remain in `docs/privacy-policy.md`, `docs/terms-of-service.md`, `docs/community-rules.md`, and `docs/beta-test-plan.md`. Monetization planning remains in `docs/monetization.md`.
 
 ## Current state
 
-The repo is at **Feature Pass 75**. Feature breadth is sufficient for a static MVP candidate. Feature Pass 59 added public launch polish and policy drafts. Feature Pass 60 added the accessibility, responsive design, PWA, and SEO baseline. Feature Pass 56 added the monetization foundation documented in `docs/monetization.md`; Feature Pass 64 keeps this reference discoverable; Feature Pass 65 removes deprecated TypeScript `baseUrl` usage for TS 6 compatibility. Feature Pass 66 updates Docker Compose to use configurable PostgreSQL/Redis images with AWS Public ECR defaults, health checks, and Redis persistence so local startup is less dependent on Docker Hub tag pulls. Feature Pass 67 adds player bank deposits/withdrawals and finance price-history retrieval. Feature Pass 68 adds authenticated bank-history retrieval, dashboard bank activity, and finance sparkline charts. Feature Pass 69 adds authenticated money-sink catalog/purchase actions and dashboard controls. Feature Pass 70 adds first-pass loan offers, loan funding, bank repayment, loan ledger migration, and dashboard loan controls. Feature Pass 71 adds overdue/default loan handling, worker processing, unresolved-loan database guardrails, and dashboard default-state visibility. Feature Pass 72 adds partial loan repayments, payment amount validation, incremental bank debits, audit/event logging, and dashboard payment controls. Feature Pass 73 adds economy-manager loan exposure visibility in the admin console and a guarded admin loan queue API. Feature Pass 74 consolidates the historical per-pass documentation into `docs/feature-history.md`, reducing docs folder file count while preserving the audit trail. Feature Pass 75 adds richer banking statements with filters, summaries, and CSV export. MVP acceptance is documented in `docs/mvp-acceptance.md` and guarded by `pnpm validate:mvp-acceptance`. Current breadth includes: auth and account recovery, character creation, core actions, jobs, crimes, legal/hospital recovery, travel, market, banking/history/statements, money sinks, loans with partial repayment and admin exposure review, finance charts, factions, PvP, shops, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baseline, monetization placeholders, and static validation gates are in place.
+The repo is at **Feature Pass 89**. It is still an **MVP candidate**, not production-proven, because installed-environment proof remains outstanding. Feature Pass 56 added the monetization foundation and MVP acceptance gate; Feature Pass 59 added public launch polish and policy drafts; Feature Pass 60 added the site-quality baseline for accessibility, responsive design, PWA, and SEO; Feature Pass 88 consolidated package scripts/docs and added Redis-backed rate limiting with memory fallback; Feature Pass 89 adds idempotent achievement syncing plus worker retry/dead-letter handling. MVP acceptance is tracked in `docs/mvp-acceptance.md` and now runs through the consolidated `pnpm validate:static` chain.
 
-The highest-value remaining work is **runtime proof in an installed environment** and then fixing any failures found. See `docs/next-task-brief.md`.
+Current breadth includes auth/account recovery, character creation, core actions, jobs, crimes, legal/hospital recovery, travel, market, banking/statements, money sinks, loans, finance charts, factions, PvP, shops, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baseline, monetization placeholders, static validation gates, and Redis-backed anti-spam/rate limiting, idempotent dashboard achievement sync, and worker retry/dead-letter handling.
 
 ## Architecture
 
@@ -40,7 +32,7 @@ The highest-value remaining work is **runtime proof in an installed environment*
 - `packages/game` - pure game rules, formulas, and simulations.
 - `packages/validators` - shared Zod validators.
 - `packages/ui` - shared UI components.
-- `docs` - compact retrieval docs, source-of-truth status, roadmap, API/migration references, and consolidated historical pass notes.
+- `docs` - compact source-of-truth docs and consolidated historical pass notes.
 
 ## Quick start
 
@@ -48,23 +40,12 @@ The highest-value remaining work is **runtime proof in an installed environment*
 pnpm install
 cp .env.example .env
 docker compose up -d
-docker compose ps
-```
-
-The default compose images use AWS Public ECR mirrors of the official PostgreSQL and Redis images to avoid Docker Hub fetch failures/rate limits. To force Docker Hub instead, set `POSTGRES_IMAGE=docker.io/library/postgres:16-alpine` and `REDIS_IMAGE=docker.io/library/redis:7-alpine` in `.env`.
-
-Apply the database with the tracked all-migration runner documented in `docs/migration-guide.md`. It records applied SQL files in `schema_migrations` and skips them on later runs.
-
-```bash
-pnpm db:apply:all
-```
-
-Start the app and worker:
-
-```bash
+pnpm db:setup
 pnpm dev:worker
 pnpm dev
 ```
+
+The default compose images use AWS Public ECR mirrors of the official PostgreSQL and Redis images to reduce Docker Hub dependency. Override `POSTGRES_IMAGE` and `REDIS_IMAGE` in `.env` if needed.
 
 ## Local login
 
@@ -75,39 +56,48 @@ Email:    dev@example.com
 Password: password123
 ```
 
-Sessions use an `httpOnly` cookie named `dd_session`. For local API testing only, game routes still accept this fallback header when `NODE_ENV !== 'production'`:
-
-```bash
--H 'x-user-id: 00000000-0000-0000-0000-000000000001'
-```
+Sessions use an `httpOnly` cookie named `dd_session`. For local API testing only, game routes still accept `x-user-id` when `NODE_ENV !== 'production'`.
 
 ## Useful commands
 
 ```bash
 pnpm dev                         # Start the Next.js app
 pnpm dev:worker                  # Start the worker process
-pnpm typecheck                   # TypeScript checks
+pnpm build                       # Workspace builds
+pnpm typecheck                   # Workspace TypeScript checks
 pnpm test                        # Package test suites
-pnpm validate:static             # Dependency-light static validation chain after install
+pnpm validate                    # Alias for pnpm validate:static
+pnpm validate:static             # Consolidated dependency-light static validation chain
 pnpm validate:docs               # Documentation/API drift audit
-pnpm validate:runtime-proof      # Runtime proof wiring validation
+pnpm validate:migrations         # Migration order and coverage audit
+# validate:runtime-proof is consolidated into pnpm validate:static
 pnpm smoke:runtime               # Runtime smoke checks against a running app
 pnpm prove:mvp-runtime           # Full installed-environment MVP proof
 pnpm prove:integration           # Opt-in database-backed integration proof
+pnpm db:setup                    # Ensure database exists, then apply all migrations
+pnpm db:apply:all                # Apply tracked migrations to an existing database
+pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql  # Targeted repair only
 pnpm db:backup                   # PostgreSQL custom-format backup using DATABASE_URL
 pnpm db:restore -- backup.dump   # Restore using DATABASE_URL
 ```
 
+## Release proof docs
+
+- `docs/mvp-release-runbook.md` - release checklist and rollback flow.
+- `docs/backup-restore.md` - PostgreSQL backup/restore procedures.
+- `docs/runtime-smoke.md` - smoke checks for a running app.
+- `docs/migration-guide.md` - database setup and migration flow.
+
 ## Current API surface
 
-See `docs/api-reference.md`. Major route groups include auth/account recovery, characters, jobs, crimes, travel, training, education, market, finance, gambling, factions, territories, PvP, bounties, shops, contracts, newspaper, messages, notifications, and admin routes.
+See `docs/api-reference.md`. Major route groups include auth/account recovery, characters, jobs, crimes, travel, training, education, market, finance, gambling, factions, territories, PvP, bounties, shops, contracts, newspaper, messages, notifications, monetization placeholders, and admin routes.
 
 ## Current limitations
 
-- Full dependency install, typecheck, tests, live smoke checks, backup/restore proof, and runtime migration validation still need to be executed with pnpm, PostgreSQL, and Redis.
+- Runtime proof still required: install, migration, typecheck, tests, live smoke checks, backup, restore, and DB integration proof must run with pnpm, PostgreSQL, and Redis.
 - Database-backed route/integration tests are scaffolded but not yet proven in this environment.
-- Production observability still needs external log shipping, alerting, retry/dead-letter policy, abuse analytics, and a distributed Redis/Postgres-backed rate limiter.
-- Several deep retention systems remain post-MVP: skill trees, tutorial/wiki, season rewards, auction house, faction diplomacy/war UI, deeper market/supply controls, and public profile routes.
+- Production observability still needs external log shipping, alerting, abuse analytics, bot detection, and load testing.
+- Public legal documents are drafts pending jurisdiction-reviewed final versions.
 
 ## Recommended next pass
 
@@ -122,8 +112,3 @@ Preview the command sequence without executing external tools:
 ```bash
 MVP_PROOF_DRY_RUN=true pnpm prove:mvp-runtime
 ```
-
-
-### Pass 75 stability hotfix
-
-A follow-up runtime hotfix fixes dashboard finance-history empty-state update loops, async form reset safety, and message unread-count timestamp filtering.

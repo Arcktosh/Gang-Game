@@ -32,7 +32,10 @@ export async function listUserEntitlements(userId: string) {
 
 export async function grantUserEntitlement(input: GrantUserEntitlementInput) {
   const existing = await db.query.userEntitlements.findFirst({
-    where: and(eq(userEntitlements.userId, input.userId), eq(userEntitlements.entitlementKey, input.entitlementKey)),
+    where: and(
+      eq(userEntitlements.userId, input.userId),
+      eq(userEntitlements.entitlementKey, input.entitlementKey),
+    ),
   });
 
   if (existing) {
@@ -73,7 +76,12 @@ export async function revokeUserEntitlement(input: { userId: string; entitlement
   const [entitlement] = await db
     .update(userEntitlements)
     .set({ status: 'revoked', updatedAt: sql`now()` })
-    .where(and(eq(userEntitlements.userId, input.userId), eq(userEntitlements.entitlementKey, input.entitlementKey)))
+    .where(
+      and(
+        eq(userEntitlements.userId, input.userId),
+        eq(userEntitlements.entitlementKey, input.entitlementKey),
+      ),
+    )
     .returning();
 
   return entitlement ?? null;
@@ -86,17 +94,31 @@ export async function listCharacterCosmetics(characterId: string) {
   });
 }
 
-export async function equipCharacterCosmetic(input: { characterId: string; cosmeticKey: string; slot: string }) {
+export async function equipCharacterCosmetic(input: {
+  characterId: string;
+  cosmeticKey: string;
+  slot: string;
+}) {
   return db.transaction(async (tx) => {
     await tx
       .update(characterCosmetics)
       .set({ isEquipped: false, updatedAt: sql`now()` })
-      .where(and(eq(characterCosmetics.characterId, input.characterId), eq(characterCosmetics.slot, input.slot)));
+      .where(
+        and(
+          eq(characterCosmetics.characterId, input.characterId),
+          eq(characterCosmetics.slot, input.slot),
+        ),
+      );
 
     const [cosmetic] = await tx
       .update(characterCosmetics)
       .set({ isEquipped: true, updatedAt: sql`now()` })
-      .where(and(eq(characterCosmetics.characterId, input.characterId), eq(characterCosmetics.cosmeticKey, input.cosmeticKey)))
+      .where(
+        and(
+          eq(characterCosmetics.characterId, input.characterId),
+          eq(characterCosmetics.cosmeticKey, input.cosmeticKey),
+        ),
+      )
       .returning();
 
     return cosmetic ?? null;

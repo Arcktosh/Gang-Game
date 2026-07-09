@@ -1,5 +1,12 @@
 import { and, eq } from 'drizzle-orm';
-import { assertActionUnlocked, attemptBribe, characters, db, refreshCharacterHeat, setActionCooldown } from '@drugdeal/db';
+import {
+  assertActionUnlocked,
+  attemptBribe,
+  characters,
+  db,
+  refreshCharacterHeat,
+  setActionCooldown,
+} from '@drugdeal/db';
 import { bribeSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
@@ -14,7 +21,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:legal:bribe', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:legal:bribe', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -42,13 +53,23 @@ export async function POST(request: NextRequest) {
       }
 
       const refreshedCharacter = await refreshCharacterHeat(tx, character);
-      const bribeResult = await attemptBribe({ tx, character: refreshedCharacter, userId: auth.userId });
+      const bribeResult = await attemptBribe({
+        tx,
+        character: refreshedCharacter,
+        userId: auth.userId,
+      });
 
       if (!bribeResult.ok) {
         return { error: jsonError('forbidden', bribeResult.message, 403) };
       }
 
-      const lock = await setActionCooldown({ tx, characterId: character.id, actionType: 'legal_bribe', cooldownSeconds: 1800, metadata: { service: 'bribe' } });
+      const lock = await setActionCooldown({
+        tx,
+        characterId: character.id,
+        actionType: 'legal_bribe',
+        cooldownSeconds: 1800,
+        metadata: { service: 'bribe' },
+      });
       return { data: { ...bribeResult, lock } };
     });
 

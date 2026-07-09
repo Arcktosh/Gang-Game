@@ -20,7 +20,15 @@ type InventoryRow = typeof inventoryItems.$inferSelect & {
   item?: typeof itemDefinitions.$inferSelect | null;
 };
 
-async function addInventoryQuantity(tx: Tx, input: { characterId: string; itemKey: string; quantity: number; metadata?: Record<string, unknown> }) {
+async function addInventoryQuantity(
+  tx: Tx,
+  input: {
+    characterId: string;
+    itemKey: string;
+    quantity: number;
+    metadata?: Record<string, unknown>;
+  },
+) {
   const quantity = Math.max(1, Math.floor(input.quantity));
 
   const [inventoryItem] = await tx
@@ -87,11 +95,19 @@ function normalizeInventoryRow(row: InventoryRow) {
   };
 }
 
-export async function listInventoryTransferCandidates(input: { characterId: string; location: string; limit?: number }) {
+export async function listInventoryTransferCandidates(input: {
+  characterId: string;
+  location: string;
+  limit?: number;
+}) {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
 
   return db.query.characters.findMany({
-    where: and(ne(characters.id, input.characterId), eq(characters.location, input.location), eq(characters.status, 'free')),
+    where: and(
+      ne(characters.id, input.characterId),
+      eq(characters.location, input.location),
+      eq(characters.status, 'free'),
+    ),
     orderBy: desc(characters.updatedAt),
     limit,
     columns: {
@@ -155,7 +171,11 @@ export async function listInventoryProfile(input: { userId: string; characterId:
   };
 }
 
-export async function useInventoryItem(input: { userId: string; characterId: string; inventoryItemId: string }) {
+export async function useInventoryItem(input: {
+  userId: string;
+  characterId: string;
+  inventoryItemId: string;
+}) {
   return db.transaction(async (tx) => {
     const characterRow = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -168,7 +188,11 @@ export async function useInventoryItem(input: { userId: string; characterId: str
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available to use inventory items.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available to use inventory items.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, 'item_use');
@@ -177,7 +201,10 @@ export async function useInventoryItem(input: { userId: string; characterId: str
     }
 
     const inventoryItem = await tx.query.inventoryItems.findFirst({
-      where: and(eq(inventoryItems.id, input.inventoryItemId), eq(inventoryItems.characterId, character.id)),
+      where: and(
+        eq(inventoryItems.id, input.inventoryItemId),
+        eq(inventoryItems.characterId, character.id),
+      ),
       with: { item: true },
     });
 
@@ -198,7 +225,11 @@ export async function useInventoryItem(input: { userId: string; characterId: str
 
     const inventoryUpdate = await decrementInventoryQuantity(tx, inventoryItem.id, 1);
     if (!inventoryUpdate.ok) {
-      return { ok: false as const, code: 'conflict', message: 'Inventory item is no longer available.' };
+      return {
+        ok: false as const,
+        code: 'conflict',
+        message: 'Inventory item is no longer available.',
+      };
     }
 
     const [updatedCharacter] = await tx
@@ -236,7 +267,10 @@ export async function useInventoryItem(input: { userId: string; characterId: str
       metadata: { itemKey: inventoryItem.itemKey, inventoryItemId: inventoryItem.id },
     });
 
-    return { ok: true as const, data: { character: updatedCharacter, inventoryItem: inventoryUpdate.inventoryItem, effect } };
+    return {
+      ok: true as const,
+      data: { character: updatedCharacter, inventoryItem: inventoryUpdate.inventoryItem, effect },
+    };
   });
 }
 
@@ -258,11 +292,19 @@ export async function transferInventoryItem(input: {
 
     const sender = await refreshCharacterResources(tx, senderRow);
     if (sender.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available to transfer inventory.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available to transfer inventory.',
+      };
     }
 
     if (sender.id === input.recipientCharacterId) {
-      return { ok: false as const, code: 'forbidden', message: 'Cannot transfer items to yourself.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Cannot transfer items to yourself.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, sender.id, 'item_transfer');
@@ -274,7 +316,10 @@ export async function transferInventoryItem(input: {
     const [recipient, inventoryItem] = await Promise.all([
       tx.query.characters.findFirst({ where: eq(characters.id, input.recipientCharacterId) }),
       tx.query.inventoryItems.findFirst({
-        where: and(eq(inventoryItems.id, input.inventoryItemId), eq(inventoryItems.characterId, sender.id)),
+        where: and(
+          eq(inventoryItems.id, input.inventoryItemId),
+          eq(inventoryItems.characterId, sender.id),
+        ),
         with: { item: true },
       }),
     ]);
@@ -284,28 +329,51 @@ export async function transferInventoryItem(input: {
     }
 
     if (recipient.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Recipient is not available to receive inventory.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Recipient is not available to receive inventory.',
+      };
     }
 
     if (recipient.location !== sender.location) {
-      return { ok: false as const, code: 'forbidden', message: 'Direct transfers require both characters to be in the same location.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Direct transfers require both characters to be in the same location.',
+      };
     }
 
     if (!inventoryItem || inventoryItem.quantity < quantity || !inventoryItem.item) {
-      return { ok: false as const, code: 'not_found', message: 'Transferable inventory item not found.' };
+      return {
+        ok: false as const,
+        code: 'not_found',
+        message: 'Transferable inventory item not found.',
+      };
     }
 
     const equipped = await tx.query.characterEquipment.findFirst({
-      where: and(eq(characterEquipment.inventoryItemId, inventoryItem.id), eq(characterEquipment.isEquipped, true)),
+      where: and(
+        eq(characterEquipment.inventoryItemId, inventoryItem.id),
+        eq(characterEquipment.isEquipped, true),
+      ),
     });
 
     if (equipped && inventoryItem.quantity <= quantity) {
-      return { ok: false as const, code: 'forbidden', message: 'Unequip this item before transferring the final stack.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Unequip this item before transferring the final stack.',
+      };
     }
 
     const senderInventoryUpdate = await decrementInventoryQuantity(tx, inventoryItem.id, quantity);
     if (!senderInventoryUpdate.ok) {
-      return { ok: false as const, code: 'conflict', message: 'Inventory item is no longer available.' };
+      return {
+        ok: false as const,
+        code: 'conflict',
+        message: 'Inventory item is no longer available.',
+      };
     }
 
     const recipientInventoryItem = await addInventoryQuantity(tx, {
@@ -349,7 +417,12 @@ export async function transferInventoryItem(input: {
       type: 'system',
       amount: '0',
       description: `Transferred ${quantity} x ${inventoryItem.item.name} to ${recipient.name}.`,
-      metadata: { action: 'inventory_transfer', recipientCharacterId: recipient.id, itemKey: inventoryItem.itemKey, quantity },
+      metadata: {
+        action: 'inventory_transfer',
+        recipientCharacterId: recipient.id,
+        itemKey: inventoryItem.itemKey,
+        quantity,
+      },
     });
 
     await setActionCooldown({

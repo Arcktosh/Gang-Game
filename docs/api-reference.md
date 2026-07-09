@@ -213,7 +213,6 @@ Behavior:
 - Reusing a key while the first request is still processing returns `409 conflict`.
 - Failed validation/permission responses are not cached as completed responses.
 
-
 ### Bank history query notes
 
 `GET /api/bank/history` accepts `characterId`, optional `action`, `limit`, `offset`, `from`, `to`, and `format`. The `action` filter supports `all`, `deposit`, `withdraw`, `loan_request`, `loan_repayment`, and `loan_partial_repayment`. JSON responses include `transactions` and a statement `summary`; `format=csv` returns a downloadable CSV statement.
@@ -263,9 +262,9 @@ Current static result after pass 52:
 - 58 unsafe/state-changing route files include route-level rate-limit helper usage.
 - 78 API route files include request observability signals.
 - 0 hardening notes remain in the static audit output.
-- 78 concrete API routes are cross-checked against this reference by `pnpm validate:docs`.
-- MVP page, gameplay progression, admin RBAC, job lifecycle, legal recovery, integration-test, release-readiness, and monetization wiring are checked by `pnpm validate:mvp-pages`, `pnpm validate:mvp-gameplay`, `pnpm validate:admin-rbac`, `pnpm validate:job-lifecycle`, `pnpm validate:legal-recovery`, `pnpm validate:integration-tests`, `pnpm validate:release-readiness`, and `pnpm validate:monetization`.
-- CI workflow configuration is cross-checked by `pnpm validate:ci-workflow`.
+- 94 concrete API routes are cross-checked against this reference by `pnpm validate:docs`.
+- MVP page, gameplay progression, admin RBAC, job lifecycle, legal recovery, integration-test, release-readiness, and monetization wiring are checked by the direct validator-file chain inside `pnpm validate:static`.
+- CI workflow configuration is cross-checked by `scripts/validate-ci-workflow.mjs` through `pnpm validate:static`.
 
 The audit is static and pattern-based. It is a drift detector, not a substitute for runtime integration tests.
 
@@ -287,21 +286,17 @@ See `docs/runtime-smoke.md` for configuration and CI usage.
 - Add error code catalog.
 - Generate an OpenAPI spec or typed client once route contracts stabilize.
 
-
 ## Representative route-contract audit after pass 46
 
 Pass 46 added `scripts/audit-route-contracts.mjs` and `pnpm audit:route-contracts`. The audit checks 12 representative route contracts across auth, jobs, crimes, market, shops, contracts, and admin routes for expected guard tokens including observability, auth/admin checks, rate limits, body/query validation, and idempotency where applicable.
 
-
-
-
 ## MVP gameplay progression audit after pass 48
 
-Pass 48 adds `scripts/validate-mvp-gameplay.mjs` and `pnpm validate:mvp-gameplay`. The validator checks that canonical XP/progression helpers exist, job and crime mutations return progression snapshots, database character updates recompute level and max nerve from XP gains, the profile page displays next-level progress, and formula tests cover the new progression helpers.
+Pass 48 added `scripts/validate-mvp-gameplay.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks that canonical XP/progression helpers exist, job and crime mutations return progression snapshots, database character updates recompute level and max nerve from XP gains, the profile page displays next-level progress, and formula tests cover the new progression helpers.
 
 ## MVP page coverage audit after pass 47
 
-Pass 47 adds `scripts/validate-mvp-pages.mjs` and `pnpm validate:mvp-pages`. The validator checks that the dedicated MVP player pages exist, use the shared authenticated `GamePageShell`, load active character context, and are linked from the shared game navigation.
+Pass 47 added `scripts/validate-mvp-pages.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks that the dedicated MVP player pages exist, use the shared authenticated `GamePageShell`, load active character context, and are linked from the shared game navigation.
 
 Current page coverage:
 
@@ -315,20 +310,17 @@ Current page coverage:
 - `/newspaper`
 - `/factions`
 
-
 ## Admin RBAC audit after pass 50
 
-Pass 49 adds `scripts/validate-admin-rbac.mjs` and `pnpm validate:admin-rbac`. The validator checks all 14 admin route files for `requireAdminCapability`, rejects direct `session.user.isAdmin` checks in admin routes, verifies literal capability declarations, verifies the admin page uses `hasAdminCapability`, and confirms `0029_admin_roles.sql` plus `db:apply:admin-roles` remain wired.
-
+Pass 49 added `scripts/validate-admin-rbac.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks all 14 admin route files for `requireAdminCapability`, rejects direct `session.user.isAdmin` checks in admin routes, verifies literal capability declarations, verifies the admin page uses `hasAdminCapability`, and confirms `0029_admin_roles.sql` remains covered by the all-migration runner.
 
 ## MVP acceptance validation
 
-Pass 53 adds `scripts/validate-mvp-acceptance.mjs` and `pnpm validate:mvp-acceptance`. The validator checks that representative MVP API route files remain present for auth, characters, jobs, crimes, legal/hospital recovery, market, shops, messages, newspaper, factions, and admin operations.
-
+Pass 53 added `scripts/validate-mvp-acceptance.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks that representative MVP API route files remain present for auth, characters, jobs, crimes, legal/hospital recovery, market, shops, messages, newspaper, factions, and admin operations.
 
 ## Feature Pass 59 admin operations UI validation
 
-Feature Pass 59 adds `scripts/validate-admin-operations-ui.mjs` and `pnpm validate:admin-operations-ui`. The validator keeps the admin console wired to search, flagging, flag resolution, status clearing, enforcement, enforcement lifting, appeal review, moderation report resolution, economy adjustments, transparency, audit, and the capability-gated admin API routes. Feature Pass 73 extends the console with loan exposure visibility through the admin economy loan endpoint.
+Feature Pass 59 added `scripts/validate-admin-operations-ui.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator keeps the admin console wired to search, flagging, flag resolution, status clearing, enforcement, enforcement lifting, appeal review, moderation report resolution, economy adjustments, transparency, audit, and the capability-gated admin API routes. Feature Pass 73 extends the console with loan exposure visibility through the admin economy loan endpoint.
 
 ## Feature Pass 59 public launch polish
 

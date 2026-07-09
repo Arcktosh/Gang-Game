@@ -33,7 +33,9 @@ type WorkshopAction =
   | { action: 'start_recipe'; characterId: string; recipeKey: string; workshopId?: string };
 
 async function getOwnedCharacter(tx: Tx, userId: string, characterId: string) {
-  const character = await tx.query.characters.findFirst({ where: and(eq(characters.id, characterId), eq(characters.userId, userId)) });
+  const character = await tx.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+  });
 
   if (!character) {
     return null;
@@ -42,13 +44,22 @@ async function getOwnedCharacter(tx: Tx, userId: string, characterId: string) {
   return refreshCharacterResources(tx, character);
 }
 
-async function getInventoryMap(tx: Tx, characterId: string): Promise<Map<string, typeof inventoryItems.$inferSelect>> {
-  const rows = (await tx.query.inventoryItems.findMany({ where: eq(inventoryItems.characterId, characterId) })) as (typeof inventoryItems.$inferSelect)[];
-  return new Map(rows.map((row) => [row.itemKey, row] as [string, typeof inventoryItems.$inferSelect]));
+async function getInventoryMap(
+  tx: Tx,
+  characterId: string,
+): Promise<Map<string, typeof inventoryItems.$inferSelect>> {
+  const rows = (await tx.query.inventoryItems.findMany({
+    where: eq(inventoryItems.characterId, characterId),
+  })) as (typeof inventoryItems.$inferSelect)[];
+  return new Map(
+    rows.map((row) => [row.itemKey, row] as [string, typeof inventoryItems.$inferSelect]),
+  );
 }
 
 async function addInventory(tx: Tx, characterId: string, itemKey: string, quantity: number) {
-  const existing = await tx.query.inventoryItems.findFirst({ where: and(eq(inventoryItems.characterId, characterId), eq(inventoryItems.itemKey, itemKey)) });
+  const existing = await tx.query.inventoryItems.findFirst({
+    where: and(eq(inventoryItems.characterId, characterId), eq(inventoryItems.itemKey, itemKey)),
+  });
 
   if (existing) {
     await tx
@@ -62,25 +73,46 @@ async function addInventory(tx: Tx, characterId: string, itemKey: string, quanti
 }
 
 export async function listCraftingProfile(input: { userId: string; characterId: string }) {
-  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
+  const character = await db.query.characters.findFirst({
+    where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
+  });
 
   if (!character) {
     return null;
   }
 
   const [recipes, workshops, jobs, inventory] = await Promise.all([
-    db.query.craftingRecipeDefinitions.findMany({ with: { outputItem: true }, orderBy: (table, { asc }) => [asc(table.requiredLevel), asc(table.name)] }),
-    db.query.characterWorkshops.findMany({ where: eq(characterWorkshops.characterId, character.id), orderBy: (table, { asc }) => [asc(table.workshopType)] }),
-    db.query.craftingJobs.findMany({ where: eq(craftingJobs.characterId, character.id), with: { recipe: true, outputItem: true, workshop: true, inputs: true }, orderBy: desc(craftingJobs.startedAt), limit: 12 }),
-    db.query.inventoryItems.findMany({ where: eq(inventoryItems.characterId, character.id), with: { item: true } }),
+    db.query.craftingRecipeDefinitions.findMany({
+      with: { outputItem: true },
+      orderBy: (table, { asc }) => [asc(table.requiredLevel), asc(table.name)],
+    }),
+    db.query.characterWorkshops.findMany({
+      where: eq(characterWorkshops.characterId, character.id),
+      orderBy: (table, { asc }) => [asc(table.workshopType)],
+    }),
+    db.query.craftingJobs.findMany({
+      where: eq(craftingJobs.characterId, character.id),
+      with: { recipe: true, outputItem: true, workshop: true, inputs: true },
+      orderBy: desc(craftingJobs.startedAt),
+      limit: 12,
+    }),
+    db.query.inventoryItems.findMany({
+      where: eq(inventoryItems.characterId, character.id),
+      with: { item: true },
+    }),
   ]);
 
-  const inventoryByKey = new Map<string, number>(inventory.map((row: any) => [row.itemKey, row.quantity]));
+  const inventoryByKey = new Map<string, number>(
+    inventory.map((row: any) => [row.itemKey, row.quantity]),
+  );
 
   const enrichedRecipes = recipes.map((recipe: any) => {
     const inputs = normalizeCraftingInputs(recipe.inputs);
-    const hasInputs = Object.entries(inputs).every(([itemKey, quantity]) => (inventoryByKey.get(itemKey) ?? 0) >= quantity);
-    const matchingWorkshop = workshops.find((workshop: any) => workshop.workshopType === recipe.workshopType) ?? null;
+    const hasInputs = Object.entries(inputs).every(
+      ([itemKey, quantity]) => (inventoryByKey.get(itemKey) ?? 0) >= quantity,
+    );
+    const matchingWorkshop =
+      workshops.find((workshop: any) => workshop.workshopType === recipe.workshopType) ?? null;
     const startCheck = canStartCrafting(recipe, character);
 
     return {
@@ -110,7 +142,11 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
     }
 
     if (character.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for workshop actions.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for workshop actions.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, 'crafting' as any);
@@ -119,8 +155,12 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
     }
 
     if (input.action === 'build_workshop') {
-      const existing = await tx.query.characterWorkshops.findMany({ where: eq(characterWorkshops.characterId, character.id) });
-      const duplicate = existing.find((workshop: any) => workshop.workshopType === input.workshopType);
+      const existing = await tx.query.characterWorkshops.findMany({
+        where: eq(characterWorkshops.characterId, character.id),
+      });
+      const duplicate = existing.find(
+        (workshop: any) => workshop.workshopType === input.workshopType,
+      );
 
       if (duplicate) {
         return { ok: false as const, code: 'forbidden', message: 'Workshop type already built.' };
@@ -133,19 +173,53 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
 
       const [workshop] = await tx
         .insert(characterWorkshops)
-        .values({ characterId: character.id, workshopType: input.workshopType, name: input.name?.trim() || `${input.workshopType} workshop`, isHidden: input.workshopType === 'lab' || input.workshopType === 'electronics' })
+        .values({
+          characterId: character.id,
+          workshopType: input.workshopType,
+          name: input.name?.trim() || `${input.workshopType} workshop`,
+          isHidden: input.workshopType === 'lab' || input.workshopType === 'electronics',
+        })
         .returning();
 
-      await tx.update(characters).set({ cash: sql`${characters.cash} - ${cost}`, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
-      await tx.insert(financialTransactions).values({ characterId: character.id, type: 'system', amount: String(-cost), description: `Built ${workshop.name}` });
-      await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, type: 'workshop_built', payload: { workshopType: input.workshopType, cost }, visibility: 'private' });
-      await setActionCooldown({ tx, characterId: character.id, actionType: 'crafting', cooldownSeconds: 120, metadata: { action: 'build_workshop' } });
+      await tx
+        .update(characters)
+        .set({ cash: sql`${characters.cash} - ${cost}`, updatedAt: sql`now()` })
+        .where(eq(characters.id, character.id));
+      await tx
+        .insert(financialTransactions)
+        .values({
+          characterId: character.id,
+          type: 'system',
+          amount: String(-cost),
+          description: `Built ${workshop.name}`,
+        });
+      await tx
+        .insert(playerEvents)
+        .values({
+          userId: input.userId,
+          characterId: character.id,
+          type: 'workshop_built',
+          payload: { workshopType: input.workshopType, cost },
+          visibility: 'private',
+        });
+      await setActionCooldown({
+        tx,
+        characterId: character.id,
+        actionType: 'crafting',
+        cooldownSeconds: 120,
+        metadata: { action: 'build_workshop' },
+      });
 
       return { ok: true as const, data: { workshop, cost } };
     }
 
     if (input.action === 'upgrade_workshop') {
-      const workshop = await tx.query.characterWorkshops.findFirst({ where: and(eq(characterWorkshops.id, input.workshopId), eq(characterWorkshops.characterId, character.id)) });
+      const workshop = await tx.query.characterWorkshops.findFirst({
+        where: and(
+          eq(characterWorkshops.id, input.workshopId),
+          eq(characterWorkshops.characterId, character.id),
+        ),
+      });
 
       if (!workshop) {
         return { ok: false as const, code: 'not_found', message: 'Workshop not found.' };
@@ -158,30 +232,77 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
 
       const [updated] = await tx
         .update(characterWorkshops)
-        .set({ level: sql`${characterWorkshops.level} + 1`, condition: 100, storageCapacity: sql`${characterWorkshops.storageCapacity} + 50`, updatedAt: sql`now()` })
+        .set({
+          level: sql`${characterWorkshops.level} + 1`,
+          condition: 100,
+          storageCapacity: sql`${characterWorkshops.storageCapacity} + 50`,
+          updatedAt: sql`now()`,
+        })
         .where(eq(characterWorkshops.id, workshop.id))
         .returning();
 
-      await tx.update(characters).set({ cash: sql`${characters.cash} - ${cost}`, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
-      await tx.insert(financialTransactions).values({ characterId: character.id, type: 'system', amount: String(-cost), description: `Upgraded ${workshop.name}` });
-      await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, type: 'workshop_upgraded', payload: { workshopId: workshop.id, cost, level: workshop.level + 1 }, visibility: 'private' });
-      await setActionCooldown({ tx, characterId: character.id, actionType: 'crafting', cooldownSeconds: 180, metadata: { action: 'upgrade_workshop' } });
+      await tx
+        .update(characters)
+        .set({ cash: sql`${characters.cash} - ${cost}`, updatedAt: sql`now()` })
+        .where(eq(characters.id, character.id));
+      await tx
+        .insert(financialTransactions)
+        .values({
+          characterId: character.id,
+          type: 'system',
+          amount: String(-cost),
+          description: `Upgraded ${workshop.name}`,
+        });
+      await tx
+        .insert(playerEvents)
+        .values({
+          userId: input.userId,
+          characterId: character.id,
+          type: 'workshop_upgraded',
+          payload: { workshopId: workshop.id, cost, level: workshop.level + 1 },
+          visibility: 'private',
+        });
+      await setActionCooldown({
+        tx,
+        characterId: character.id,
+        actionType: 'crafting',
+        cooldownSeconds: 180,
+        metadata: { action: 'upgrade_workshop' },
+      });
 
       return { ok: true as const, data: { workshop: updated, cost } };
     }
 
-    const recipe = await tx.query.craftingRecipeDefinitions.findFirst({ where: eq(craftingRecipeDefinitions.key, input.recipeKey), with: { outputItem: true } });
+    const recipe = await tx.query.craftingRecipeDefinitions.findFirst({
+      where: eq(craftingRecipeDefinitions.key, input.recipeKey),
+      with: { outputItem: true },
+    });
 
     if (!recipe) {
       return { ok: false as const, code: 'not_found', message: 'Recipe not found.' };
     }
 
     const workshop = input.workshopId
-      ? await tx.query.characterWorkshops.findFirst({ where: and(eq(characterWorkshops.id, input.workshopId), eq(characterWorkshops.characterId, character.id), eq(characterWorkshops.workshopType, recipe.workshopType)) })
-      : await tx.query.characterWorkshops.findFirst({ where: and(eq(characterWorkshops.characterId, character.id), eq(characterWorkshops.workshopType, recipe.workshopType)) });
+      ? await tx.query.characterWorkshops.findFirst({
+          where: and(
+            eq(characterWorkshops.id, input.workshopId),
+            eq(characterWorkshops.characterId, character.id),
+            eq(characterWorkshops.workshopType, recipe.workshopType),
+          ),
+        })
+      : await tx.query.characterWorkshops.findFirst({
+          where: and(
+            eq(characterWorkshops.characterId, character.id),
+            eq(characterWorkshops.workshopType, recipe.workshopType),
+          ),
+        });
 
     if (!workshop) {
-      return { ok: false as const, code: 'forbidden', message: `Requires a ${recipe.workshopType} workshop.` };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: `Requires a ${recipe.workshopType} workshop.`,
+      };
     }
 
     const startCheck = canStartCrafting(recipe, character);
@@ -193,7 +314,11 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
     const inputs = normalizeCraftingInputs(recipe.inputs);
     for (const [itemKey, quantity] of Object.entries(inputs)) {
       if ((inventory.get(itemKey)?.quantity ?? 0) < quantity) {
-        return { ok: false as const, code: 'forbidden', message: `Missing ${quantity}x ${itemKey}.` };
+        return {
+          ok: false as const,
+          code: 'forbidden',
+          message: `Missing ${quantity}x ${itemKey}.`,
+        };
       }
     }
 
@@ -216,23 +341,64 @@ export async function runCraftingAction(input: { userId: string } & WorkshopActi
       .returning();
 
     for (const [itemKey, quantity] of Object.entries(inputs)) {
-      await tx.update(inventoryItems).set({ quantity: sql`${inventoryItems.quantity} - ${quantity}`, updatedAt: sql`now()` }).where(eq(inventoryItems.id, inventory.get(itemKey)!.id));
-      await tx.insert(craftingJobInputs).values({ craftingJobId: job.id, characterId: character.id, itemKey, quantity });
+      await tx
+        .update(inventoryItems)
+        .set({ quantity: sql`${inventoryItems.quantity} - ${quantity}`, updatedAt: sql`now()` })
+        .where(eq(inventoryItems.id, inventory.get(itemKey)!.id));
+      await tx
+        .insert(craftingJobInputs)
+        .values({ craftingJobId: job.id, characterId: character.id, itemKey, quantity });
     }
 
     await tx
       .update(characters)
-      .set({ cash: sql`${characters.cash} - ${recipe.cashCost}`, energy: sql`${characters.energy} - ${recipe.energyCost}`, heat: sql`${characters.heat} + ${riskScore}`, updatedAt: sql`now()` })
+      .set({
+        cash: sql`${characters.cash} - ${recipe.cashCost}`,
+        energy: sql`${characters.energy} - ${recipe.energyCost}`,
+        heat: sql`${characters.heat} + ${riskScore}`,
+        updatedAt: sql`now()`,
+      })
       .where(eq(characters.id, character.id));
 
     if (recipe.cashCost > 0) {
-      await tx.insert(financialTransactions).values({ characterId: character.id, type: 'system', amount: String(-recipe.cashCost), description: `Started ${recipe.name}` });
+      await tx
+        .insert(financialTransactions)
+        .values({
+          characterId: character.id,
+          type: 'system',
+          amount: String(-recipe.cashCost),
+          description: `Started ${recipe.name}`,
+        });
     }
 
-    await tx.insert(playerEvents).values({ userId: input.userId, characterId: character.id, type: 'crafting_started', payload: { recipeKey: recipe.key, jobId: job.id, riskScore }, visibility: riskScore >= 5 ? 'public' : 'private' });
-    await setActionCooldown({ tx, characterId: character.id, actionType: 'crafting', cooldownSeconds: calculateCraftingCooldownSeconds(recipe), metadata: { action: 'start_recipe', recipeKey: recipe.key } });
+    await tx
+      .insert(playerEvents)
+      .values({
+        userId: input.userId,
+        characterId: character.id,
+        type: 'crafting_started',
+        payload: { recipeKey: recipe.key, jobId: job.id, riskScore },
+        visibility: riskScore >= 5 ? 'public' : 'private',
+      });
+    await setActionCooldown({
+      tx,
+      characterId: character.id,
+      actionType: 'crafting',
+      cooldownSeconds: calculateCraftingCooldownSeconds(recipe),
+      metadata: { action: 'start_recipe', recipeKey: recipe.key },
+    });
 
-    return { ok: true as const, data: { job, message: summarizeCraftingJob(recipe.name, recipe.outputQuantity, recipe.outputItem?.name ?? recipe.outputItemKey) } };
+    return {
+      ok: true as const,
+      data: {
+        job,
+        message: summarizeCraftingJob(
+          recipe.name,
+          recipe.outputQuantity,
+          recipe.outputItem?.name ?? recipe.outputItemKey,
+        ),
+      },
+    };
   });
 }
 
@@ -246,8 +412,22 @@ export async function completeReadyCraftingJobs() {
 
     for (const job of ready as any[]) {
       await addInventory(tx, job.characterId, job.outputItemKey, job.outputQuantity);
-      await tx.update(craftingJobs).set({ status: 'completed', completedAt: sql`now()` }).where(eq(craftingJobs.id, job.id));
-      await tx.insert(playerEvents).values({ characterId: job.characterId, type: 'crafting_completed', payload: { recipeKey: job.recipeKey, outputItemKey: job.outputItemKey, outputQuantity: job.outputQuantity }, visibility: 'private' });
+      await tx
+        .update(craftingJobs)
+        .set({ status: 'completed', completedAt: sql`now()` })
+        .where(eq(craftingJobs.id, job.id));
+      await tx
+        .insert(playerEvents)
+        .values({
+          characterId: job.characterId,
+          type: 'crafting_completed',
+          payload: {
+            recipeKey: job.recipeKey,
+            outputItemKey: job.outputItemKey,
+            outputQuantity: job.outputQuantity,
+          },
+          visibility: 'private',
+        });
     }
 
     return { completed: ready.length };

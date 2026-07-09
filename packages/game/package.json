@@ -7,13 +7,13 @@
   "types": "src/index.ts",
   "scripts": {
     "build": "tsc --noEmit",
-    "lint": "echo 'lint placeholder'",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "devDependencies": {
     "@types/node": "latest",
-    "tsx": "latest",
-    "typescript": "latest"
+    "tsx": "^4.20.6",
+    "typescript": "6.0.2"
   }
 }

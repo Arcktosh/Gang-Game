@@ -8,7 +8,11 @@ import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   return withApiObservability(request, async () => {
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'auth:email-verification-confirm'), windowSeconds: 300, maxRequests: 10 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'auth:email-verification-confirm'),
+      windowSeconds: 300,
+      maxRequests: 10,
+    });
 
     if (!limit.ok) {
       return limit.response;

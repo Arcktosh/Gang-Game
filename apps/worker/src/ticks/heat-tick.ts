@@ -1,15 +1,15 @@
 import { gt } from 'drizzle-orm';
 import { characters, db, refreshCharacterHeat } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const HEAT_TICK_MS = 300_000;
 
 export function startHeatTick() {
-  console.log(`heat tick scheduled every ${HEAT_TICK_MS}ms`);
-  setInterval(() => {
-    decayCharacterHeat().catch((error) => {
-      console.error('heat tick failed', error);
-    });
-  }, HEAT_TICK_MS);
+  return scheduleWorkerTick({
+    name: 'heat-decay',
+    intervalMs: HEAT_TICK_MS,
+    run: decayCharacterHeat,
+  });
 }
 
 export async function decayCharacterHeat() {

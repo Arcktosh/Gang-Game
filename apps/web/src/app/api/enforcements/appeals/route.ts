@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:enforcements:appeals', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:enforcements:appeals', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -42,7 +46,11 @@ export async function POST(request: NextRequest) {
           const result = await submitEnforcementAppeal({ userId: auth.userId, ...body.data });
           return jsonOk(result, { status: 201 });
         } catch (caught) {
-          return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not submit appeal.', 400);
+          return jsonError(
+            'bad_request',
+            caught instanceof Error ? caught.message : 'Could not submit appeal.',
+            400,
+          );
         }
       },
     });

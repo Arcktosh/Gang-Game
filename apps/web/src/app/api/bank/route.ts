@@ -14,7 +14,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:bank', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:bank', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;

@@ -25,12 +25,16 @@ export function stableStringify(value: unknown): string {
     return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
   }
 
-  const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right));
+  const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
   return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`).join(',')}}`;
 }
 
 export function buildIdempotencyRequestHash(routeScope: string, fingerprint: unknown) {
-  return createHash('sha256').update(`${routeScope}:${stableStringify(fingerprint)}`).digest('hex');
+  return createHash('sha256')
+    .update(`${routeScope}:${stableStringify(fingerprint)}`)
+    .digest('hex');
 }
 
 export function parseIdempotencyKey(rawKey: string | null) {
@@ -69,7 +73,10 @@ export async function withIdempotency(options: IdempotencyOptions) {
   }
 
   if (!parsedKey.key) {
-    return await options.handler() ?? jsonError('server_error', 'Idempotent request completed without a response.', 500);
+    return (
+      (await options.handler()) ??
+      jsonError('server_error', 'Idempotent request completed without a response.', 500)
+    );
   }
 
   await clearExpiredIdempotencyKeys();
@@ -99,11 +106,19 @@ export async function withIdempotency(options: IdempotencyOptions) {
     });
 
     if (!existing) {
-      return jsonError('conflict', 'Idempotency state could not be resolved. Retry with a new key.', 409);
+      return jsonError(
+        'conflict',
+        'Idempotency state could not be resolved. Retry with a new key.',
+        409,
+      );
     }
 
     if (existing.requestHash !== hash) {
-      return jsonError('conflict', 'Idempotency key was already used for a different request payload.', 409);
+      return jsonError(
+        'conflict',
+        'Idempotency key was already used for a different request payload.',
+        409,
+      );
     }
 
     if (existing.status === 'completed' && existing.responseBody && existing.responseStatus) {
@@ -113,11 +128,20 @@ export async function withIdempotency(options: IdempotencyOptions) {
       });
     }
 
-    return jsonError('conflict', 'A request with this idempotency key is still processing. Retry shortly or use a new key.', 409);
+    return jsonError(
+      'conflict',
+      'A request with this idempotency key is still processing. Retry shortly or use a new key.',
+      409,
+    );
   }
 
-  const response = await options.handler() ?? jsonError('server_error', 'Idempotent request completed without a response.', 500);
-  const responseBody = await response.clone().json().catch(() => null);
+  const response =
+    (await options.handler()) ??
+    jsonError('server_error', 'Idempotent request completed without a response.', 500);
+  const responseBody = await response
+    .clone()
+    .json()
+    .catch(() => null);
 
   if (response.status >= 200 && response.status < 300 && responseBody) {
     await db

@@ -62,7 +62,10 @@ export async function createUserSession(input: CreateUserSessionInput) {
 
 export async function findActiveUserBySessionTokenHash(sessionTokenHash: string) {
   const session = await db.query.userSessions.findFirst({
-    where: and(eq(userSessions.sessionTokenHash, sessionTokenHash), gt(userSessions.expiresAt, sql`now()`)),
+    where: and(
+      eq(userSessions.sessionTokenHash, sessionTokenHash),
+      gt(userSessions.expiresAt, sql`now()`),
+    ),
     with: { user: true },
   });
 

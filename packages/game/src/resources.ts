@@ -15,7 +15,9 @@ export type ResourceRegenerationResult = {
   minutesElapsed: number;
 };
 
-export function calculateRegeneratedResources(input: ResourceRegenerationInput): ResourceRegenerationResult {
+export function calculateRegeneratedResources(
+  input: ResourceRegenerationInput,
+): ResourceRegenerationResult {
   const now = input.now ?? new Date();
   const lastTickAt = input.lastResourceTickAt ? new Date(input.lastResourceTickAt) : now;
   const minutesElapsed = Math.max(0, Math.floor((now.getTime() - lastTickAt.getTime()) / 60_000));

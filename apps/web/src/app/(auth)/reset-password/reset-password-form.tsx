@@ -54,9 +54,19 @@ export function ResetPasswordForm() {
         <form className="form-stack" onSubmit={handleSubmit}>
           <label className="form-label">
             New password
-            <input name="password" type="password" required minLength={8} disabled={!token || isComplete} />
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              disabled={!token || isComplete}
+            />
           </label>
-          {isComplete ? <Link className="button-link button-link--primary" href="/login">Go to login</Link> : null}
+          {isComplete ? (
+            <Link className="button-link button-link--primary" href="/login">
+              Go to login
+            </Link>
+          ) : null}
           <button disabled={isSubmitting || !token || isComplete} type="submit">
             {isSubmitting ? 'Resetting...' : 'Reset password'}
           </button>

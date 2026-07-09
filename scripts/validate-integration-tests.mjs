@@ -10,7 +10,7 @@ const requiredFiles = [
   'apps/web/src/lib/__tests__/mvp-flow.integration.test.ts',
 ];
 
-const requiredPackageScripts = ['test:integration', 'prove:integration', 'validate:integration-tests'];
+const requiredPackageScripts = ['test:integration', 'prove:integration'];
 const requiredDocTokens = [
   'RUN_DB_INTEGRATION_TESTS=true',
   'TEST_DATABASE_URL',
@@ -47,8 +47,12 @@ if (fs.existsSync(path.join(root, 'package.json'))) {
     }
   }
 
-  if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('validate:integration-tests')) {
-    errors.push('validate:static does not include validate:integration-tests.');
+  if (
+    !String(packageJson.scripts?.['validate:static'] ?? '').includes(
+      'scripts/validate-integration-tests.mjs',
+    )
+  ) {
+    errors.push('validate:static does not include scripts/validate-integration-tests.mjs.');
   }
 }
 
@@ -70,7 +74,9 @@ if (fs.existsSync(path.join(root, 'apps/web/src/lib/__tests__/mvp-flow.integrati
   }
 
   if (!testSource.includes('skip: !integrationEnabled')) {
-    errors.push('mvp-flow.integration.test.ts must remain opt-in unless RUN_DB_INTEGRATION_TESTS=true.');
+    errors.push(
+      'mvp-flow.integration.test.ts must remain opt-in unless RUN_DB_INTEGRATION_TESTS=true.',
+    );
   }
 }
 

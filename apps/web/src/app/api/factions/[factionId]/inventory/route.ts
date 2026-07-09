@@ -6,7 +6,10 @@ import { withIdempotency } from '@/lib/idempotency';
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest, context: { params: Promise<{ factionId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ factionId: string }> },
+) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -14,7 +17,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fa
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions:id:inventory', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:factions:id:inventory', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -34,10 +41,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fa
       routeScope: 'factions:inventory',
       fingerprint: { factionId, ...body.data },
       handler: async () => {
-        const result = await transferFactionInventory({ userId: auth.userId, factionId, ...body.data });
+        const result = await transferFactionInventory({
+          userId: auth.userId,
+          factionId,
+          ...body.data,
+        });
 
         if (!result.ok) {
-          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : result.code === 'conflict' ? 409 : result.code === 'bad_request' ? 400 : 403;
+          const status =
+            result.code === 'not_found'
+              ? 404
+              : result.code === 'cooldown_active'
+                ? 429
+                : result.code === 'conflict'
+                  ? 409
+                  : result.code === 'bad_request'
+                    ? 400
+                    : 403;
           return jsonError(result.code, result.message, status);
         }
 

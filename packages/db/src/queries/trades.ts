@@ -1,5 +1,9 @@
 import { and, desc, eq, lte, ne, or, sql } from 'drizzle-orm';
-import { calculatePlayerTradeExpiry, calculatePlayerTradeQuote, summarizePlayerTradeOffers } from '@drugdeal/game';
+import {
+  calculatePlayerTradeExpiry,
+  calculatePlayerTradeQuote,
+  summarizePlayerTradeOffers,
+} from '@drugdeal/game';
 import { db } from '../client';
 import {
   characters,
@@ -10,7 +14,11 @@ import {
   playerTradeOffers,
 } from '../schema';
 import { assertActionUnlocked, refreshCharacterResources, setActionCooldown } from './action-state';
-import { decrementCharacterCash, decrementInventoryQuantity, incrementCharacterCash } from './transaction-safety';
+import {
+  decrementCharacterCash,
+  decrementInventoryQuantity,
+  incrementCharacterCash,
+} from './transaction-safety';
 
 const PLAYER_TRADE_COOLDOWN_SECONDS = 5;
 const PLAYER_TRADE_FEE_BASIS_POINTS = 250;
@@ -47,18 +55,36 @@ function normalizeTradeOffer(row: TradeOfferRow, now = new Date()) {
     updatedAt: row.updatedAt,
     isExpired: row.status === 'open' && row.expiresAt <= now,
     seller: row.seller
-      ? { id: row.seller.id, name: row.seller.name, location: row.seller.location, status: row.seller.status }
+      ? {
+          id: row.seller.id,
+          name: row.seller.name,
+          location: row.seller.location,
+          status: row.seller.status,
+        }
       : null,
     buyer: row.buyer
-      ? { id: row.buyer.id, name: row.buyer.name, location: row.buyer.location, status: row.buyer.status }
+      ? {
+          id: row.buyer.id,
+          name: row.buyer.name,
+          location: row.buyer.location,
+          status: row.buyer.status,
+        }
       : null,
     item: row.item
-      ? { key: row.item.key, name: row.item.name, category: row.item.category, description: row.item.description }
+      ? {
+          key: row.item.key,
+          name: row.item.name,
+          category: row.item.category,
+          description: row.item.description,
+        }
       : null,
   };
 }
 
-async function addInventoryQuantity(tx: any, input: { characterId: string; itemKey: string; quantity: number }) {
+async function addInventoryQuantity(
+  tx: any,
+  input: { characterId: string; itemKey: string; quantity: number },
+) {
   const quantity = Math.max(1, Math.floor(input.quantity));
 
   const [inventoryItem] = await tx
@@ -73,7 +99,11 @@ async function addInventoryQuantity(tx: any, input: { characterId: string; itemK
   return inventoryItem;
 }
 
-export async function listTradeCandidates(input: { characterId: string; location: string; limit?: number }) {
+export async function listTradeCandidates(input: {
+  characterId: string;
+  location: string;
+  limit?: number;
+}) {
   const safeLimit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
 
   return db.query.characters.findMany({
@@ -143,7 +173,12 @@ export async function listPlayerTradeCenter(input: { userId: string; characterId
         itemKey: row.itemKey,
         quantity: row.quantity,
         item: row.item
-          ? { key: row.item.key, name: row.item.name, category: row.item.category, description: row.item.description }
+          ? {
+              key: row.item.key,
+              name: row.item.name,
+              category: row.item.category,
+              description: row.item.description,
+            }
           : null,
       })),
       candidates: candidates.map((candidate) => ({
@@ -178,11 +213,19 @@ export async function createPlayerTradeOffer(input: {
     const seller = await refreshCharacterResources(tx, sellerRow);
 
     if (seller.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available to create trades.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available to create trades.',
+      };
     }
 
     if (seller.id === input.recipientCharacterId) {
-      return { ok: false as const, code: 'forbidden', message: 'Cannot create a trade with yourself.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Cannot create a trade with yourself.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, seller.id, 'trade_create');
@@ -194,7 +237,12 @@ export async function createPlayerTradeOffer(input: {
     const [buyer, item, inventoryItem] = await Promise.all([
       tx.query.characters.findFirst({ where: eq(characters.id, input.recipientCharacterId) }),
       tx.query.itemDefinitions.findFirst({ where: eq(itemDefinitions.key, input.itemKey) }),
-      tx.query.inventoryItems.findFirst({ where: and(eq(inventoryItems.characterId, seller.id), eq(inventoryItems.itemKey, input.itemKey)) }),
+      tx.query.inventoryItems.findFirst({
+        where: and(
+          eq(inventoryItems.characterId, seller.id),
+          eq(inventoryItems.itemKey, input.itemKey),
+        ),
+      }),
     ]);
 
     if (!buyer) {
@@ -202,11 +250,19 @@ export async function createPlayerTradeOffer(input: {
     }
 
     if (buyer.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Recipient is not available to trade.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Recipient is not available to trade.',
+      };
     }
 
     if (buyer.location !== seller.location) {
-      return { ok: false as const, code: 'forbidden', message: 'Private trades require both characters to be in the same location.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Private trades require both characters to be in the same location.',
+      };
     }
 
     if (!item) {
@@ -220,13 +276,21 @@ export async function createPlayerTradeOffer(input: {
     });
 
     if (!inventoryItem || inventoryItem.quantity < quote.quantity) {
-      return { ok: false as const, code: 'forbidden', message: 'Not enough inventory to reserve for this trade.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Not enough inventory to reserve for this trade.',
+      };
     }
 
     const inventoryDebit = await decrementInventoryQuantity(tx, inventoryItem.id, quote.quantity);
 
     if (!inventoryDebit.ok) {
-      return { ok: false as const, code: 'forbidden', message: 'Not enough inventory to reserve for this trade.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Not enough inventory to reserve for this trade.',
+      };
     }
 
     const expiry = calculatePlayerTradeExpiry({ expiresInHours: input.expiresInHours });
@@ -255,13 +319,25 @@ export async function createPlayerTradeOffer(input: {
         userId: seller.userId,
         characterId: seller.id,
         type: 'player_trade_created',
-        payload: { tradeOfferId: offer.id, buyerCharacterId: buyer.id, itemKey: item.key, quantity: quote.quantity, priceEach: quote.priceEach },
+        payload: {
+          tradeOfferId: offer.id,
+          buyerCharacterId: buyer.id,
+          itemKey: item.key,
+          quantity: quote.quantity,
+          priceEach: quote.priceEach,
+        },
       },
       {
         userId: buyer.userId,
         characterId: buyer.id,
         type: 'player_trade_received',
-        payload: { tradeOfferId: offer.id, sellerCharacterId: seller.id, itemKey: item.key, quantity: quote.quantity, priceEach: quote.priceEach },
+        payload: {
+          tradeOfferId: offer.id,
+          sellerCharacterId: seller.id,
+          itemKey: item.key,
+          quantity: quote.quantity,
+          priceEach: quote.priceEach,
+        },
       },
     ]);
 
@@ -273,11 +349,18 @@ export async function createPlayerTradeOffer(input: {
       metadata: { tradeOfferId: offer.id, itemKey: item.key, quantity: quote.quantity },
     });
 
-    return { ok: true as const, data: { offer: normalizeTradeOffer({ ...offer, seller, buyer, item }), lock } };
+    return {
+      ok: true as const,
+      data: { offer: normalizeTradeOffer({ ...offer, seller, buyer, item }), lock },
+    };
   });
 }
 
-export async function acceptPlayerTradeOffer(input: { userId: string; characterId: string; tradeOfferId: string }) {
+export async function acceptPlayerTradeOffer(input: {
+  userId: string;
+  characterId: string;
+  tradeOfferId: string;
+}) {
   await expireOpenPlayerTradeOffers({ limit: 50 });
 
   return db.transaction(async (tx) => {
@@ -292,7 +375,11 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
     const buyer = await refreshCharacterResources(tx, buyerRow);
 
     if (buyer.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available to accept trades.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available to accept trades.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, buyer.id, 'trade_accept');
@@ -302,7 +389,11 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
     }
 
     const offer = await tx.query.playerTradeOffers.findFirst({
-      where: and(eq(playerTradeOffers.id, input.tradeOfferId), eq(playerTradeOffers.buyerCharacterId, buyer.id), eq(playerTradeOffers.status, 'open')),
+      where: and(
+        eq(playerTradeOffers.id, input.tradeOfferId),
+        eq(playerTradeOffers.buyerCharacterId, buyer.id),
+        eq(playerTradeOffers.status, 'open'),
+      ),
       with: { seller: true, buyer: true, item: true },
     });
 
@@ -315,11 +406,19 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
     }
 
     if (!offer.seller || !offer.item) {
-      return { ok: false as const, code: 'not_found', message: 'Trade offer is missing seller or item data.' };
+      return {
+        ok: false as const,
+        code: 'not_found',
+        message: 'Trade offer is missing seller or item data.',
+      };
     }
 
     if (offer.seller.location !== buyer.location) {
-      return { ok: false as const, code: 'forbidden', message: 'Both traders must remain in the same location.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Both traders must remain in the same location.',
+      };
     }
 
     const quote = calculatePlayerTradeQuote({
@@ -331,22 +430,38 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
     const cashDebit = await decrementCharacterCash(tx, buyer.id, quote.buyerCost);
 
     if (!cashDebit.ok || !cashDebit.character) {
-      return { ok: false as const, code: 'forbidden', message: 'Not enough cash to accept this trade.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Not enough cash to accept this trade.',
+      };
     }
 
-    const sellerGrossCredit = await incrementCharacterCash(tx, offer.sellerCharacterId, quote.gross);
+    const sellerGrossCredit = await incrementCharacterCash(
+      tx,
+      offer.sellerCharacterId,
+      quote.gross,
+    );
 
     if (!sellerGrossCredit.ok || !sellerGrossCredit.character) {
       return { ok: false as const, code: 'not_found', message: 'Seller character not found.' };
     }
 
-    const sellerFeeDebit = await decrementCharacterCash(tx, offer.sellerCharacterId, quote.sellerFee);
+    const sellerFeeDebit = await decrementCharacterCash(
+      tx,
+      offer.sellerCharacterId,
+      quote.sellerFee,
+    );
 
     if (!sellerFeeDebit.ok || !sellerFeeDebit.character) {
       return { ok: false as const, code: 'conflict', message: 'Seller fee could not be applied.' };
     }
 
-    const buyerInventoryItem = await addInventoryQuantity(tx, { characterId: buyer.id, itemKey: offer.itemKey, quantity: quote.quantity });
+    const buyerInventoryItem = await addInventoryQuantity(tx, {
+      characterId: buyer.id,
+      itemKey: offer.itemKey,
+      quantity: quote.quantity,
+    });
 
     const [updatedOffer] = await tx
       .update(playerTradeOffers)
@@ -360,7 +475,11 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
       .returning();
 
     if (!updatedOffer) {
-      return { ok: false as const, code: 'conflict', message: 'Trade offer changed before it could be accepted.' };
+      return {
+        ok: false as const,
+        code: 'conflict',
+        message: 'Trade offer changed before it could be accepted.',
+      };
     }
 
     await tx.insert(financialTransactions).values([
@@ -369,21 +488,38 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
         type: 'shop',
         amount: String(-quote.buyerCost),
         description: `Bought ${quote.quantity}x ${offer.item.name} from ${offer.seller.name} by private trade.`,
-        metadata: { tradeOfferId: offer.id, sellerCharacterId: offer.sellerCharacterId, itemKey: offer.itemKey, quantity: quote.quantity, priceEach: quote.priceEach },
+        metadata: {
+          tradeOfferId: offer.id,
+          sellerCharacterId: offer.sellerCharacterId,
+          itemKey: offer.itemKey,
+          quantity: quote.quantity,
+          priceEach: quote.priceEach,
+        },
       },
       {
         characterId: offer.sellerCharacterId,
         type: 'shop',
         amount: String(quote.gross),
         description: `Sold ${quote.quantity}x ${offer.item.name} to ${buyer.name} by private trade.`,
-        metadata: { tradeOfferId: offer.id, buyerCharacterId: buyer.id, itemKey: offer.itemKey, quantity: quote.quantity, priceEach: quote.priceEach, sellerFee: quote.sellerFee },
+        metadata: {
+          tradeOfferId: offer.id,
+          buyerCharacterId: buyer.id,
+          itemKey: offer.itemKey,
+          quantity: quote.quantity,
+          priceEach: quote.priceEach,
+          sellerFee: quote.sellerFee,
+        },
       },
       {
         characterId: offer.sellerCharacterId,
         type: 'system',
         amount: String(-quote.sellerFee),
         description: `Private trade handling fee for ${quote.quantity}x ${offer.item.name}.`,
-        metadata: { tradeOfferId: offer.id, itemKey: offer.itemKey, feeBasisPoints: PLAYER_TRADE_FEE_BASIS_POINTS },
+        metadata: {
+          tradeOfferId: offer.id,
+          itemKey: offer.itemKey,
+          feeBasisPoints: PLAYER_TRADE_FEE_BASIS_POINTS,
+        },
       },
     ]);
 
@@ -392,13 +528,26 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
         userId: buyer.userId,
         characterId: buyer.id,
         type: 'player_trade_accepted',
-        payload: { tradeOfferId: offer.id, sellerCharacterId: offer.sellerCharacterId, itemKey: offer.itemKey, quantity: quote.quantity, buyerCost: quote.buyerCost },
+        payload: {
+          tradeOfferId: offer.id,
+          sellerCharacterId: offer.sellerCharacterId,
+          itemKey: offer.itemKey,
+          quantity: quote.quantity,
+          buyerCost: quote.buyerCost,
+        },
       },
       {
         userId: offer.seller.userId,
         characterId: offer.sellerCharacterId,
         type: 'player_trade_completed',
-        payload: { tradeOfferId: offer.id, buyerCharacterId: buyer.id, itemKey: offer.itemKey, quantity: quote.quantity, sellerPayout: quote.sellerPayout, sellerFee: quote.sellerFee },
+        payload: {
+          tradeOfferId: offer.id,
+          buyerCharacterId: buyer.id,
+          itemKey: offer.itemKey,
+          quantity: quote.quantity,
+          sellerPayout: quote.sellerPayout,
+          sellerFee: quote.sellerFee,
+        },
       },
     ]);
 
@@ -413,7 +562,12 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
     return {
       ok: true as const,
       data: {
-        offer: normalizeTradeOffer({ ...updatedOffer, seller: offer.seller, buyer, item: offer.item }),
+        offer: normalizeTradeOffer({
+          ...updatedOffer,
+          seller: offer.seller,
+          buyer,
+          item: offer.item,
+        }),
         buyer: cashDebit.character,
         seller: sellerFeeDebit.character,
         inventoryItem: buyerInventoryItem,
@@ -423,7 +577,11 @@ export async function acceptPlayerTradeOffer(input: { userId: string; characterI
   });
 }
 
-export async function cancelPlayerTradeOffer(input: { userId: string; characterId: string; tradeOfferId: string }) {
+export async function cancelPlayerTradeOffer(input: {
+  userId: string;
+  characterId: string;
+  tradeOfferId: string;
+}) {
   return db.transaction(async (tx) => {
     const actor = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -437,7 +595,10 @@ export async function cancelPlayerTradeOffer(input: { userId: string; characterI
       where: and(
         eq(playerTradeOffers.id, input.tradeOfferId),
         eq(playerTradeOffers.status, 'open'),
-        or(eq(playerTradeOffers.sellerCharacterId, actor.id), eq(playerTradeOffers.buyerCharacterId, actor.id)),
+        or(
+          eq(playerTradeOffers.sellerCharacterId, actor.id),
+          eq(playerTradeOffers.buyerCharacterId, actor.id),
+        ),
       ),
       with: { seller: true, buyer: true, item: true },
     });
@@ -458,10 +619,18 @@ export async function cancelPlayerTradeOffer(input: { userId: string; characterI
       .returning();
 
     if (!updatedOffer) {
-      return { ok: false as const, code: 'conflict', message: 'Trade offer changed before it could be cancelled.' };
+      return {
+        ok: false as const,
+        code: 'conflict',
+        message: 'Trade offer changed before it could be cancelled.',
+      };
     }
 
-    await addInventoryQuantity(tx, { characterId: offer.sellerCharacterId, itemKey: offer.itemKey, quantity: offer.quantity });
+    await addInventoryQuantity(tx, {
+      characterId: offer.sellerCharacterId,
+      itemKey: offer.itemKey,
+      quantity: offer.quantity,
+    });
 
     const eventRows = [];
 
@@ -470,7 +639,12 @@ export async function cancelPlayerTradeOffer(input: { userId: string; characterI
         userId: offer.seller.userId,
         characterId: offer.sellerCharacterId,
         type: 'player_trade_cancelled',
-        payload: { tradeOfferId: offer.id, actorCharacterId: actor.id, itemKey: offer.itemKey, quantity: offer.quantity },
+        payload: {
+          tradeOfferId: offer.id,
+          actorCharacterId: actor.id,
+          itemKey: offer.itemKey,
+          quantity: offer.quantity,
+        },
       });
     }
 
@@ -479,7 +653,12 @@ export async function cancelPlayerTradeOffer(input: { userId: string; characterI
         userId: offer.buyer.userId,
         characterId: offer.buyerCharacterId,
         type: 'player_trade_cancelled',
-        payload: { tradeOfferId: offer.id, actorCharacterId: actor.id, itemKey: offer.itemKey, quantity: offer.quantity },
+        payload: {
+          tradeOfferId: offer.id,
+          actorCharacterId: actor.id,
+          itemKey: offer.itemKey,
+          quantity: offer.quantity,
+        },
       });
     }
 
@@ -487,7 +666,17 @@ export async function cancelPlayerTradeOffer(input: { userId: string; characterI
       await tx.insert(playerEvents).values(eventRows);
     }
 
-    return { ok: true as const, data: { offer: normalizeTradeOffer({ ...updatedOffer, seller: offer.seller, buyer: offer.buyer, item: offer.item }) } };
+    return {
+      ok: true as const,
+      data: {
+        offer: normalizeTradeOffer({
+          ...updatedOffer,
+          seller: offer.seller,
+          buyer: offer.buyer,
+          item: offer.item,
+        }),
+      },
+    };
   });
 }
 
@@ -514,18 +703,30 @@ export async function expireOpenPlayerTradeOffers(input: { now?: Date; limit?: n
         return null;
       }
 
-      await addInventoryQuantity(tx, { characterId: offer.sellerCharacterId, itemKey: offer.itemKey, quantity: offer.quantity });
+      await addInventoryQuantity(tx, {
+        characterId: offer.sellerCharacterId,
+        itemKey: offer.itemKey,
+        quantity: offer.quantity,
+      });
 
       if (offer.seller) {
         await tx.insert(playerEvents).values({
           userId: offer.seller.userId,
           characterId: offer.sellerCharacterId,
           type: 'player_trade_expired',
-          payload: { tradeOfferId: offer.id, buyerCharacterId: offer.buyerCharacterId, itemKey: offer.itemKey, quantity: offer.quantity },
+          payload: {
+            tradeOfferId: offer.id,
+            buyerCharacterId: offer.buyerCharacterId,
+            itemKey: offer.itemKey,
+            quantity: offer.quantity,
+          },
         });
       }
 
-      return normalizeTradeOffer({ ...updatedOffer, seller: offer.seller, buyer: offer.buyer, item: offer.item }, now);
+      return normalizeTradeOffer(
+        { ...updatedOffer, seller: offer.seller, buyer: offer.buyer, item: offer.item },
+        now,
+      );
     });
 
     if (result) {

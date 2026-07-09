@@ -19,12 +19,13 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest"
+    "zod": "latest",
+    "ioredis": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest",
-    "tsx": "latest"
+    "tsx": "^4.20.6",
+    "typescript": "6.0.2"
   }
 }

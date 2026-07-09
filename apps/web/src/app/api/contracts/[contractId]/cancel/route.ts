@@ -6,7 +6,10 @@ import { withIdempotency } from '@/lib/idempotency';
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ contractId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ contractId: string }> },
+) {
   return withApiObservability(request, async () => {
     const { contractId } = await params;
     const auth = await requireRequestUserId(request);
@@ -15,7 +18,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:contracts:id:cancel', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:contracts:id:cancel', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -33,7 +40,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       routeScope: 'contracts:cancel',
       fingerprint: { ...body.data, contractId },
       handler: async () => {
-        const result = await cancelContract({ userId: auth.userId, characterId: body.data.characterId, contractId });
+        const result = await cancelContract({
+          userId: auth.userId,
+          characterId: body.data.characterId,
+          contractId,
+        });
 
         if (!result.ok) {
           const status = result.code === 'not_found' ? 404 : result.code === 'conflict' ? 409 : 403;

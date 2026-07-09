@@ -5,7 +5,10 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ factionId: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ factionId: string }> },
+) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -13,7 +16,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ f
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions:id:members', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:factions:id:members', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;

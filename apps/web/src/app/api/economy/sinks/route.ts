@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:economy:sinks', auth.userId), windowSeconds: 60, maxRequests: 60 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:economy:sinks', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 60,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -32,7 +36,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:economy:sinks:purchase', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:economy:sinks:purchase', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;

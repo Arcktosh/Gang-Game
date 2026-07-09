@@ -37,7 +37,10 @@ export type InventoryExposureInput = {
   rarity?: string | null;
 };
 
-const DEFAULT_CONSUMABLE_EFFECTS: Record<string, { health?: number; energy?: number; nerve?: number; heat?: number; summary: string }> = {
+const DEFAULT_CONSUMABLE_EFFECTS: Record<
+  string,
+  { health?: number; energy?: number; nerve?: number; heat?: number; summary: string }
+> = {
   'first-aid-kit': { health: 30, summary: 'Restored health with a first-aid kit.' },
 };
 
@@ -50,7 +53,9 @@ const RARITY_VALUE_MULTIPLIER: Record<ItemRarity, number> = {
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function toFiniteInteger(value: unknown, fallback = 0) {
@@ -75,7 +80,12 @@ export function calculateConsumableEffect(input: ConsumableEffectInput): Consuma
   const consumable = asRecord(metadata.consumable);
   const defaultEffect = DEFAULT_CONSUMABLE_EFFECTS[input.itemKey];
   const categoryConsumable = input.category === 'medical';
-  const isConsumable = Boolean(defaultEffect || categoryConsumable || metadata.consumable === true || Object.keys(consumable).length > 0);
+  const isConsumable = Boolean(
+    defaultEffect ||
+    categoryConsumable ||
+    metadata.consumable === true ||
+    Object.keys(consumable).length > 0,
+  );
 
   if (!isConsumable) {
     return {
@@ -92,13 +102,23 @@ export function calculateConsumableEffect(input: ConsumableEffectInput): Consuma
     };
   }
 
-  const healthDelta = toFiniteInteger(consumable.health ?? defaultEffect?.health ?? (categoryConsumable ? 15 : 0));
+  const healthDelta = toFiniteInteger(
+    consumable.health ?? defaultEffect?.health ?? (categoryConsumable ? 15 : 0),
+  );
   const energyDelta = toFiniteInteger(consumable.energy ?? defaultEffect?.energy ?? 0);
   const nerveDelta = toFiniteInteger(consumable.nerve ?? defaultEffect?.nerve ?? 0);
   const heatDelta = toFiniteInteger(consumable.heat ?? defaultEffect?.heat ?? 0);
   const nextHealth = clamp(input.character.health + healthDelta, 0, 100);
-  const nextEnergy = clamp(input.character.energy + energyDelta, 0, Math.max(1, input.character.maxEnergy));
-  const nextNerve = clamp(input.character.nerve + nerveDelta, 0, Math.max(1, input.character.maxNerve));
+  const nextEnergy = clamp(
+    input.character.energy + energyDelta,
+    0,
+    Math.max(1, input.character.maxEnergy),
+  );
+  const nextNerve = clamp(
+    input.character.nerve + nerveDelta,
+    0,
+    Math.max(1, input.character.maxNerve),
+  );
   const nextHeat = clamp((input.character.heat ?? 0) + heatDelta, 0, 100);
   const summary = String(consumable.summary ?? defaultEffect?.summary ?? 'Consumable item used.');
 

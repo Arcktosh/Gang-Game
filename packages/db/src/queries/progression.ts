@@ -58,7 +58,11 @@ export async function listCourses() {
   return db.query.courseDefinitions.findMany();
 }
 
-export async function completeTraining(input: { userId: string; characterId: string; activityKey: string }) {
+export async function completeTraining(input: {
+  userId: string;
+  characterId: string;
+  activityKey: string;
+}) {
   return db.transaction(async (tx) => {
     const character = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -71,7 +75,11 @@ export async function completeTraining(input: { userId: string; characterId: str
     const refreshedCharacter = await refreshCharacterResources(tx, character);
 
     if (refreshedCharacter.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for training.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for training.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, refreshedCharacter.id, 'training');
@@ -80,7 +88,9 @@ export async function completeTraining(input: { userId: string; characterId: str
       return cooldown;
     }
 
-    const activity = await tx.query.trainingActivities.findFirst({ where: eq(trainingActivities.key, input.activityKey) });
+    const activity = await tx.query.trainingActivities.findFirst({
+      where: eq(trainingActivities.key, input.activityKey),
+    });
 
     if (!activity) {
       return { ok: false as const, code: 'not_found', message: 'Training activity not found.' };
@@ -149,14 +159,25 @@ export async function completeTraining(input: { userId: string; characterId: str
       characterId: refreshedCharacter.id,
       actionType: 'training',
       cooldownSeconds: plan.durationSeconds,
-      metadata: { activityKey: activity.key, sessionId: session.id, dueAt: plan.dueAt.toISOString() },
+      metadata: {
+        activityKey: activity.key,
+        sessionId: session.id,
+        dueAt: plan.dueAt.toISOString(),
+      },
     });
 
-    return { ok: true as const, data: { session, character: updatedCharacter, lock, dueAt: plan.dueAt } };
+    return {
+      ok: true as const,
+      data: { session, character: updatedCharacter, lock, dueAt: plan.dueAt },
+    };
   });
 }
 
-export async function completeCourse(input: { userId: string; characterId: string; courseKey: string }) {
+export async function completeCourse(input: {
+  userId: string;
+  characterId: string;
+  courseKey: string;
+}) {
   return db.transaction(async (tx) => {
     const character = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -169,7 +190,11 @@ export async function completeCourse(input: { userId: string; characterId: strin
     const refreshedCharacter = await refreshCharacterResources(tx, character);
 
     if (refreshedCharacter.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for education.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for education.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, refreshedCharacter.id, 'education');
@@ -178,7 +203,9 @@ export async function completeCourse(input: { userId: string; characterId: strin
       return cooldown;
     }
 
-    const course = await tx.query.courseDefinitions.findFirst({ where: eq(courseDefinitions.key, input.courseKey) });
+    const course = await tx.query.courseDefinitions.findFirst({
+      where: eq(courseDefinitions.key, input.courseKey),
+    });
 
     if (!course) {
       return { ok: false as const, code: 'not_found', message: 'Course not found.' };
@@ -189,11 +216,16 @@ export async function completeCourse(input: { userId: string; characterId: strin
     }
 
     const completedCourses = await tx.query.courseEnrollments.findMany({
-      where: and(eq(courseEnrollments.characterId, refreshedCharacter.id), eq(courseEnrollments.status, 'completed')),
+      where: and(
+        eq(courseEnrollments.characterId, refreshedCharacter.id),
+        eq(courseEnrollments.status, 'completed'),
+      ),
     });
     const requirement = evaluateCourseRequirements({
       characterLevel: refreshedCharacter.level,
-      completedCourseKeys: completedCourses.map((enrollment: CourseEnrollmentRow) => enrollment.courseKey),
+      completedCourseKeys: completedCourses.map(
+        (enrollment: CourseEnrollmentRow) => enrollment.courseKey,
+      ),
       requiredLevel: course.requiredLevel,
       prerequisiteCourseKey: course.prerequisiteCourseKey,
     });
@@ -261,23 +293,38 @@ export async function completeCourse(input: { userId: string; characterId: strin
       characterId: refreshedCharacter.id,
       actionType: 'education',
       cooldownSeconds: plan.durationSeconds,
-      metadata: { courseKey: course.key, enrollmentId: enrollment.id, dueAt: plan.dueAt.toISOString() },
+      metadata: {
+        courseKey: course.key,
+        enrollmentId: enrollment.id,
+        dueAt: plan.dueAt.toISOString(),
+      },
     });
 
-    return { ok: true as const, data: { enrollment, character: updatedCharacter, lock, dueAt: plan.dueAt } };
+    return {
+      ok: true as const,
+      data: { enrollment, character: updatedCharacter, lock, dueAt: plan.dueAt },
+    };
   });
 }
 
 async function completeTrainingSession(tx: Tx, session: TrainingSessionRow) {
   if (!isTrainableStat(session.stat)) {
-    await tx.update(trainingSessions).set({ status: 'cancelled' }).where(eq(trainingSessions.id, session.id));
+    await tx
+      .update(trainingSessions)
+      .set({ status: 'cancelled' })
+      .where(eq(trainingSessions.id, session.id));
     return null;
   }
 
-  const character = await tx.query.characters.findFirst({ where: eq(characters.id, session.characterId) });
+  const character = await tx.query.characters.findFirst({
+    where: eq(characters.id, session.characterId),
+  });
 
   if (!character) {
-    await tx.update(trainingSessions).set({ status: 'cancelled' }).where(eq(trainingSessions.id, session.id));
+    await tx
+      .update(trainingSessions)
+      .set({ status: 'cancelled' })
+      .where(eq(trainingSessions.id, session.id));
     return null;
   }
 
@@ -319,17 +366,25 @@ async function completeTrainingSession(tx: Tx, session: TrainingSessionRow) {
 
 async function completeCourseEnrollment(tx: Tx, enrollment: CourseEnrollmentRow) {
   if (!isCourseStat(enrollment.stat)) {
-    await tx.update(courseEnrollments).set({ status: 'cancelled' }).where(eq(courseEnrollments.id, enrollment.id));
+    await tx
+      .update(courseEnrollments)
+      .set({ status: 'cancelled' })
+      .where(eq(courseEnrollments.id, enrollment.id));
     return null;
   }
 
   const [character, course] = await Promise.all([
     tx.query.characters.findFirst({ where: eq(characters.id, enrollment.characterId) }),
-    tx.query.courseDefinitions.findFirst({ where: eq(courseDefinitions.key, enrollment.courseKey) }),
+    tx.query.courseDefinitions.findFirst({
+      where: eq(courseDefinitions.key, enrollment.courseKey),
+    }),
   ]);
 
   if (!character || !course) {
-    await tx.update(courseEnrollments).set({ status: 'cancelled' }).where(eq(courseEnrollments.id, enrollment.id));
+    await tx
+      .update(courseEnrollments)
+      .set({ status: 'cancelled' })
+      .where(eq(courseEnrollments.id, enrollment.id));
     return null;
   }
 
@@ -376,12 +431,18 @@ export async function completeDueProgression(limit = 50) {
     const batchSize = Math.max(1, Math.min(250, Math.floor(limit)));
     const [trainingDue, coursesDue] = await Promise.all([
       tx.query.trainingSessions.findMany({
-        where: and(eq(trainingSessions.status, 'scheduled'), lte(trainingSessions.dueAt, sql`now()`)),
+        where: and(
+          eq(trainingSessions.status, 'scheduled'),
+          lte(trainingSessions.dueAt, sql`now()`),
+        ),
         orderBy: asc(trainingSessions.dueAt),
         limit: batchSize,
       }),
       tx.query.courseEnrollments.findMany({
-        where: and(eq(courseEnrollments.status, 'scheduled'), lte(courseEnrollments.dueAt, sql`now()`)),
+        where: and(
+          eq(courseEnrollments.status, 'scheduled'),
+          lte(courseEnrollments.dueAt, sql`now()`),
+        ),
         orderBy: asc(courseEnrollments.dueAt),
         limit: batchSize,
       }),

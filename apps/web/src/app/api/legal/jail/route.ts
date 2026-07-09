@@ -1,5 +1,13 @@
 import { and, eq } from 'drizzle-orm';
-import { assertActionUnlocked, characters, db, performJailActivity, refreshCharacterResources, setActionCooldown, settleJailPayment } from '@drugdeal/db';
+import {
+  assertActionUnlocked,
+  characters,
+  db,
+  performJailActivity,
+  refreshCharacterResources,
+  setActionCooldown,
+  settleJailPayment,
+} from '@drugdeal/db';
 import { jailActionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { withIdempotency } from '@/lib/idempotency';
@@ -15,7 +23,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:legal:jail', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:legal:jail', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -35,7 +47,10 @@ export async function POST(request: NextRequest) {
       handler: async () => {
         const result = await db.transaction(async (tx) => {
           const character = await tx.query.characters.findFirst({
-            where: and(eq(characters.id, body.data.characterId), eq(characters.userId, auth.userId)),
+            where: and(
+              eq(characters.id, body.data.characterId),
+              eq(characters.userId, auth.userId),
+            ),
           });
 
           if (!character) {
@@ -51,7 +66,12 @@ export async function POST(request: NextRequest) {
               return { error: jsonError('cooldown_active', cooldown.message, 429) };
             }
 
-            const activityResult = await performJailActivity({ tx, character: refreshedCharacter, userId: auth.userId, activity: body.data.activity });
+            const activityResult = await performJailActivity({
+              tx,
+              character: refreshedCharacter,
+              userId: auth.userId,
+              activity: body.data.activity,
+            });
 
             if (!activityResult.ok) {
               return { error: jsonError('forbidden', activityResult.message, 403) };

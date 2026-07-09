@@ -14,7 +14,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'shops:purchase', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'shops:purchase', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -35,7 +39,8 @@ export async function POST(request: NextRequest) {
         const result = await purchaseShopListing({ ...body.data, userId: auth.userId });
 
         if (!result.ok) {
-          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+          const status =
+            result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
           return jsonError(result.code, result.message, status);
         }
 

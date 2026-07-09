@@ -28,8 +28,14 @@ type MessageLivePanelProps = {
   initialThreadCount: number;
 };
 
-export function MessageLivePanel({ characterId, initialUnreadTotal, initialThreadCount }: MessageLivePanelProps) {
-  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'closed' | 'error'>('connecting');
+export function MessageLivePanel({
+  characterId,
+  initialUnreadTotal,
+  initialThreadCount,
+}: MessageLivePanelProps) {
+  const [connectionState, setConnectionState] = useState<
+    'connecting' | 'connected' | 'closed' | 'error'
+  >('connecting');
   const [snapshot, setSnapshot] = useState<MessageLiveSnapshot | null>(null);
 
   useEffect(() => {
@@ -93,10 +99,15 @@ export function MessageLivePanel({ characterId, initialUnreadTotal, initialThrea
       </dl>
       {latestIncoming ? (
         <p className="action-form__helper" aria-live="polite">
-          Latest incoming from {latestIncoming.senderName ?? 'Unknown sender'}: {latestIncoming.body.length > 120 ? `${latestIncoming.body.slice(0, 117)}...` : latestIncoming.body}
+          Latest incoming from {latestIncoming.senderName ?? 'Unknown sender'}:{' '}
+          {latestIncoming.body.length > 120
+            ? `${latestIncoming.body.slice(0, 117)}...`
+            : latestIncoming.body}
         </p>
       ) : (
-        <p className="action-form__helper">Live updates will appear here when new messages arrive.</p>
+        <p className="action-form__helper">
+          Live updates will appear here when new messages arrive.
+        </p>
       )}
     </section>
   );

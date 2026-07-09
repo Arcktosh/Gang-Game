@@ -24,7 +24,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!query.success) {
-      return jsonError('bad_request', 'Invalid notification stream query.', 400, query.error.flatten());
+      return jsonError(
+        'bad_request',
+        'Invalid notification stream query.',
+        400,
+        query.error.flatten(),
+      );
     }
 
     const stream = new ReadableStream({
@@ -36,10 +41,15 @@ export async function GET(request: NextRequest) {
           if (isClosed) return;
 
           try {
-            const snapshot = await listNotificationStreamSnapshot({ userId: auth.userId, characterId: query.data.characterId });
+            const snapshot = await listNotificationStreamSnapshot({
+              userId: auth.userId,
+              characterId: query.data.characterId,
+            });
 
             if (!snapshot) {
-              controller.enqueue(encodeEvent('error', { code: 'not_found', message: 'Character not found.' }));
+              controller.enqueue(
+                encodeEvent('error', { code: 'not_found', message: 'Character not found.' }),
+              );
               return;
             }
 
@@ -54,13 +64,16 @@ export async function GET(request: NextRequest) {
               controller.enqueue(encodeEvent('notification.snapshot', snapshot));
               lastSignature = signature;
             } else {
-              controller.enqueue(encodeEvent('notification.heartbeat', { checkedAt: new Date().toISOString() }));
+              controller.enqueue(
+                encodeEvent('notification.heartbeat', { checkedAt: new Date().toISOString() }),
+              );
             }
           } catch (error) {
             controller.enqueue(
               encodeEvent('error', {
                 code: 'server_error',
-                message: error instanceof Error ? error.message : 'Could not refresh notification stream.',
+                message:
+                  error instanceof Error ? error.message : 'Could not refresh notification stream.',
               }),
             );
           }

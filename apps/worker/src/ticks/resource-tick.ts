@@ -1,16 +1,16 @@
 import { eq, lt, sql } from 'drizzle-orm';
 import { calculateRegeneratedResources } from '@drugdeal/game';
 import { characters, db } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const RESOURCE_TICK_MS = 60_000;
 
 export function startResourceTick() {
-  console.log(`resource tick scheduled every ${RESOURCE_TICK_MS}ms`);
-  setInterval(() => {
-    regenerateCharacterResources().catch((error) => {
-      console.error('resource tick failed', error);
-    });
-  }, RESOURCE_TICK_MS);
+  return scheduleWorkerTick({
+    name: 'resource-regeneration',
+    intervalMs: RESOURCE_TICK_MS,
+    run: regenerateCharacterResources,
+  });
 }
 
 export async function regenerateCharacterResources() {
@@ -32,7 +32,10 @@ export async function regenerateCharacterResources() {
     });
 
     if (!regenerated.changed) {
-      await db.update(characters).set({ lastResourceTickAt: sql`now()` }).where(eq(characters.id, character.id));
+      await db
+        .update(characters)
+        .set({ lastResourceTickAt: sql`now()` })
+        .where(eq(characters.id, character.id));
       continue;
     }
 

@@ -958,7 +958,6 @@ type CharacterPanelProps = {
   characterProgression: CharacterProgressionHistory;
 };
 
-
 function formatRemainingTime(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -1079,10 +1078,14 @@ export function CharacterPanel({
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bankStatement, setBankStatement] = useState<BankStatementSnapshot | null>(null);
-  const [bankStatementStatus, setBankStatementStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [bankStatementStatus, setBankStatementStatus] = useState<
+    'idle' | 'loading' | 'loaded' | 'error'
+  >('idle');
   const [bankStatementError, setBankStatementError] = useState('');
   const [cooldownNow, setCooldownNow] = useState(() => Date.now());
-  const [financeHistories, setFinanceHistories] = useState<Record<string, FinanceHistorySnapshot>>({});
+  const [financeHistories, setFinanceHistories] = useState<Record<string, FinanceHistorySnapshot>>(
+    {},
+  );
   const [liveNotifications, setLiveNotifications] = useState<NotificationLiveSnapshot>(null);
   const [liveNotificationStatus, setLiveNotificationStatus] = useState<
     'connecting' | 'connected' | 'closed' | 'error'
@@ -1366,11 +1369,16 @@ export function CharacterPanel({
       setBankStatementStatus('loaded');
     } catch (caught) {
       setBankStatementStatus('error');
-      setBankStatementError(caught instanceof Error ? caught.message : 'Could not load bank statement.');
+      setBankStatementError(
+        caught instanceof Error ? caught.message : 'Could not load bank statement.',
+      );
     }
   }
 
-  async function handleBankTransfer(event: FormEvent<HTMLFormElement>, action: 'deposit' | 'withdraw') {
+  async function handleBankTransfer(
+    event: FormEvent<HTMLFormElement>,
+    action: 'deposit' | 'withdraw',
+  ) {
     event.preventDefault();
 
     if (!activeCharacter) {
@@ -1392,7 +1400,6 @@ export function CharacterPanel({
       setIsSubmitting(false);
     }
   }
-
 
   async function handleMoneySinkPurchase(sinkKey: string, paymentSource: 'cash' | 'bank') {
     const sink = moneySinks.find((item) => item.key === sinkKey);
@@ -1947,10 +1954,6 @@ export function CharacterPanel({
     ['Experience', activeCharacter.experience],
     ['Title', progressionProfile?.activeTitle?.title ?? 'None'],
     ['Profile score', progressionProfile?.summary.profileScore ?? 0],
-    ['Health', activeCharacter.health],
-    ['Energy', `${activeCharacter.energy}/${activeCharacter.maxEnergy}`],
-    ['Nerve', `${activeCharacter.nerve}/${activeCharacter.maxNerve}`],
-    ['Heat', activeCharacter.heat],
     ['Legal reputation', activeCharacter.legalReputation ?? 0],
     ['Gambling reputation', activeCharacter.gamblingReputation ?? 0],
     ['Prestige', activeCharacter.prestigeLevel ?? 0],
@@ -2695,8 +2698,7 @@ export function CharacterPanel({
               {cooldownButtonLabel(
                 'crime',
                 <>
-                  {crime.name} · ${crime.minReward}-${crime.maxReward} · {crime.requiredNerve}{' '}
-                  nerve
+                  {crime.name} · ${crime.minReward}-${crime.maxReward} · {crime.requiredNerve} nerve
                 </>,
               )}
             </button>
@@ -2781,7 +2783,9 @@ export function CharacterPanel({
           <h3 style={{ marginTop: 0 }}>Training queue</h3>
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Active training {activeTrainingQueue.length} · active courses {activeCourseQueue.length}
-            {nextProgressionDueAt ? ` · next completion ${formatDateTime(nextProgressionDueAt)}` : ''}
+            {nextProgressionDueAt
+              ? ` · next completion ${formatDateTime(nextProgressionDueAt)}`
+              : ''}
           </p>
           <div style={{ display: 'grid', gap: 8 }}>
             {[...activeTrainingQueue, ...activeCourseQueue].length ? (
@@ -2819,7 +2823,8 @@ export function CharacterPanel({
               {cooldownButtonLabel(
                 'travel',
                 <>
-                  To {route.toLocation} · ${route.cost} · {Math.ceil(route.durationSeconds / 60)} min
+                  To {route.toLocation} · ${route.cost} · {Math.ceil(route.durationSeconds / 60)}{' '}
+                  min
                 </>,
               )}
             </button>
@@ -3438,7 +3443,10 @@ export function CharacterPanel({
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             }}
           >
-            <form onSubmit={(event) => handleBankTransfer(event, 'deposit')} style={{ display: 'grid', gap: 8 }}>
+            <form
+              onSubmit={(event) => handleBankTransfer(event, 'deposit')}
+              style={{ display: 'grid', gap: 8 }}
+            >
               <label htmlFor="bank-deposit-amount">Deposit amount</label>
               <input
                 id="bank-deposit-amount"
@@ -3449,11 +3457,17 @@ export function CharacterPanel({
                 defaultValue={Math.min(100, Math.max(1, activeCharacter.cash))}
                 required
               />
-              <button disabled={isSubmitting || !isAvailable || activeCharacter.cash <= 0} type="submit">
+              <button
+                disabled={isSubmitting || !isAvailable || activeCharacter.cash <= 0}
+                type="submit"
+              >
                 Deposit cash
               </button>
             </form>
-            <form onSubmit={(event) => handleBankTransfer(event, 'withdraw')} style={{ display: 'grid', gap: 8 }}>
+            <form
+              onSubmit={(event) => handleBankTransfer(event, 'withdraw')}
+              style={{ display: 'grid', gap: 8 }}
+            >
               <label htmlFor="bank-withdraw-amount">Withdraw amount</label>
               <input
                 id="bank-withdraw-amount"
@@ -3464,7 +3478,10 @@ export function CharacterPanel({
                 defaultValue={Math.min(100, Math.max(1, activeCharacter.bank))}
                 required
               />
-              <button disabled={isSubmitting || !isAvailable || activeCharacter.bank <= 0} type="submit">
+              <button
+                disabled={isSubmitting || !isAvailable || activeCharacter.bank <= 0}
+                type="submit"
+              >
                 Withdraw cash
               </button>
             </form>
@@ -3539,7 +3556,9 @@ export function CharacterPanel({
             >
               <span className="stat-card">Inflow: ${bankStatementSummary.inflow.toFixed(0)}</span>
               <span className="stat-card">Outflow: ${bankStatementSummary.outflow.toFixed(0)}</span>
-              <span className="stat-card">Net: {formatSignedMoney(bankStatementSummary.netAmount)}</span>
+              <span className="stat-card">
+                Net: {formatSignedMoney(bankStatementSummary.netAmount)}
+              </span>
               <span className="stat-card">Rows: {bankStatementSummary.returned}</span>
             </div>
           ) : null}
@@ -3561,7 +3580,9 @@ export function CharacterPanel({
                   </span>
                   <span style={{ color: '#71717a' }}>
                     {formatDateTime(transaction.createdAt)}
-                    {transaction.metadata?.action ? ` · ${transaction.metadata.action.replaceAll('_', ' ')}` : ''}
+                    {transaction.metadata?.action
+                      ? ` · ${transaction.metadata.action.replaceAll('_', ' ')}`
+                      : ''}
                     {typeof transaction.metadata?.cashAfter === 'number' &&
                     typeof transaction.metadata?.bankAfter === 'number'
                       ? ` · cash $${transaction.metadata.cashAfter} · bank $${transaction.metadata.bankAfter}`
@@ -3575,13 +3596,13 @@ export function CharacterPanel({
           </div>
         </article>
 
-
         <article className="card" hidden={!isSectionActive('dashboard-economy')}>
           <h3 style={{ marginTop: 0 }}>Loans</h3>
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Use fictional short-term loans as a controlled cashflow tool. Funds are deposited into
             the bank and must be repaid from the bank balance before another loan can be opened.
-            Overdue loans enter default after a short grace window and can still be repaid from bank.
+            Overdue loans enter default after a short grace window and can still be repaid from
+            bank.
           </p>
           {loanProfile?.activeLoan ? (
             <div
@@ -3595,10 +3616,19 @@ export function CharacterPanel({
               }}
             >
               <strong>
-                {loanProfile.activeLoan.isDefaulted ? 'Defaulted loan' : 'Active loan'} · {loanProfile.activeLoan.offerKey} · outstanding $
+                {loanProfile.activeLoan.isDefaulted ? 'Defaulted loan' : 'Active loan'} ·{' '}
+                {loanProfile.activeLoan.offerKey} · outstanding $
                 {loanProfile.activeLoan.outstanding}
               </strong>
-              <span style={{ color: loanProfile.activeLoan.isDefaulted ? '#f87171' : loanProfile.activeLoan.isOverdue ? '#fca5a5' : '#a1a1aa' }}>
+              <span
+                style={{
+                  color: loanProfile.activeLoan.isDefaulted
+                    ? '#f87171'
+                    : loanProfile.activeLoan.isOverdue
+                      ? '#fca5a5'
+                      : '#a1a1aa',
+                }}
+              >
                 Due {formatDateTime(loanProfile.activeLoan.dueAt)} · total due $
                 {loanProfile.activeLoan.totalDue}
                 {loanProfile.activeLoan.isDefaulted
@@ -3650,7 +3680,8 @@ export function CharacterPanel({
           <div style={{ display: 'grid', gap: 10 }}>
             {loanProfile?.offers.length ? (
               loanProfile.offers.map((offer) => {
-                const locked = activeCharacter.level < offer.minimumLevel || Boolean(loanProfile.activeLoan);
+                const locked =
+                  activeCharacter.level < offer.minimumLevel || Boolean(loanProfile.activeLoan);
                 return (
                   <div
                     key={offer.key}
@@ -3665,7 +3696,8 @@ export function CharacterPanel({
                       {offer.name} · receive ${offer.principal} · repay ${offer.totalDue}
                     </strong>
                     <span style={{ color: '#a1a1aa' }}>
-                      {offer.description} · fee ${offer.fee} · due in {offer.dueHours}h · level {offer.minimumLevel}+
+                      {offer.description} · fee ${offer.fee} · due in {offer.dueHours}h · level{' '}
+                      {offer.minimumLevel}+
                     </span>
                     <button
                       disabled={isSubmitting || !isAvailable || locked}
@@ -3690,8 +3722,8 @@ export function CharacterPanel({
               <strong>Recent loans</strong>
               {loanProfile.loans.slice(0, 5).map((loan) => (
                 <span key={loan.id} style={{ color: '#71717a' }}>
-                  {loan.offerKey} · {loan.lifecycleStatus ?? loan.status} · outstanding ${loan.outstanding} · opened{' '}
-                  {formatDateTime(loan.createdAt)}
+                  {loan.offerKey} · {loan.lifecycleStatus ?? loan.status} · outstanding $
+                  {loan.outstanding} · opened {formatDateTime(loan.createdAt)}
                   {loan.isDefaulted ? ' · repay before requesting another loan' : ''}
                 </span>
               ))}
@@ -3806,7 +3838,7 @@ export function CharacterPanel({
                       ) : (
                         <span style={{ color: '#71717a' }}>
                           {history?.status === 'error'
-                            ? history.message ?? 'Could not load price history.'
+                            ? (history.message ?? 'Could not load price history.')
                             : history?.status === 'loaded'
                               ? 'No price history yet.'
                               : 'Loading price history...'}

@@ -15,7 +15,9 @@ export default async function RegisterPage() {
       <section className="auth-card">
         <p className="eyebrow">New player</p>
         <h1 id="register-title">Create account</h1>
-        <p className="lead">Create a player account before creating your first character and entering the city.</p>
+        <p className="lead">
+          Create a player account before creating your first character and entering the city.
+        </p>
         <AuthForm mode="register" />
         <p className="auth-card__footer">
           Already registered? <Link href="/login">Login</Link>

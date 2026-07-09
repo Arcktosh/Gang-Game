@@ -38,9 +38,33 @@ test('public pagination is stricter than admin pagination', () => {
 });
 
 test('rate-limit options reject impossible windows and oversized limits', () => {
-  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 0, maxRequests: 10 }).success, false);
-  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 10001 }).success, false);
-  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 100 }).success, true);
+  assert.equal(
+    rateLimitOptionsSchema.safeParse({ windowSeconds: 0, maxRequests: 10 }).success,
+    false,
+  );
+  assert.equal(
+    rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 10001 }).success,
+    false,
+  );
+  assert.equal(
+    rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 100 }).success,
+    true,
+  );
+});
+
+test('server environment validation accepts worker retry settings', () => {
+  const parsed = serverEnvSchema.safeParse({
+    NODE_ENV: 'production',
+    NEXT_PUBLIC_APP_NAME: 'DrugDeal Game',
+    DATABASE_URL: 'postgres://user:pass@localhost:5432/drugdeal',
+    AUTH_SECRET: 'a-safe-secret-with-enough-length',
+    WORKER_TICK_MAX_ATTEMPTS: '3',
+    WORKER_TICK_RETRY_BASE_MS: '1000',
+    WORKER_TICK_RETRY_MAX_MS: '30000',
+    WORKER_DEAD_LETTER_DISABLED: 'false',
+  });
+
+  assert.equal(parsed.success, true);
 });
 
 test('server environment validation accepts canonical and trusted origins', () => {
@@ -68,7 +92,6 @@ test('server environment validation rejects malformed canonical origins', () => 
 
   assert.equal(parsed.success, false);
 });
-
 
 test('bank statement query validation normalizes filters and rejects inverted date ranges', () => {
   const parsed = bankHistoryQuerySchema.safeParse({

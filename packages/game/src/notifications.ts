@@ -35,7 +35,14 @@ const EVENT_CATEGORY_MAP: Record<string, NotificationCategory> = {
   prestige_completed: 'season',
 };
 
-const HIGH_PRIORITY_EVENTS = new Set(['combat_attack', 'bounty_claimed', 'faction_war_declared', 'faction_war_resolved', 'jail_released', 'hospital_released']);
+const HIGH_PRIORITY_EVENTS = new Set([
+  'combat_attack',
+  'bounty_claimed',
+  'faction_war_declared',
+  'faction_war_resolved',
+  'jail_released',
+  'hospital_released',
+]);
 const URGENT_PRIORITY_EVENTS = new Set(['character_flagged', 'account_warning']);
 
 export function categoryForEventType(type: string): NotificationCategory {
@@ -56,14 +63,20 @@ export function titleForEventType(type: string): string {
 }
 
 export function bodyForEvent(type: string, payload: Record<string, unknown> = {}) {
-  if (type === 'travel_completed') return `Arrived at ${String(payload.toLocation ?? 'your destination')}.`;
+  if (type === 'travel_completed')
+    return `Arrived at ${String(payload.toLocation ?? 'your destination')}.`;
   if (type === 'hospital_released') return 'You have recovered enough to leave hospital.';
   if (type === 'jail_released') return 'Your sentence is complete and you are free again.';
-  if (type === 'contract_completed') return `A contract was completed${payload.reward ? ` for $${payload.reward}` : ''}.`;
-  if (type === 'contact_assignment_completed') return `A crew assignment finished${payload.rewardCash ? ` and earned $${payload.rewardCash}` : ''}.`;
-  if (type === 'contact_assignment_failed') return 'A crew assignment failed. Check your contacts before assigning more work.';
-  if (type === 'crafting_completed') return 'A crafting job completed and its output was added to inventory.';
-  if (type === 'shop_sale_completed') return `A shop sale was completed${payload.netPayout ? ` with $${payload.netPayout} payout` : ''}.`;
+  if (type === 'contract_completed')
+    return `A contract was completed${payload.reward ? ` for $${payload.reward}` : ''}.`;
+  if (type === 'contact_assignment_completed')
+    return `A crew assignment finished${payload.rewardCash ? ` and earned $${payload.rewardCash}` : ''}.`;
+  if (type === 'contact_assignment_failed')
+    return 'A crew assignment failed. Check your contacts before assigning more work.';
+  if (type === 'crafting_completed')
+    return 'A crafting job completed and its output was added to inventory.';
+  if (type === 'shop_sale_completed')
+    return `A shop sale was completed${payload.netPayout ? ` with $${payload.netPayout} payout` : ''}.`;
   if (type === 'bounty_claimed') return 'A bounty was claimed after a successful attack.';
   if (type === 'faction_war_declared') return 'A faction war has been declared.';
   if (type === 'faction_war_resolved') return 'A faction war has ended and scores were resolved.';

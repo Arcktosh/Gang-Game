@@ -19,7 +19,6 @@ const inventorySectionItems = [
   { label: 'Transfers', href: '/inventory#inventory-transfers', icon: '⇄' },
 ] as const;
 
-
 type InventoryProfileItem = {
   id: string;
   itemKey: string;
@@ -119,10 +118,14 @@ export default async function InventoryPage() {
               {consumables.length > 0 ? (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {consumables.slice(0, 4).map((row) => (
-                    <article key={row.id} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
+                    <article
+                      key={row.id}
+                      style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
+                    >
                       <strong>{row.item?.name ?? row.itemKey}</strong>
                       <p style={{ color: '#a1a1aa', margin: '4px 0' }}>
-                        Quantity {row.quantity} · {row.item?.rarity ?? 'common'} · updated {formatDate(row.updatedAt)}
+                        Quantity {row.quantity} · {row.item?.rarity ?? 'common'} · updated{' '}
+                        {formatDate(row.updatedAt)}
                       </p>
                     </article>
                   ))}
@@ -135,10 +138,14 @@ export default async function InventoryPage() {
               {highRiskItems.length > 0 ? (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {highRiskItems.slice(0, 4).map((row) => (
-                    <article key={row.id} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
+                    <article
+                      key={row.id}
+                      style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
+                    >
                       <strong>{row.item?.name ?? row.itemKey}</strong>
                       <p style={{ color: '#a1a1aa', margin: '4px 0' }}>
-                        Risk {row.exposure.riskScore} · estimated {money(row.exposure.estimatedValue)}
+                        Risk {row.exposure.riskScore} · estimated{' '}
+                        {money(row.exposure.estimatedValue)}
                       </p>
                     </article>
                   ))}
@@ -185,7 +192,9 @@ export default async function InventoryPage() {
               ))
             ) : (
               <Card title="No inventory">
-                <EmptyState>Buy from the market, shops, or receive transfers to build inventory.</EmptyState>
+                <EmptyState>
+                  Buy from the market, shops, or receive transfers to build inventory.
+                </EmptyState>
               </Card>
             )}
           </Grid>
@@ -202,19 +211,30 @@ export default async function InventoryPage() {
               <StatList
                 items={[
                   { label: 'Eligible recipients nearby', value: profile.candidates.length },
-                  { label: 'Transfer cooldown', value: transferCooldown ? transferCooldown.message : 'Ready' },
+                  {
+                    label: 'Transfer cooldown',
+                    value: transferCooldown ? transferCooldown.message : 'Ready',
+                  },
                   { label: 'Location', value: character.location },
                 ]}
               />
             </Card>
             {inventory.length > 0 ? (
               inventory.map((row) => (
-                <Card key={`transfer-${row.id}`} title={`Transfer ${row.item?.name ?? row.itemKey}`} meta={`${row.quantity} available`}>
+                <Card
+                  key={`transfer-${row.id}`}
+                  title={`Transfer ${row.item?.name ?? row.itemKey}`}
+                  meta={`${row.quantity} available`}
+                >
                   <GameActionForm
                     endpoint="/api/inventory"
                     label="Transfer item"
                     submitLabel="Send transfer"
-                    payload={{ action: 'transfer', characterId: character.id, inventoryItemId: row.id }}
+                    payload={{
+                      action: 'transfer',
+                      characterId: character.id,
+                      inventoryItemId: row.id,
+                    }}
                     fields={[
                       {
                         name: 'recipientCharacterId',
@@ -233,7 +253,11 @@ export default async function InventoryPage() {
                     ]}
                     successMessage="Item transfer completed."
                     disabled={recipientOptions.length === 0 || row.quantity < 1}
-                    disabledReason={recipientOptions.length === 0 ? 'No eligible same-location recipients.' : 'No quantity available.'}
+                    disabledReason={
+                      recipientOptions.length === 0
+                        ? 'No eligible same-location recipients.'
+                        : 'No quantity available.'
+                    }
                     cooldown={transferCooldown}
                   />
                 </Card>

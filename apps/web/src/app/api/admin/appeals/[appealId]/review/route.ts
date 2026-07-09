@@ -12,7 +12,10 @@ const reviewAppealSchema = z.object({
   liftEnforcement: z.boolean().optional(),
 });
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ appealId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ appealId: string }> },
+) {
   return withApiObservability(request, async () => {
     const admin = await requireAdminCapability(request, 'enforce_players');
 
@@ -22,7 +25,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const session = admin.session;
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:appeals:id:review', session.user.id), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:admin:appeals:id:review', session.user.id),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -36,10 +43,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     try {
       const { appealId } = await params;
-      const result = await reviewEnforcementAppeal({ adminUserId: session.user.id, appealId, ...body.data });
+      const result = await reviewEnforcementAppeal({
+        adminUserId: session.user.id,
+        appealId,
+        ...body.data,
+      });
       return jsonOk(result);
     } catch (caught) {
-      return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not review appeal.', 400);
+      return jsonError(
+        'bad_request',
+        caught instanceof Error ? caught.message : 'Could not review appeal.',
+        400,
+      );
     }
   });
 }

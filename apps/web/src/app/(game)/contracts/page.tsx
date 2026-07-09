@@ -1,8 +1,25 @@
 import { and, eq, ne } from 'drizzle-orm';
 import { canCreateFactionContract, describeContractScope } from '@drugdeal/game';
-import { characters, db, getFactionForCharacter, itemDefinitions, listActiveActionLocks, listContracts } from '@drugdeal/db';
+import {
+  characters,
+  db,
+  getFactionForCharacter,
+  itemDefinitions,
+  listActiveActionLocks,
+  listContracts,
+} from '@drugdeal/db';
 import { GameActionForm } from '@/features/game/action-form';
-import { Card, EmptyState, formatDate, GamePageShell, getActionCooldown, getActiveGameContext, Grid, money, StatList } from '@/features/game/game-page';
+import {
+  Card,
+  EmptyState,
+  formatDate,
+  GamePageShell,
+  getActionCooldown,
+  getActiveGameContext,
+  Grid,
+  money,
+  StatList,
+} from '@/features/game/game-page';
 
 const contractTypeOptions = [
   { label: 'Delivery', value: 'delivery' },
@@ -14,17 +31,18 @@ const contractTypeOptions = [
 
 export default async function ContractsPage() {
   const { character } = await getActiveGameContext();
-  const [contractCenter, actionLocks, sameLocationCharacters, items, ownFaction] = await Promise.all([
-    listContracts({ userId: character.userId, characterId: character.id }),
-    listActiveActionLocks(character.id),
-    db.query.characters.findMany({
-      where: and(eq(characters.location, character.location), ne(characters.id, character.id)),
-      orderBy: (row, { asc }) => [asc(row.name)],
-      limit: 50,
-    }),
-    db.query.itemDefinitions.findMany({ orderBy: (row, { asc }) => [asc(row.name)], limit: 100 }),
-    getFactionForCharacter(character.id),
-  ]);
+  const [contractCenter, actionLocks, sameLocationCharacters, items, ownFaction] =
+    await Promise.all([
+      listContracts({ userId: character.userId, characterId: character.id }),
+      listActiveActionLocks(character.id),
+      db.query.characters.findMany({
+        where: and(eq(characters.location, character.location), ne(characters.id, character.id)),
+        orderBy: (row, { asc }) => [asc(row.name)],
+        limit: 50,
+      }),
+      db.query.itemDefinitions.findMany({ orderBy: (row, { asc }) => [asc(row.name)], limit: 100 }),
+      getFactionForCharacter(character.id),
+    ]);
 
   const contracts = contractCenter ?? { openContracts: [], mine: [] };
   const createCooldown = getActionCooldown(actionLocks, 'contract_create');
@@ -62,14 +80,58 @@ export default async function ContractsPage() {
             label="Post public contract"
             payload={{ characterId: character.id }}
             fields={[
-              { name: 'contractType', label: 'Type', type: 'select', options: contractTypeOptions.filter((option) => option.value !== 'faction_task'), defaultValue: 'delivery' },
+              {
+                name: 'contractType',
+                label: 'Type',
+                type: 'select',
+                options: contractTypeOptions.filter((option) => option.value !== 'faction_task'),
+                defaultValue: 'delivery',
+              },
               { name: 'title', label: 'Title', placeholder: 'Move a package across town' },
-              { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Optional instructions', omitWhenEmpty: true },
-              { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
-              { name: 'itemKey', label: 'Required item', type: 'select', options: itemOptions, omitWhenEmpty: true },
-              { name: 'quantity', label: 'Quantity', type: 'number', defaultValue: 0, min: 0, max: 1000 },
-              { name: 'reward', label: 'Reward', type: 'number', defaultValue: 250, min: 25, max: 1_000_000 },
-              { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 24, min: 1, max: 168 },
+              {
+                name: 'description',
+                label: 'Description',
+                type: 'textarea',
+                placeholder: 'Optional instructions',
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'targetLocation',
+                label: 'Target location',
+                placeholder: character.location,
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'itemKey',
+                label: 'Required item',
+                type: 'select',
+                options: itemOptions,
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                defaultValue: 0,
+                min: 0,
+                max: 1000,
+              },
+              {
+                name: 'reward',
+                label: 'Reward',
+                type: 'number',
+                defaultValue: 250,
+                min: 25,
+                max: 1_000_000,
+              },
+              {
+                name: 'expiresInHours',
+                label: 'Expires in hours',
+                type: 'number',
+                defaultValue: 24,
+                min: 1,
+                max: 168,
+              },
             ]}
             successMessage="Public contract posted."
             cooldown={createCooldown}
@@ -82,40 +144,137 @@ export default async function ContractsPage() {
             label="Assign private contract"
             payload={{ characterId: character.id }}
             fields={[
-              { name: 'assignedToCharacterId', label: 'Recipient', type: 'select', options: recipientOptions },
-              { name: 'contractType', label: 'Type', type: 'select', options: contractTypeOptions.filter((option) => option.value !== 'faction_task'), defaultValue: 'delivery' },
+              {
+                name: 'assignedToCharacterId',
+                label: 'Recipient',
+                type: 'select',
+                options: recipientOptions,
+              },
+              {
+                name: 'contractType',
+                label: 'Type',
+                type: 'select',
+                options: contractTypeOptions.filter((option) => option.value !== 'faction_task'),
+                defaultValue: 'delivery',
+              },
               { name: 'title', label: 'Title', placeholder: 'Private delivery assignment' },
-              { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Optional instructions', omitWhenEmpty: true },
-              { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
-              { name: 'itemKey', label: 'Required item', type: 'select', options: itemOptions, omitWhenEmpty: true },
-              { name: 'quantity', label: 'Quantity', type: 'number', defaultValue: 0, min: 0, max: 1000 },
-              { name: 'reward', label: 'Reward', type: 'number', defaultValue: 250, min: 25, max: 1_000_000 },
-              { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 24, min: 1, max: 168 },
+              {
+                name: 'description',
+                label: 'Description',
+                type: 'textarea',
+                placeholder: 'Optional instructions',
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'targetLocation',
+                label: 'Target location',
+                placeholder: character.location,
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'itemKey',
+                label: 'Required item',
+                type: 'select',
+                options: itemOptions,
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                defaultValue: 0,
+                min: 0,
+                max: 1000,
+              },
+              {
+                name: 'reward',
+                label: 'Reward',
+                type: 'number',
+                defaultValue: 250,
+                min: 25,
+                max: 1_000_000,
+              },
+              {
+                name: 'expiresInHours',
+                label: 'Expires in hours',
+                type: 'number',
+                defaultValue: 24,
+                min: 1,
+                max: 168,
+              },
             ]}
             successMessage="Private contract assigned."
             cooldown={createCooldown}
             disabled={recipientOptions.length === 0}
-            disabledReason={recipientOptions.length === 0 ? 'No other local characters are available for private assignments.' : undefined}
+            disabledReason={
+              recipientOptions.length === 0
+                ? 'No other local characters are available for private assignments.'
+                : undefined
+            }
           />
         </Card>
 
-        <Card title="Post faction task" meta={ownFaction?.faction ? `${ownFaction.faction.name} operations` : 'No faction'}>
+        <Card
+          title="Post faction task"
+          meta={ownFaction?.faction ? `${ownFaction.faction.name} operations` : 'No faction'}
+        >
           <GameActionForm
             endpoint="/api/contracts"
             label="Post faction task"
-            payload={{ characterId: character.id, contractType: 'faction_task', factionId: ownFactionId ?? undefined }}
+            payload={{
+              characterId: character.id,
+              contractType: 'faction_task',
+              factionId: ownFactionId ?? undefined,
+            }}
             fields={[
-              { name: 'assignedToCharacterId', label: 'Assignment', type: 'select', options: factionRecipientOptions, omitWhenEmpty: true },
+              {
+                name: 'assignedToCharacterId',
+                label: 'Assignment',
+                type: 'select',
+                options: factionRecipientOptions,
+                omitWhenEmpty: true,
+              },
               { name: 'title', label: 'Title', placeholder: 'Secure a faction route' },
-              { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Crew-only instructions', omitWhenEmpty: true },
-              { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
-              { name: 'reward', label: 'Reward', type: 'number', defaultValue: 500, min: 25, max: 1_000_000 },
-              { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 48, min: 1, max: 168 },
+              {
+                name: 'description',
+                label: 'Description',
+                type: 'textarea',
+                placeholder: 'Crew-only instructions',
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'targetLocation',
+                label: 'Target location',
+                placeholder: character.location,
+                omitWhenEmpty: true,
+              },
+              {
+                name: 'reward',
+                label: 'Reward',
+                type: 'number',
+                defaultValue: 500,
+                min: 25,
+                max: 1_000_000,
+              },
+              {
+                name: 'expiresInHours',
+                label: 'Expires in hours',
+                type: 'number',
+                defaultValue: 48,
+                min: 1,
+                max: 168,
+              },
             ]}
             successMessage="Faction task posted."
             cooldown={createCooldown}
             disabled={!canPostFactionContract}
-            disabledReason={!ownFactionId ? 'Join a faction before posting faction tasks.' : !canPostFactionContract ? 'Only lieutenants and above can post faction tasks.' : undefined}
+            disabledReason={
+              !ownFactionId
+                ? 'Join a faction before posting faction tasks.'
+                : !canPostFactionContract
+                  ? 'Only lieutenants and above can post faction tasks.'
+                  : undefined
+            }
           />
         </Card>
       </Grid>
@@ -128,9 +287,14 @@ export default async function ContractsPage() {
             {contracts.openContracts.map((contract) => {
               const isCreator = contract.createdByCharacterId === character.id;
               return (
-                <article key={contract.id} style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
+                <article
+                  key={contract.id}
+                  style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}
+                >
                   <strong>{contract.title}</strong>
-                  <p style={{ color: '#a1a1aa', margin: '4px 0 8px' }}>{contract.description || 'No description provided.'}</p>
+                  <p style={{ color: '#a1a1aa', margin: '4px 0 8px' }}>
+                    {contract.description || 'No description provided.'}
+                  </p>
                   <StatList
                     items={[
                       { label: 'Scope', value: describeContractScope(contract) },
@@ -149,7 +313,9 @@ export default async function ContractsPage() {
                     successMessage="Contract accepted."
                     cooldown={acceptCooldown}
                     disabled={isCreator}
-                    disabledReason={isCreator ? 'You cannot accept a contract you posted.' : undefined}
+                    disabledReason={
+                      isCreator ? 'You cannot accept a contract you posted.' : undefined
+                    }
                   />
                 </article>
               );
@@ -169,7 +335,10 @@ export default async function ContractsPage() {
               const isCreator = contract.createdByCharacterId === character.id;
               const isAssignee = contract.assignedToCharacterId === character.id;
               return (
-                <article key={contract.id} style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
+                <article
+                  key={contract.id}
+                  style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}
+                >
                   <strong>{contract.title}</strong>
                   <StatList
                     items={[

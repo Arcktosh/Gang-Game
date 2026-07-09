@@ -35,10 +35,10 @@ Feature Pass 60 adds the first enforceable site-quality layer for accessibility,
 Run the static site-quality gate with:
 
 ```bash
-pnpm validate:site-quality
+pnpm validate:static
 ```
 
-The command is included in `pnpm validate:static` and checks that the accessibility, responsive design, PWA, SEO, and documentation surfaces remain wired.
+The historical `validate:site-quality` alias is consolidated into `pnpm validate:static`, which and checks that the accessibility, responsive design, PWA, SEO, and documentation surfaces remain wired.
 
 ## Remaining manual checks
 

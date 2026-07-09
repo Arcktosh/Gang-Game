@@ -5,7 +5,10 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ bountyId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ bountyId: string }> },
+) {
   return withApiObservability(request, async () => {
     const { bountyId } = await params;
     const auth = await requireRequestUserId(request);
@@ -14,7 +17,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:bounties:id:cancel', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:bounties:id:cancel', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;

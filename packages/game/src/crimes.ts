@@ -1,4 +1,9 @@
-export type CrimeChanceInput = { intelligence: number; dexterity: number; heat: number; difficulty: number };
+export type CrimeChanceInput = {
+  intelligence: number;
+  dexterity: number;
+  heat: number;
+  difficulty: number;
+};
 
 export function calculateCrimeSuccessChance(input: CrimeChanceInput): number {
   const statBonus = input.intelligence * 0.015 + input.dexterity * 0.02;
@@ -25,12 +30,21 @@ export type FailedCrimeConsequence = {
   bill: number;
 };
 
-export function calculateFailedCrimeConsequence(input: FailedCrimeConsequenceInput, roll = Math.random()): FailedCrimeConsequence {
+export function calculateFailedCrimeConsequence(
+  input: FailedCrimeConsequenceInput,
+  roll = Math.random(),
+): FailedCrimeConsequence {
   const jailChance = Math.max(0.02, Math.min(0.7, input.jailRisk * 0.04 + input.heat * 0.008));
-  const injuryChance = Math.max(0.05, Math.min(0.65, input.difficulty * 0.08 - input.defense * 0.01));
+  const injuryChance = Math.max(
+    0.05,
+    Math.min(0.65, input.difficulty * 0.08 - input.defense * 0.01),
+  );
 
   if (roll <= jailChance) {
-    const severity = Math.max(1, Math.min(5, Math.ceil((input.heat + input.jailRisk + input.difficulty) / 8)));
+    const severity = Math.max(
+      1,
+      Math.min(5, Math.ceil((input.heat + input.jailRisk + input.difficulty) / 8)),
+    );
     return {
       type: 'jail',
       severity,

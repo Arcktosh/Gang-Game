@@ -50,3 +50,4 @@ export {
 
 export * from './monetization';
 export * from './account-recovery';
+export * from './worker-ops';

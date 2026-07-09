@@ -22,11 +22,15 @@ export function assertSafeIntegrationDatabaseUrl() {
   }
 
   if (/prod|production/i.test(databaseUrl)) {
-    throw new Error('Refusing to run integration tests against a database URL that looks like production.');
+    throw new Error(
+      'Refusing to run integration tests against a database URL that looks like production.',
+    );
   }
 
   if (!/test|localhost|127\.0\.0\.1/i.test(databaseUrl)) {
-    throw new Error('Integration tests require TEST_DATABASE_URL to contain test, localhost, or 127.0.0.1.');
+    throw new Error(
+      'Integration tests require TEST_DATABASE_URL to contain test, localhost, or 127.0.0.1.',
+    );
   }
 
   return databaseUrl;
@@ -54,7 +58,12 @@ export async function resetMvpIntegrationState() {
   `);
 }
 
-export async function createIntegrationUser(input: { email?: string; passwordHash?: string; displayName?: string; isAdmin?: boolean }) {
+export async function createIntegrationUser(input: {
+  email?: string;
+  passwordHash?: string;
+  displayName?: string;
+  isAdmin?: boolean;
+}) {
   const [user] = await db
     .insert(users)
     .values({

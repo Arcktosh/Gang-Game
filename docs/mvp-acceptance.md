@@ -1,6 +1,6 @@
 # MVP Acceptance Checklist
 
-This document captures the MVP acceptance status after Feature Pass 54. It is intentionally stricter than the feature checklist: it defines the minimum evidence needed before calling a build an MVP candidate.
+This document captures the MVP acceptance status after Feature Pass 89. It is intentionally stricter than the feature checklist: it defines the minimum evidence needed before calling a build an MVP candidate.
 
 ## MVP acceptance status
 
@@ -17,10 +17,10 @@ pnpm install
 pnpm validate:static
 ```
 
-The static gate now includes:
+The consolidated `pnpm validate:static` gate now includes:
 
 - migration continuity and migration apply-script coverage
-- API hardening, rate-limit, same-origin, and observability coverage
+- API hardening, Redis-backed rate-limit wiring, same-origin, and observability coverage
 - representative route-contract coverage
 - dedicated MVP page coverage
 - MVP progression wiring
@@ -28,7 +28,7 @@ The static gate now includes:
 - job lifecycle validation
 - legal/hospital recovery validation
 - release-readiness validation
-- MVP acceptance validation
+- MVP acceptance validation through `scripts/validate-mvp-acceptance.mjs`
 - documentation drift validation
 - CI workflow validation
 
@@ -85,16 +85,14 @@ This MVP is suitable for controlled testing of the end-to-end game loop, not for
 
 The following remain intentionally post-MVP or public-beta hardening items:
 
-- password reset and email verification
-- database-backed integration tests for every major mutation route
-- Redis-backed distributed rate limiting
+- - database-backed integration tests for every major mutation route
+- External abuse analytics, bot detection, and load testing
 - production SSE fan-out
 - external log shipping and error reporting
 - abuse analytics and bot detection
 - full admin moderation archive and economy/inventory/session audit pages
 - richer shops, messages, newspaper, profile, faction, and economy depth
 - public deployment automation and load testing
-
 
 ## Runtime proof command
 
@@ -116,12 +114,11 @@ MVP_PROOF_DRY_RUN=true pnpm prove:mvp-runtime
 
 Feature Pass 59 adds public launch polish for privacy, terms, community rules, and beta test plan coverage. The public pages `/privacy`, `/terms`, `/rules`, and `/onboarding` are now statically validated, but the legal documents remain draft operational baselines until production legal review is complete.
 
-
 ## Site-quality acceptance addendum
 
 Feature Pass 60 adds the static site-quality gate. MVP acceptance now also requires:
 
-- `pnpm validate:site-quality` passing.
+- Site-quality validation passing through `pnpm validate:static`.
 - Public metadata, sitemap, robots, PWA manifest, and icon assets present.
 - Skip-link and focus-visible support present.
 - Responsive game navigation and grid behavior present.

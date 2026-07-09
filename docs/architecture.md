@@ -102,11 +102,9 @@ Gameplay APIs should check `character_action_locks` inside the same transaction 
 
 Energy and nerve regeneration lives in `packages/game/src/resources.ts`. APIs refresh resources before spending them, while the worker periodically catches up idle characters. This avoids relying only on background ticks and keeps request-time state accurate.
 
-
 ## Hospital/Jail Status Flow
 
 Failed crimes may set `characters.status` to `hospitalized` or `jailed`, write an active row to `hospital_stays` or `jail_sentences`, and set `status_until`/`status_reason` on the character. The worker status release tick completes due rows, sets the character back to `free`, and writes a release event.
-
 
 ## Faction and territory architecture
 
@@ -115,7 +113,6 @@ Factions are persistent social organizations with roles, bank balances, reputati
 Territories are persistent world-control records. Territory actions mutate `territories.control_score` and `territories.controlled_by_faction_id`, write `territory_actions`, increase member contribution, and write public player events. The worker pays territory income into the faction bank through ledger entries.
 
 Future faction systems should build on these primitives instead of creating parallel faction-bank or territory-control concepts.
-
 
 ## Player shop architecture
 
@@ -134,16 +131,13 @@ Purchases should always update buyer cash, seller cash, listing quantity, buyer 
 
 The newspaper is stored in `newspaper_articles`, not only generated from event logs. Articles can be system-generated or player-submitted. Event logs can still be used later for automatic summaries, weekly recaps, faction war reports, arrest records, market rumors, and editorials.
 
-
 ## Finance market architecture
 
 Finance assets are fictional in-game stocks and crypto tokens. PostgreSQL stores the asset catalog, price history, positions, and orders. The worker owns price ticks through `tickAssetPrices`, while the web app only reads latest prices and posts validated buy/sell actions. Player-facing trades write `asset_orders`, `financial_transactions`, and `player_events` for auditability.
 
-
 ## Gambling/casino actions
 
 Casino actions are resolved through the shared game package and persisted through `gambling_wagers`, `financial_transactions`, and `player_events`. Large wins can emit public newspaper articles. This keeps gambling auditable, tunable, and visible to the wider game world without embedding odds directly in the UI.
-
 
 ## Contracts architecture
 
@@ -151,18 +145,15 @@ Contracts are implemented as a player-generated task economy. The `contracts` ta
 
 The worker owns expiry processing so stale work does not remain on the public board forever. Future faction-funded contracts should debit and credit `faction_ledger_entries` rather than character cash.
 
-
 ## Progression and retention layer
 
 Feature pass 11 adds achievements, titles, and recurring objectives. Objective progress is derived from canonical gameplay tables and events where possible, so feature endpoints do not need to duplicate counter-update logic. Claim actions are explicit because they grant cash, experience, and title rewards.
-
 
 ## Season and prestige architecture
 
 Seasons are implemented as durable state rather than temporary UI. `seasons` defines the active arc, `season_reward_tiers` defines rewards, and `character_season_progress` stores per-character points and claimed tiers. Prestige writes a permanent `legacy_records` snapshot before resetting the active character state, then grants `legacy_perks` that can be used by later systems.
 
 Season points are currently derived from character level, experience, net worth, profile score, achievement points, objective points, and reputation signals. Future systems should add to this calculation through shared game formulas rather than hard-coded route logic.
-
 
 ## Admin operations and balance control
 
@@ -172,26 +163,21 @@ Balance configuration is stored in `game_config_entries` as JSON. This allows fu
 
 System announcements are stored separately from player newspaper articles. Announcements are operational messages from staff; newspaper articles are in-world content and player/player-event media.
 
-
 ## Equipment layer
 
 Gear is modeled as inventory-backed equipment records. Item definitions define the slot, max durability, and JSON stat modifiers. `character_equipment` records which item is equipped in each slot and tracks durability. Shared formulas in `packages/game/src/equipment.ts` normalize modifiers, scale them by durability, and calculate repair costs. Combat now reads equipped modifiers before resolving PvP power, while future passes can reuse the same modifier summary for crimes, travel, markets, and faction actions.
-
 
 ## Vehicle and travel logistics layer
 
 Vehicles are modeled as equipment in the `vehicle` slot, with additional installed upgrades stored separately. Travel plans persist effective cost, duration, risk score, cargo value, and the vehicle used so worker outcomes and future audits can reason from immutable trip data.
 
-
 ## Crafting and workshops
 
 Crafting and workshop actions are handled through `packages/game/src/crafting.ts`, `packages/db/src/queries/crafting.ts`, and `/api/crafting`. Recipes define inputs, output item, workshop type, duration, energy cost, cash cost, and risk. Crafting jobs are queued in the database and completed by the worker through `crafting-tick`, keeping production asynchronous and auditable.
 
-
 ## Contacts and crews
 
 Contacts are owned NPC helpers tied to a character. They are not direct characters and should not bypass player action limits. The first implementation treats contacts as passive assignments resolved by the worker. Future passes can feed contact modifiers into travel, crime, legal, shop, faction, and market systems.
-
 
 ## Notification architecture
 
@@ -244,5 +230,5 @@ The architecture already assumes stronger guarantees than the early implementati
 - pagination on all list endpoints
 - route-level rate limits
 - environment validation
-- worker idempotency and retry/dead-letter handling
+- installed-environment proof of worker retry/dead-letter handling
 - tests for formula modules and representative route handlers

@@ -58,12 +58,8 @@ if (!scripts['validate:ci']) {
   }
 }
 
-if (!scripts['validate:ci-workflow']) {
-  errors.push('package.json is missing validate:ci-workflow.');
-}
-
-if (!scripts['validate:static']?.includes('pnpm validate:ci-workflow')) {
-  errors.push('validate:static must include pnpm validate:ci-workflow.');
+if (!String(scripts['validate:static'] ?? '').includes('scripts/validate-ci-workflow.mjs')) {
+  errors.push('validate:static must include scripts/validate-ci-workflow.mjs.');
 }
 
 const result = {

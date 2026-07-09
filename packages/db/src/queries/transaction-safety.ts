@@ -1,8 +1,13 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { characterAssetPositions, characters, contracts, inventoryItems, shopListings } from '../schema';
+import {
+  characterAssetPositions,
+  characters,
+  contracts,
+  inventoryItems,
+  shopListings,
+} from '../schema';
 
 type Tx = any;
-
 
 function normalizeExperienceGain(experienceGain: number) {
   return Math.max(0, Math.floor(experienceGain));
@@ -24,7 +29,9 @@ export async function decrementCharacterCash(tx: Tx, characterId: string, amount
   const normalizedAmount = Math.max(0, Math.floor(amount));
 
   if (normalizedAmount === 0) {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, characterId),
+    });
     return { ok: Boolean(character), character };
   }
 
@@ -58,7 +65,6 @@ export async function adjustCharacterCash(tx: Tx, characterId: string, delta: nu
   return incrementCharacterCash(tx, characterId, normalizedDelta);
 }
 
-
 export async function incrementCharacterBank(tx: Tx, characterId: string, amount: number) {
   const normalizedAmount = Math.max(0, Math.floor(amount));
   const [character] = await tx
@@ -74,7 +80,9 @@ export async function decrementCharacterBank(tx: Tx, characterId: string, amount
   const normalizedAmount = Math.max(0, Math.floor(amount));
 
   if (normalizedAmount === 0) {
-    const character = await tx.query.characters.findFirst({ where: eq(characters.id, characterId) });
+    const character = await tx.query.characters.findFirst({
+      where: eq(characters.id, characterId),
+    });
     return { ok: Boolean(character), character };
   }
 
@@ -97,12 +105,24 @@ export async function adjustCharacterBank(tx: Tx, characterId: string, delta: nu
   return incrementCharacterBank(tx, characterId, normalizedDelta);
 }
 
-export async function decrementInventoryQuantity(tx: Tx, inventoryItemId: string, quantity: number) {
+export async function decrementInventoryQuantity(
+  tx: Tx,
+  inventoryItemId: string,
+  quantity: number,
+) {
   const normalizedQuantity = Math.max(1, Math.floor(quantity));
   const [inventoryItem] = await tx
     .update(inventoryItems)
-    .set({ quantity: sql`${inventoryItems.quantity} - ${normalizedQuantity}`, updatedAt: sql`now()` })
-    .where(and(eq(inventoryItems.id, inventoryItemId), sql`${inventoryItems.quantity} >= ${normalizedQuantity}`))
+    .set({
+      quantity: sql`${inventoryItems.quantity} - ${normalizedQuantity}`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(inventoryItems.id, inventoryItemId),
+        sql`${inventoryItems.quantity} >= ${normalizedQuantity}`,
+      ),
+    )
     .returning();
 
   return { ok: Boolean(inventoryItem), inventoryItem };
@@ -139,7 +159,10 @@ export async function cancelActiveShopListing(tx: Tx, listingId: string) {
   return { ok: Boolean(listing), listing };
 }
 
-export async function completeJobCharacterUpdate(tx: Tx, input: { characterId: string; energyCost: number; payout: number; experienceGain: number }) {
+export async function completeJobCharacterUpdate(
+  tx: Tx,
+  input: { characterId: string; energyCost: number; payout: number; experienceGain: number },
+) {
   const [character] = await tx
     .update(characters)
     .set({
@@ -151,7 +174,9 @@ export async function completeJobCharacterUpdate(tx: Tx, input: { characterId: s
       nerve: sql`least(${characters.nerve}, ${nextMaxNerveSql(input.experienceGain)})`,
       updatedAt: sql`now()`,
     })
-    .where(and(eq(characters.id, input.characterId), sql`${characters.energy} >= ${input.energyCost}`))
+    .where(
+      and(eq(characters.id, input.characterId), sql`${characters.energy} >= ${input.energyCost}`),
+    )
     .returning();
 
   return { ok: Boolean(character), character };
@@ -186,12 +211,13 @@ export async function resolveCrimeCharacterUpdate(
       maxNerve: nextMaxNerveSql(input.experienceGain),
       updatedAt: sql`now()`,
     })
-    .where(and(eq(characters.id, input.characterId), sql`${characters.nerve} >= ${input.nerveCost}`))
+    .where(
+      and(eq(characters.id, input.characterId), sql`${characters.nerve} >= ${input.nerveCost}`),
+    )
     .returning();
 
   return { ok: Boolean(character), character };
 }
-
 
 export async function debitContractPosterCost(tx: Tx, characterId: string, amount: number) {
   return decrementCharacterCash(tx, characterId, amount);
@@ -201,31 +227,63 @@ export async function refundContractEscrow(tx: Tx, characterId: string, amount: 
   return incrementCharacterCash(tx, characterId, amount);
 }
 
-export async function acceptOpenContract(tx: Tx, input: { contractId: string; assigneeCharacterId: string }) {
+export async function acceptOpenContract(
+  tx: Tx,
+  input: { contractId: string; assigneeCharacterId: string },
+) {
   const [contract] = await tx
     .update(contracts)
-    .set({ assignedToCharacterId: input.assigneeCharacterId, status: 'accepted', acceptedAt: sql`now()`, updatedAt: sql`now()` })
-    .where(and(eq(contracts.id, input.contractId), eq(contracts.status, 'open'), sql`(${contracts.expiresAt} is null or ${contracts.expiresAt} > now())`))
+    .set({
+      assignedToCharacterId: input.assigneeCharacterId,
+      status: 'accepted',
+      acceptedAt: sql`now()`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(contracts.id, input.contractId),
+        eq(contracts.status, 'open'),
+        sql`(${contracts.expiresAt} is null or ${contracts.expiresAt} > now())`,
+      ),
+    )
     .returning();
 
   return { ok: Boolean(contract), contract };
 }
 
-export async function completeAcceptedContract(tx: Tx, input: { contractId: string; assigneeCharacterId: string }) {
+export async function completeAcceptedContract(
+  tx: Tx,
+  input: { contractId: string; assigneeCharacterId: string },
+) {
   const [contract] = await tx
     .update(contracts)
     .set({ status: 'completed', completedAt: sql`now()`, updatedAt: sql`now()` })
-    .where(and(eq(contracts.id, input.contractId), eq(contracts.status, 'accepted'), eq(contracts.assignedToCharacterId, input.assigneeCharacterId)))
+    .where(
+      and(
+        eq(contracts.id, input.contractId),
+        eq(contracts.status, 'accepted'),
+        eq(contracts.assignedToCharacterId, input.assigneeCharacterId),
+      ),
+    )
     .returning();
 
   return { ok: Boolean(contract), contract };
 }
 
-export async function cancelOpenContract(tx: Tx, input: { contractId: string; creatorCharacterId: string }) {
+export async function cancelOpenContract(
+  tx: Tx,
+  input: { contractId: string; creatorCharacterId: string },
+) {
   const [contract] = await tx
     .update(contracts)
     .set({ status: 'cancelled', cancelledAt: sql`now()`, updatedAt: sql`now()` })
-    .where(and(eq(contracts.id, input.contractId), eq(contracts.status, 'open'), eq(contracts.createdByCharacterId, input.creatorCharacterId)))
+    .where(
+      and(
+        eq(contracts.id, input.contractId),
+        eq(contracts.status, 'open'),
+        eq(contracts.createdByCharacterId, input.creatorCharacterId),
+      ),
+    )
     .returning();
 
   return { ok: Boolean(contract), contract };
@@ -235,8 +293,16 @@ export async function reserveAssetPositionQuantity(tx: Tx, positionId: string, q
   const normalizedQuantity = Math.max(1, Math.floor(quantity));
   const [position] = await tx
     .update(characterAssetPositions)
-    .set({ quantity: sql`${characterAssetPositions.quantity} - ${normalizedQuantity}`, updatedAt: sql`now()` })
-    .where(and(eq(characterAssetPositions.id, positionId), sql`${characterAssetPositions.quantity} >= ${normalizedQuantity}`))
+    .set({
+      quantity: sql`${characterAssetPositions.quantity} - ${normalizedQuantity}`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(characterAssetPositions.id, positionId),
+        sql`${characterAssetPositions.quantity} >= ${normalizedQuantity}`,
+      ),
+    )
     .returning();
 
   return { ok: Boolean(position), position };
@@ -249,7 +315,12 @@ export async function addAssetPositionQuantity(
   const normalizedQuantity = Math.max(1, Math.floor(input.quantity));
   const [position] = await tx
     .insert(characterAssetPositions)
-    .values({ characterId: input.characterId, assetKey: input.assetKey, quantity: normalizedQuantity, averageCost: input.averageCost })
+    .values({
+      characterId: input.characterId,
+      assetKey: input.assetKey,
+      quantity: normalizedQuantity,
+      averageCost: input.averageCost,
+    })
     .onConflictDoUpdate({
       target: [characterAssetPositions.characterId, characterAssetPositions.assetKey],
       set: {

@@ -20,5 +20,8 @@ export async function verifyPassword(password: string, passwordHash: string) {
   const storedKeyBuffer = Buffer.from(storedKey, 'hex');
   const suppliedKeyBuffer = (await scrypt(password, salt, storedKeyBuffer.length)) as Buffer;
 
-  return storedKeyBuffer.length === suppliedKeyBuffer.length && timingSafeEqual(storedKeyBuffer, suppliedKeyBuffer);
+  return (
+    storedKeyBuffer.length === suppliedKeyBuffer.length &&
+    timingSafeEqual(storedKeyBuffer, suppliedKeyBuffer)
+  );
 }

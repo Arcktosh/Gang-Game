@@ -1,4 +1,9 @@
-import { buyMarketItem, listActiveMarketEventsForLocation, listMarketForLocation, sellMarketItem } from '@drugdeal/db';
+import {
+  buyMarketItem,
+  listActiveMarketEventsForLocation,
+  listMarketForLocation,
+  sellMarketItem,
+} from '@drugdeal/db';
 import { marketActionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { withIdempotency } from '@/lib/idempotency';
@@ -25,7 +30,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'actions:market', auth.userId), windowSeconds: 60, maxRequests: 60 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'actions:market', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 60,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -43,12 +52,14 @@ export async function POST(request: NextRequest) {
       routeScope: 'market:action',
       fingerprint: body.data,
       handler: async () => {
-        const result = body.data.action === 'buy'
-          ? await buyMarketItem({ ...body.data, userId: auth.userId })
-          : await sellMarketItem({ ...body.data, userId: auth.userId });
+        const result =
+          body.data.action === 'buy'
+            ? await buyMarketItem({ ...body.data, userId: auth.userId })
+            : await sellMarketItem({ ...body.data, userId: auth.userId });
 
         if (!result.ok) {
-          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+          const status =
+            result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
           return jsonError(result.code, result.message, status);
         }
 

@@ -45,7 +45,10 @@ export default function ForgotPasswordPage() {
       <section className="auth-card">
         <p className="eyebrow">Account recovery</p>
         <h1 id="auth-title">Password reset</h1>
-        <p className="lead">Enter your account email. Unknown email addresses receive the same generic response for account privacy.</p>
+        <p className="lead">
+          Enter your account email. Unknown email addresses receive the same generic response for
+          account privacy.
+        </p>
         <form className="form-stack" onSubmit={handleSubmit}>
           <label className="form-label">
             Email

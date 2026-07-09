@@ -1,4 +1,9 @@
-import { listAssetOrders, listCharacterPortfolio, listFinanceMarket, tradeAsset } from '@drugdeal/db';
+import {
+  listAssetOrders,
+  listCharacterPortfolio,
+  listFinanceMarket,
+  tradeAsset,
+} from '@drugdeal/db';
 import { financeTradeSchema, uuidSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -19,21 +24,31 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:finance', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:finance', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
     }
 
-    const query = portfolioQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') ?? undefined });
+    const query = portfolioQuerySchema.safeParse({
+      characterId: request.nextUrl.searchParams.get('characterId') ?? undefined,
+    });
 
     if (!query.success) {
       return jsonError('invalid_query', 'Invalid finance query.', 400, query.error.flatten());
     }
 
     const market = await listFinanceMarket();
-    const portfolio = query.data.characterId ? await listCharacterPortfolio(query.data.characterId, auth.userId) : [];
-    const orders = query.data.characterId ? await listAssetOrders(query.data.characterId, auth.userId, 10) : [];
+    const portfolio = query.data.characterId
+      ? await listCharacterPortfolio(query.data.characterId, auth.userId)
+      : [];
+    const orders = query.data.characterId
+      ? await listAssetOrders(query.data.characterId, auth.userId, 10)
+      : [];
 
     if (query.data.characterId && portfolio === null) {
       return jsonError('not_found', 'Character not found.', 404);
@@ -51,7 +66,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:finance', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:finance', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -72,7 +91,14 @@ export async function POST(request: NextRequest) {
         const result = await tradeAsset({ ...body.data, userId: auth.userId });
 
         if (!result.ok) {
-          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : result.code === 'conflict' ? 409 : 403;
+          const status =
+            result.code === 'not_found'
+              ? 404
+              : result.code === 'cooldown_active'
+                ? 429
+                : result.code === 'conflict'
+                  ? 409
+                  : 403;
           return jsonError(result.code, result.message, status);
         }
 

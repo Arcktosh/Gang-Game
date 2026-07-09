@@ -35,14 +35,13 @@ Password: password123
 Existing local databases created before this slice need:
 
 ```bash
-pnpm db:apply:auth
+pnpm db:apply:all
 ```
 
 A fresh local database should use:
 
 ```bash
-pnpm db:apply:initial
-pnpm db:apply:auth
+pnpm db:setup
 pnpm db:seed
 ```
 

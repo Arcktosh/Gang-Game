@@ -29,11 +29,26 @@ export function getObjectivePeriod(cadence: ObjectiveCadence, now = new Date()):
   return { start, end };
 }
 
-export function calculateProfileScore(input: { achievementPoints: number; objectivePoints: number; level: number; reputationBonus?: number }) {
-  return Math.max(0, input.achievementPoints + input.objectivePoints + input.level * 10 + (input.reputationBonus ?? 0));
+export function calculateProfileScore(input: {
+  achievementPoints: number;
+  objectivePoints: number;
+  level: number;
+  reputationBonus?: number;
+}) {
+  return Math.max(
+    0,
+    input.achievementPoints +
+      input.objectivePoints +
+      input.level * 10 +
+      (input.reputationBonus ?? 0),
+  );
 }
 
-export function calculateObjectiveReward(input: { rewardCash: number; rewardExperience: number; cadence: string }) {
+export function calculateObjectiveReward(input: {
+  rewardCash: number;
+  rewardExperience: number;
+  cadence: string;
+}) {
   const cadenceMultiplier = input.cadence === 'weekly' ? 1 : 1;
   return {
     cash: Math.max(0, Math.floor(input.rewardCash * cadenceMultiplier)),

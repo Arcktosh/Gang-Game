@@ -13,7 +13,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:territories:actions', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:territories:actions', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -28,7 +32,11 @@ export async function POST(request: NextRequest) {
     const result = await performTerritoryAction({ userId: auth.userId, ...body.data });
 
     if (!result.ok) {
-      return jsonError(result.code, result.message, result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 409 : 403);
+      return jsonError(
+        result.code,
+        result.message,
+        result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 409 : 403,
+      );
     }
 
     return jsonOk({ territory: result.territory, outcome: result.outcome, power: result.power });

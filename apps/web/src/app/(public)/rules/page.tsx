@@ -14,7 +14,9 @@ export default function RulesPage() {
       <section className="site-panel">
         <p className="eyebrow">Public beta policy</p>
         <h1 id="rules-title">Community Rules</h1>
-        <p className="lead">These rules define the minimum conduct baseline for public MVP testing.</p>
+        <p className="lead">
+          These rules define the minimum conduct baseline for public MVP testing.
+        </p>
         <ol className="site-feature-list">
           {rules.map((rule) => (
             <li key={rule}>{rule}</li>
@@ -22,12 +24,21 @@ export default function RulesPage() {
         </ol>
         <section>
           <h2>Moderation workflow</h2>
-          <p>Reports, appeals, sanctions, and admin actions are tracked through the moderation and audit systems so operator decisions remain reviewable.</p>
+          <p>
+            Reports, appeals, sanctions, and admin actions are tracked through the moderation and
+            audit systems so operator decisions remain reviewable.
+          </p>
         </section>
         <p className="link-list">
-          <Link className="button-link" href="/privacy">Privacy</Link>
-          <Link className="button-link" href="/terms">Terms</Link>
-          <Link className="button-link" href="/onboarding">Onboarding</Link>
+          <Link className="button-link" href="/privacy">
+            Privacy
+          </Link>
+          <Link className="button-link" href="/terms">
+            Terms
+          </Link>
+          <Link className="button-link" href="/onboarding">
+            Onboarding
+          </Link>
         </p>
       </section>
     </main>

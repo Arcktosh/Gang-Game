@@ -13,19 +13,28 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:bounties', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:bounties', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
     }
 
-    const query = pvpProfileQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') });
+    const query = pvpProfileQuerySchema.safeParse({
+      characterId: request.nextUrl.searchParams.get('characterId'),
+    });
 
     if (!query.success) {
       return jsonError('bad_request', 'Invalid bounty query.', 400, query.error.flatten());
     }
 
-    const result = await getPvpProfile({ userId: auth.userId, characterId: query.data.characterId });
+    const result = await getPvpProfile({
+      userId: auth.userId,
+      characterId: query.data.characterId,
+    });
 
     if (!result) {
       return jsonError('not_found', 'Character not found.', 404);
@@ -43,7 +52,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:bounties', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:bounties', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -58,7 +71,8 @@ export async function POST(request: NextRequest) {
     const result = await createBounty({ ...body.data, userId: auth.userId });
 
     if (!result.ok) {
-      const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+      const status =
+        result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
       return jsonError(result.code, result.message, status);
     }
 

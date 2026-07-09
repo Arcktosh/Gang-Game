@@ -5,7 +5,10 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ achievementKey: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ achievementKey: string }> },
+) {
   return withApiObservability(request, async () => {
     const { achievementKey } = await params;
     const auth = await requireRequestUserId(request);
@@ -14,7 +17,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:profile:achievements:id:claim', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:profile:achievements:id:claim', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -26,7 +33,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return body.response;
     }
 
-    const result = await claimAchievement({ userId: auth.userId, characterId: body.data.characterId, achievementKey });
+    const result = await claimAchievement({
+      userId: auth.userId,
+      characterId: body.data.characterId,
+      achievementKey,
+    });
 
     if (!result.ok) {
       const status = result.code === 'not_found' ? 404 : result.code === 'conflict' ? 409 : 403;

@@ -13,7 +13,10 @@ const resolveReportSchema = z.object({
   hideArticle: z.boolean().optional(),
 });
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ reportId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ reportId: string }> },
+) {
   return withApiObservability(request, async () => {
     const admin = await requireAdminCapability(request, 'moderate_content');
 
@@ -23,7 +26,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const session = admin.session;
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:moderation:reports:id', session.user.id), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:admin:moderation:reports:id', session.user.id),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -37,10 +44,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     try {
       const { reportId } = await params;
-      const result = await resolveModerationReport({ adminUserId: session.user.id, reportId, ...body.data });
+      const result = await resolveModerationReport({
+        adminUserId: session.user.id,
+        reportId,
+        ...body.data,
+      });
       return jsonOk(result);
     } catch (caught) {
-      return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not resolve report.', 400);
+      return jsonError(
+        'bad_request',
+        caught instanceof Error ? caught.message : 'Could not resolve report.',
+        400,
+      );
     }
   });
 }

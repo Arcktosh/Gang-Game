@@ -31,7 +31,10 @@ export function createRequestId() {
 }
 
 export function getRequestIdFromHeaders(headers: Headers) {
-  return normalizeRequestId(headers.get(REQUEST_ID_HEADER)) ?? normalizeRequestId(headers.get(CORRELATION_ID_HEADER));
+  return (
+    normalizeRequestId(headers.get(REQUEST_ID_HEADER)) ??
+    normalizeRequestId(headers.get(CORRELATION_ID_HEADER))
+  );
 }
 
 export function getOrCreateRequestId(request: Pick<NextRequest, 'headers'>) {

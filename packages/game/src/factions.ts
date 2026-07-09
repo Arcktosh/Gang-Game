@@ -42,7 +42,10 @@ export function calculateTerritoryAction(input: {
   controlledByOwnFaction: boolean;
   isUncontrolled: boolean;
 }) {
-  const base = Math.max(1, Math.floor((input.strength + input.defense + input.dexterity + input.intelligence) / 4));
+  const base = Math.max(
+    1,
+    Math.floor((input.strength + input.defense + input.dexterity + input.intelligence) / 4),
+  );
   const actionConfig = {
     scout: { cashCost: 25, cooldownSeconds: 120, scoreDelta: 0, powerMultiplier: 0.5 },
     claim: { cashCost: 150, cooldownSeconds: 600, scoreDelta: 6, powerMultiplier: 1 },
@@ -51,7 +54,8 @@ export function calculateTerritoryAction(input: {
   }[input.action];
 
   const power = Math.max(1, Math.floor(base * actionConfig.powerMultiplier));
-  const effectiveScoreDelta = input.action === 'attack' ? -(power + input.territoryDefense) : actionConfig.scoreDelta + power;
+  const effectiveScoreDelta =
+    input.action === 'attack' ? -(power + input.territoryDefense) : actionConfig.scoreDelta + power;
 
   return {
     cashCost: actionConfig.cashCost,
@@ -65,7 +69,6 @@ export function calculateTerritoryAction(input: {
       (input.action !== 'attack' || !input.controlledByOwnFaction),
   };
 }
-
 
 export type FactionInventoryAction = 'deposit' | 'withdraw';
 

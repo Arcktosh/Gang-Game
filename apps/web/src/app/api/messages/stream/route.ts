@@ -36,10 +36,15 @@ export async function GET(request: NextRequest) {
           if (isClosed) return;
 
           try {
-            const snapshot = await listMessageStreamSnapshot({ userId: auth.userId, characterId: query.data.characterId });
+            const snapshot = await listMessageStreamSnapshot({
+              userId: auth.userId,
+              characterId: query.data.characterId,
+            });
 
             if (!snapshot) {
-              controller.enqueue(encodeEvent('error', { code: 'not_found', message: 'Character not found.' }));
+              controller.enqueue(
+                encodeEvent('error', { code: 'not_found', message: 'Character not found.' }),
+              );
               return;
             }
 
@@ -54,13 +59,16 @@ export async function GET(request: NextRequest) {
               controller.enqueue(encodeEvent('message.snapshot', snapshot));
               lastSignature = signature;
             } else {
-              controller.enqueue(encodeEvent('message.heartbeat', { checkedAt: new Date().toISOString() }));
+              controller.enqueue(
+                encodeEvent('message.heartbeat', { checkedAt: new Date().toISOString() }),
+              );
             }
           } catch (error) {
             controller.enqueue(
               encodeEvent('error', {
                 code: 'server_error',
-                message: error instanceof Error ? error.message : 'Could not refresh message stream.',
+                message:
+                  error instanceof Error ? error.message : 'Could not refresh message stream.',
               }),
             );
           }

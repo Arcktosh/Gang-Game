@@ -23,7 +23,10 @@ export type BribeInput = {
 export function calculateBribeAttempt(input: BribeInput) {
   const heat = Math.max(0, input.heat);
   const baseCost = 100 + heat * 35;
-  const successChance = Math.max(0.1, Math.min(0.85, 0.45 + input.intelligence * 0.015 - heat * 0.01));
+  const successChance = Math.max(
+    0.1,
+    Math.min(0.85, 0.45 + input.intelligence * 0.015 - heat * 0.01),
+  );
   const success = (input.roll ?? Math.random()) <= successChance;
   const heatReduction = success ? Math.max(1, Math.ceil(heat * 0.35)) : 0;
   const extraHeat = success ? 0 : Math.max(1, Math.ceil(heat * 0.1));
@@ -55,7 +58,10 @@ export function calculateLawyerService(input: LawyerInput) {
   const tier = lawyerTiers[input.tier];
   const heat = Math.max(0, input.heat);
   const intelligenceBonus = Math.floor(Math.max(0, input.intelligence) / 10);
-  const heatReduction = Math.min(heat, tier.flatReduction + intelligenceBonus + Math.floor(heat * tier.reductionRate));
+  const heatReduction = Math.min(
+    heat,
+    tier.flatReduction + intelligenceBonus + Math.floor(heat * tier.reductionRate),
+  );
 
   return {
     tier: input.tier,
@@ -100,7 +106,10 @@ export function calculateFineSettlement(input: JailPaymentInput) {
   const severity = Math.max(1, input.severity);
   const cost = Math.max(Math.max(0, input.fine), severity * 75);
   const remainingSeconds = Math.max(0, input.remainingSeconds);
-  const heatReduction = Math.min(3 + Math.floor(severity / 2), severity + Math.ceil(remainingSeconds / 1800));
+  const heatReduction = Math.min(
+    3 + Math.floor(severity / 2),
+    severity + Math.ceil(remainingSeconds / 1800),
+  );
 
   return {
     action: 'pay_fine' as const,
@@ -147,10 +156,14 @@ export function calculateCourtOutcome(input: CourtOutcomeInput) {
   const severity = Math.max(1, input.severity);
   const heat = Math.max(0, input.heat);
   const remainingSeconds = Math.max(0, input.remainingSeconds);
-  const legalModifier = Math.max(0, input.legalReputation) * 0.018 + Math.max(0, input.intelligence) * 0.01;
+  const legalModifier =
+    Math.max(0, input.legalReputation) * 0.018 + Math.max(0, input.intelligence) * 0.01;
   const heatPenalty = heat * 0.006 + severity * 0.035;
   const pleaModifier = input.plea === 'responsible' ? 0.1 : input.plea === 'contest' ? -0.03 : 0.04;
-  const favorableChance = Math.max(0.12, Math.min(0.82, 0.42 + legalModifier + pleaModifier - heatPenalty));
+  const favorableChance = Math.max(
+    0.12,
+    Math.min(0.82, 0.42 + legalModifier + pleaModifier - heatPenalty),
+  );
   const roll = input.roll ?? Math.random();
 
   if (roll <= favorableChance * 0.22) {
@@ -168,7 +181,8 @@ export function calculateCourtOutcome(input: CourtOutcomeInput) {
   }
 
   if (roll <= favorableChance) {
-    const reductionRate = input.plea === 'responsible' ? 0.45 : input.plea === 'defer' ? 0.35 : 0.28;
+    const reductionRate =
+      input.plea === 'responsible' ? 0.45 : input.plea === 'defer' ? 0.35 : 0.28;
     return {
       plea: input.plea,
       outcome: 'reduced' as const,
@@ -223,20 +237,45 @@ export type JailActivityInput = {
 };
 
 const jailActivities = {
-  library: { releaseReductionSeconds: 300, experience: 10, intelligenceGain: 1, labourGain: 0, strengthGain: 0, enduranceGain: 0 },
-  work_detail: { releaseReductionSeconds: 420, experience: 12, intelligenceGain: 0, labourGain: 1, strengthGain: 0, enduranceGain: 0 },
-  fitness_yard: { releaseReductionSeconds: 240, experience: 8, intelligenceGain: 0, labourGain: 0, strengthGain: 1, enduranceGain: 1 },
+  library: {
+    releaseReductionSeconds: 300,
+    experience: 10,
+    intelligenceGain: 1,
+    labourGain: 0,
+    strengthGain: 0,
+    enduranceGain: 0,
+  },
+  work_detail: {
+    releaseReductionSeconds: 420,
+    experience: 12,
+    intelligenceGain: 0,
+    labourGain: 1,
+    strengthGain: 0,
+    enduranceGain: 0,
+  },
+  fitness_yard: {
+    releaseReductionSeconds: 240,
+    experience: 8,
+    intelligenceGain: 0,
+    labourGain: 0,
+    strengthGain: 1,
+    enduranceGain: 1,
+  },
 } as const;
 
 export function calculateJailActivity(input: JailActivityInput) {
   const activity = jailActivities[input.activity];
   const severityPenalty = Math.max(0, Math.max(1, input.severity) - 1) * 30;
-  const statBonus = input.activity === 'library'
-    ? Math.floor(Math.max(0, input.intelligence) / 12) * 30
-    : input.activity === 'work_detail'
-      ? Math.floor(Math.max(0, input.labour) / 10) * 30
-      : Math.floor((Math.max(0, input.strength) + Math.max(0, input.endurance)) / 18) * 30;
-  const releaseReductionSeconds = Math.min(Math.max(0, input.remainingSeconds), Math.max(60, activity.releaseReductionSeconds + statBonus - severityPenalty));
+  const statBonus =
+    input.activity === 'library'
+      ? Math.floor(Math.max(0, input.intelligence) / 12) * 30
+      : input.activity === 'work_detail'
+        ? Math.floor(Math.max(0, input.labour) / 10) * 30
+        : Math.floor((Math.max(0, input.strength) + Math.max(0, input.endurance)) / 18) * 30;
+  const releaseReductionSeconds = Math.min(
+    Math.max(0, input.remainingSeconds),
+    Math.max(60, activity.releaseReductionSeconds + statBonus - severityPenalty),
+  );
 
   return {
     activity: input.activity,

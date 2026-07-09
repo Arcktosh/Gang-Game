@@ -1,19 +1,21 @@
 import { createDailyNotificationDigests, createNotificationsFromRecentEvents } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const NOTIFICATIONS_TICK_MS = 60_000;
 const DIGEST_TICK_MS = 60 * 60 * 1000;
 
 export function startNotificationsTick() {
-  console.log(`notifications tick scheduled every ${NOTIFICATIONS_TICK_MS}ms`);
-  setInterval(() => {
-    createNotificationsFromRecentEvents().catch((error) => {
-      console.error('notifications tick failed', error);
-    });
-  }, NOTIFICATIONS_TICK_MS);
+  const notificationTick = scheduleWorkerTick({
+    name: 'notifications',
+    intervalMs: NOTIFICATIONS_TICK_MS,
+    run: createNotificationsFromRecentEvents,
+  });
 
-  setInterval(() => {
-    createDailyNotificationDigests().catch((error) => {
-      console.error('notification digest tick failed', error);
-    });
-  }, DIGEST_TICK_MS);
+  const digestTick = scheduleWorkerTick({
+    name: 'notification-digests',
+    intervalMs: DIGEST_TICK_MS,
+    run: createDailyNotificationDigests,
+  });
+
+  return [notificationTick, digestTick];
 }

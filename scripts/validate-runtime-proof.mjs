@@ -37,27 +37,38 @@ function requireTerms(relativePath, terms) {
 }
 
 function hasExecutableBit(relativePath) {
+  if (process.platform === 'win32') {
+    return true;
+  }
+
   const mode = fs.statSync(path.join(repoRoot, relativePath)).mode;
   return (mode & 0o111) !== 0;
 }
 
 const rootPackage = json('package.json');
 
-for (const scriptName of ['prove:mvp-runtime', 'validate:runtime-proof']) {
-  if (!rootPackage.scripts?.[scriptName]) {
-    errors.push(`package.json is missing ${scriptName}.`);
-  }
+if (!rootPackage.scripts?.['prove:mvp-runtime']) {
+  errors.push('package.json is missing prove:mvp-runtime.');
 }
 
-if (!rootPackage.scripts?.['validate:static']?.includes('pnpm validate:runtime-proof')) {
-  errors.push('package.json validate:static must include pnpm validate:runtime-proof.');
+if (
+  !String(rootPackage.scripts?.['validate:static'] ?? '').includes(
+    'scripts/validate-runtime-proof.mjs',
+  )
+) {
+  errors.push('package.json validate:static must include scripts/validate-runtime-proof.mjs.');
 }
 
 if (!exists('packages/db/scripts/apply-migrations.ts')) {
   errors.push('packages/db/scripts/apply-migrations.ts is missing.');
 } else {
   const migrationRunner = read('packages/db/scripts/apply-migrations.ts');
-  for (const term of ['schema_migrations', 'DB_MIGRATIONS_BASELINE_THROUGH', 'DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH', 'sha256']) {
+  for (const term of [
+    'schema_migrations',
+    'DB_MIGRATIONS_BASELINE_THROUGH',
+    'DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH',
+    'sha256',
+  ]) {
     if (!migrationRunner.includes(term)) {
       errors.push(`packages/db/scripts/apply-migrations.ts must include ${term}.`);
     }
@@ -104,7 +115,9 @@ if (!exists('scripts/prove-mvp-runtime.mjs')) {
   }
 
   if (!proofScript.includes("'db:apply:all'")) {
-    errors.push('scripts/prove-mvp-runtime.mjs should use the idempotent db:apply:all migration runner.');
+    errors.push(
+      'scripts/prove-mvp-runtime.mjs should use the idempotent db:apply:all migration runner.',
+    );
   }
 }
 
@@ -121,15 +134,9 @@ requireTerms('docs/mvp-acceptance.md', [
   'MVP_RESTORE_DATABASE_URL',
 ]);
 
-requireTerms('docs/runtime-smoke.md', [
-  'pnpm prove:mvp-runtime',
-  'SMOKE_STRICT_HEALTH_OK=true',
-]);
+requireTerms('docs/runtime-smoke.md', ['pnpm prove:mvp-runtime', 'SMOKE_STRICT_HEALTH_OK=true']);
 
-requireTerms('docs/backup-restore.md', [
-  'MVP_RESTORE_DATABASE_URL',
-  'pnpm prove:mvp-runtime',
-]);
+requireTerms('docs/backup-restore.md', ['MVP_RESTORE_DATABASE_URL', 'pnpm prove:mvp-runtime']);
 
 requireTerms('docs/remaining-work.md', [
   'Feature Pass 56',
@@ -137,26 +144,13 @@ requireTerms('docs/remaining-work.md', [
   'Runtime proof still required',
 ]);
 
-requireTerms('docs/project-status.md', [
-  'Feature Pass 56',
-  'runtime proof orchestrator',
-]);
+requireTerms('docs/project-status.md', ['Feature Pass 56', 'runtime proof orchestrator']);
 
-requireTerms('docs/feature-checklist.md', [
-  'Feature Pass 56',
-  'prove:mvp-runtime',
-]);
+requireTerms('docs/feature-checklist.md', ['Feature Pass 56', 'prove:mvp-runtime']);
 
-requireTerms('docs/validation-audit.md', [
-  'validate:runtime-proof',
-  'prove:mvp-runtime',
-]);
+requireTerms('docs/validation-audit.md', ['validate:runtime-proof', 'prove:mvp-runtime']);
 
-requireTerms('README.md', [
-  'Feature Pass 56',
-  'pnpm prove:mvp-runtime',
-  'validate:runtime-proof',
-]);
+requireTerms('README.md', ['Feature Pass 56', 'pnpm prove:mvp-runtime', 'validate:runtime-proof']);
 
 const result = {
   summary: {

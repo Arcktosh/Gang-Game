@@ -76,7 +76,11 @@ export default async function ProfilePage() {
                   value={character.energy}
                   max={character.maxEnergy}
                 />
-                <ProfileProgressMeter label="Nerve" value={character.nerve} max={character.maxNerve} />
+                <ProfileProgressMeter
+                  label="Nerve"
+                  value={character.nerve}
+                  max={character.maxNerve}
+                />
                 <ProfileProgressMeter label="Heat" value={character.heat} max={100} />
               </div>
               <StatList
@@ -113,10 +117,21 @@ export default async function ProfilePage() {
                     label: 'XP',
                     value: `${xpProgress.experienceIntoLevel}/${xpProgress.experienceForNextLevel} to next level`,
                   },
-                  { label: 'Current reward', value: `${xpProgress.rewards.title} · ${xpProgress.rewards.maxNerve} max nerve` },
-                  { label: 'Achievements', value: `${progression.summary.completedAchievements}/${progression.summary.totalAchievements}` },
+                  {
+                    label: 'Current reward',
+                    value: `${xpProgress.rewards.title} · ${xpProgress.rewards.maxNerve} max nerve`,
+                  },
+                  {
+                    label: 'Achievements',
+                    value: `${progression.summary.completedAchievements}/${progression.summary.totalAchievements}`,
+                  },
                   { label: 'Profile score', value: progression.summary.profileScore },
-                  { label: 'Claimable', value: progression.summary.claimableAchievements + progression.summary.claimableObjectives },
+                  {
+                    label: 'Claimable',
+                    value:
+                      progression.summary.claimableAchievements +
+                      progression.summary.claimableObjectives,
+                  },
                   { label: 'Active title', value: progression.activeTitle?.title ?? 'None' },
                 ]}
               />
@@ -131,7 +146,10 @@ export default async function ProfilePage() {
                 items={[
                   { label: 'Public events shown', value: publicEvents.length },
                   { label: 'Private/admin events hidden', value: privateEvents.length },
-                  { label: 'Public title', value: progression.activeTitle?.title ?? 'None selected' },
+                  {
+                    label: 'Public title',
+                    value: progression.activeTitle?.title ?? 'None selected',
+                  },
                   { label: 'Public score', value: progression.summary.profileScore },
                 ]}
               />
@@ -146,7 +164,10 @@ export default async function ProfilePage() {
                 items={[
                   { label: 'Blocked until', value: formatDate(status?.blockedUntil) },
                   { label: 'Reason', value: status?.reason ?? 'Clear' },
-                  { label: 'Hospital release', value: formatDate(status?.hospitalStay?.releasedAt) },
+                  {
+                    label: 'Hospital release',
+                    value: formatDate(status?.hospitalStay?.releasedAt),
+                  },
                   { label: 'Jail release', value: formatDate(status?.jailSentence?.releaseAt) },
                 ]}
               />
@@ -180,7 +201,9 @@ export default async function ProfilePage() {
                     >
                       <strong>{title.title}</strong>
                       <p style={{ color: '#a1a1aa', margin: '4px 0' }}>
-                        {title.isActive ? 'Currently public' : `Earned ${formatDate(title.earnedAt)}`}
+                        {title.isActive
+                          ? 'Currently public'
+                          : `Earned ${formatDate(title.earnedAt)}`}
                       </p>
                       <GameActionForm
                         endpoint="/api/profile/titles/active"
@@ -208,7 +231,10 @@ export default async function ProfilePage() {
 
         <section id="profile-rewards" className="dashboard-section">
           <Grid>
-            <Card title="Claimable achievement rewards" meta={`${claimableAchievements.length} shown`}>
+            <Card
+              title="Claimable achievement rewards"
+              meta={`${claimableAchievements.length} shown`}
+            >
               {claimableAchievements.length > 0 ? (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {claimableAchievements.map((entry) => (

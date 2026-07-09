@@ -14,7 +14,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'shops:listings', auth.userId), windowSeconds: 60, maxRequests: 20 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'shops:listings', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 20,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -26,10 +30,17 @@ export async function POST(request: NextRequest) {
       return body.response;
     }
 
-    const restriction = await hasActiveCharacterRestriction({ characterId: body.data.characterId, actionType: 'shop_restriction' });
+    const restriction = await hasActiveCharacterRestriction({
+      characterId: body.data.characterId,
+      actionType: 'shop_restriction',
+    });
 
     if (restriction) {
-      return jsonError('forbidden', 'This character is temporarily restricted from shop operations.', 403);
+      return jsonError(
+        'forbidden',
+        'This character is temporarily restricted from shop operations.',
+        403,
+      );
     }
 
     return withIdempotency({
@@ -41,7 +52,8 @@ export async function POST(request: NextRequest) {
         const result = await createShopListing({ ...body.data, userId: auth.userId });
 
         if (!result.ok) {
-          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+          const status =
+            result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
           return jsonError(result.code, result.message, status);
         }
 

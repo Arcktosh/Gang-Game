@@ -17,7 +17,11 @@ import {
   playerEvents,
 } from '../schema';
 import { assertActionUnlocked, refreshCharacterResources, setActionCooldown } from './action-state';
-import { decrementCharacterCash, decrementInventoryQuantity, incrementCharacterCash } from './transaction-safety';
+import {
+  decrementCharacterCash,
+  decrementInventoryQuantity,
+  incrementCharacterCash,
+} from './transaction-safety';
 
 const MARKET_COOLDOWN_SECONDS = 5;
 
@@ -48,7 +52,9 @@ export async function listMarketForLocation(location: string) {
     }),
   );
 
-  return latestPrices.filter((entry): entry is Exclude<(typeof latestPrices)[number], null> => entry !== null);
+  return latestPrices.filter(
+    (entry): entry is Exclude<(typeof latestPrices)[number], null> => entry !== null,
+  );
 }
 
 async function getLatestMarketPrice(tx: any, location: string, itemKey: string) {
@@ -58,13 +64,17 @@ async function getLatestMarketPrice(tx: any, location: string, itemKey: string) 
   });
 }
 
-
 function normalizeMarketLocation(location?: string | null) {
   const normalized = location?.trim().toLowerCase();
   return normalized || 'starter-city';
 }
 
-function marketEventSlug(input: { eventId: string; eventKey: string; location: string; itemKey: string }) {
+function marketEventSlug(input: {
+  eventId: string;
+  eventKey: string;
+  location: string;
+  itemKey: string;
+}) {
   const base = [input.eventKey, input.location, input.itemKey]
     .join('-')
     .toLowerCase()
@@ -81,10 +91,20 @@ export async function listMarketLocations() {
     .from(marketPrices)
     .groupBy(marketPrices.location);
 
-  return rows.map((row) => row.location).filter((location): location is string => Boolean(location));
+  return rows
+    .map((row) => row.location)
+    .filter((location): location is string => Boolean(location));
 }
 
-export async function scheduleMarketEventsForLocation(input: { location?: string | null; now?: Date; seed?: string | number | null; cadenceHours?: number; limit?: number } = {}) {
+export async function scheduleMarketEventsForLocation(
+  input: {
+    location?: string | null;
+    now?: Date;
+    seed?: string | number | null;
+    cadenceHours?: number;
+    limit?: number;
+  } = {},
+) {
   const location = normalizeMarketLocation(input.location);
   const now = input.now ?? new Date();
   const market = await listMarketForLocation(location);
@@ -125,7 +145,12 @@ export async function scheduleMarketEventsForLocation(input: { location?: string
         },
       })
       .onConflictDoUpdate({
-        target: [marketEvents.eventKey, marketEvents.location, marketEvents.itemKey, marketEvents.startsAt],
+        target: [
+          marketEvents.eventKey,
+          marketEvents.location,
+          marketEvents.itemKey,
+          marketEvents.startsAt,
+        ],
         set: {
           endsAt: occurrence.endsAt,
           updatedAt: sql`now()`,
@@ -204,17 +229,30 @@ export async function listActiveMarketEventsForLocation(location: string, now = 
     }),
   );
 
-  return activeEvents.filter((event): event is Exclude<(typeof activeEvents)[number], null> => event !== null);
+  return activeEvents.filter(
+    (event): event is Exclude<(typeof activeEvents)[number], null> => event !== null,
+  );
 }
 
-export async function publishActiveMarketEventArticles(input: { location?: string | null; now?: Date; limit?: number } = {}) {
+export async function publishActiveMarketEventArticles(
+  input: { location?: string | null; now?: Date; limit?: number } = {},
+) {
   const location = input.location ? normalizeMarketLocation(input.location) : null;
   const now = input.now ?? new Date();
   const limit = Math.min(Math.max(input.limit ?? 10, 1), 25);
   const rows = await db.query.marketEvents.findMany({
     where: location
-      ? and(eq(marketEvents.location, location), isNull(marketEvents.publishedArticleId), lte(marketEvents.startsAt, now), gt(marketEvents.endsAt, now))
-      : and(isNull(marketEvents.publishedArticleId), lte(marketEvents.startsAt, now), gt(marketEvents.endsAt, now)),
+      ? and(
+          eq(marketEvents.location, location),
+          isNull(marketEvents.publishedArticleId),
+          lte(marketEvents.startsAt, now),
+          gt(marketEvents.endsAt, now),
+        )
+      : and(
+          isNull(marketEvents.publishedArticleId),
+          lte(marketEvents.startsAt, now),
+          gt(marketEvents.endsAt, now),
+        ),
     orderBy: desc(marketEvents.startsAt),
     limit,
   });
@@ -235,8 +273,13 @@ export async function publishActiveMarketEventArticles(input: { location?: strin
       continue;
     }
 
-    const item = await db.query.itemDefinitions.findFirst({ where: eq(itemDefinitions.key, row.itemKey) });
-    const articlePayload = buildMarketEventNewsArticle({ occurrence, itemName: item?.name ?? row.itemKey });
+    const item = await db.query.itemDefinitions.findFirst({
+      where: eq(itemDefinitions.key, row.itemKey),
+    });
+    const articlePayload = buildMarketEventNewsArticle({
+      occurrence,
+      itemName: item?.name ?? row.itemKey,
+    });
 
     const result = await db.transaction(async (tx) => {
       const [article] = await tx
@@ -246,7 +289,12 @@ export async function publishActiveMarketEventArticles(input: { location?: strin
           location: row.location,
           category: articlePayload.category,
           title: articlePayload.title,
-          slug: marketEventSlug({ eventId: row.id, eventKey: row.eventKey, location: row.location, itemKey: row.itemKey }),
+          slug: marketEventSlug({
+            eventId: row.id,
+            eventKey: row.eventKey,
+            location: row.location,
+            itemKey: row.itemKey,
+          }),
           excerpt: articlePayload.excerpt,
           body: articlePayload.body,
           visibility: 'public',
@@ -280,13 +328,27 @@ export async function expireMarketEvents(now = new Date()) {
     .returning();
 }
 
-export async function runMarketEventTick(input: { now?: Date; seed?: string | number | null; cadenceHours?: number; locations?: string[] } = {}) {
+export async function runMarketEventTick(
+  input: {
+    now?: Date;
+    seed?: string | number | null;
+    cadenceHours?: number;
+    locations?: string[];
+  } = {},
+) {
   const now = input.now ?? new Date();
   const locations = input.locations?.length ? input.locations : await listMarketLocations();
   const scheduled = [];
 
   for (const location of locations.length ? locations : ['starter-city']) {
-    scheduled.push(...await scheduleMarketEventsForLocation({ location, now, seed: input.seed, cadenceHours: input.cadenceHours }));
+    scheduled.push(
+      ...(await scheduleMarketEventsForLocation({
+        location,
+        now,
+        seed: input.seed,
+        cadenceHours: input.cadenceHours,
+      })),
+    );
   }
 
   const published = await publishActiveMarketEventArticles({ now });
@@ -295,7 +357,12 @@ export async function runMarketEventTick(input: { now?: Date; seed?: string | nu
   return { scheduled, published, expired };
 }
 
-export async function buyMarketItem(input: { userId: string; characterId: string; itemKey: string; quantity: number }) {
+export async function buyMarketItem(input: {
+  userId: string;
+  characterId: string;
+  itemKey: string;
+  quantity: number;
+}) {
   return db.transaction(async (tx) => {
     const quantity = Math.max(1, Math.floor(input.quantity));
     const characterRow = await tx.query.characters.findFirst({
@@ -309,7 +376,11 @@ export async function buyMarketItem(input: { userId: string; characterId: string
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for market trading.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for market trading.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, 'market_buy');
@@ -324,7 +395,11 @@ export async function buyMarketItem(input: { userId: string; characterId: string
     ]);
 
     if (!item || !priceRow) {
-      return { ok: false as const, code: 'not_found', message: 'Market item not found at this location.' };
+      return {
+        ok: false as const,
+        code: 'not_found',
+        message: 'Market item not found at this location.',
+      };
     }
 
     if (priceRow.supply < quantity) {
@@ -377,7 +452,13 @@ export async function buyMarketItem(input: { userId: string; characterId: string
       userId: input.userId,
       characterId: character.id,
       type: 'market_item_bought',
-      payload: { itemKey: item.key, itemName: item.name, quantity, priceEach: priceRow.price, totalCost },
+      payload: {
+        itemKey: item.key,
+        itemName: item.name,
+        quantity,
+        priceEach: priceRow.price,
+        totalCost,
+      },
     });
 
     const lock = await setActionCooldown({
@@ -388,11 +469,19 @@ export async function buyMarketItem(input: { userId: string; characterId: string
       metadata: { itemKey: item.key, quantity },
     });
 
-    return { ok: true as const, data: { character: updatedCharacter, inventoryItem, marketPrice: updatedPrice, lock } };
+    return {
+      ok: true as const,
+      data: { character: updatedCharacter, inventoryItem, marketPrice: updatedPrice, lock },
+    };
   });
 }
 
-export async function sellMarketItem(input: { userId: string; characterId: string; itemKey: string; quantity: number }) {
+export async function sellMarketItem(input: {
+  userId: string;
+  characterId: string;
+  itemKey: string;
+  quantity: number;
+}) {
   return db.transaction(async (tx) => {
     const quantity = Math.max(1, Math.floor(input.quantity));
     const characterRow = await tx.query.characters.findFirst({
@@ -406,7 +495,11 @@ export async function sellMarketItem(input: { userId: string; characterId: strin
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for market trading.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for market trading.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, 'market_sell');
@@ -416,7 +509,10 @@ export async function sellMarketItem(input: { userId: string; characterId: strin
     }
 
     const inventoryItem = await tx.query.inventoryItems.findFirst({
-      where: and(eq(inventoryItems.characterId, character.id), eq(inventoryItems.itemKey, input.itemKey)),
+      where: and(
+        eq(inventoryItems.characterId, character.id),
+        eq(inventoryItems.itemKey, input.itemKey),
+      ),
     });
 
     if (!inventoryItem || inventoryItem.quantity < quantity) {
@@ -429,7 +525,11 @@ export async function sellMarketItem(input: { userId: string; characterId: strin
     ]);
 
     if (!item || !priceRow) {
-      return { ok: false as const, code: 'not_found', message: 'Market item not found at this location.' };
+      return {
+        ok: false as const,
+        code: 'not_found',
+        message: 'Market item not found at this location.',
+      };
     }
 
     const sellPriceEach = Math.max(1, Math.floor(priceRow.price * 0.85));
@@ -473,7 +573,13 @@ export async function sellMarketItem(input: { userId: string; characterId: strin
       userId: input.userId,
       characterId: character.id,
       type: 'market_item_sold',
-      payload: { itemKey: item.key, itemName: item.name, quantity, priceEach: sellPriceEach, totalPayout },
+      payload: {
+        itemKey: item.key,
+        itemName: item.name,
+        quantity,
+        priceEach: sellPriceEach,
+        totalPayout,
+      },
     });
 
     const lock = await setActionCooldown({
@@ -484,6 +590,14 @@ export async function sellMarketItem(input: { userId: string; characterId: strin
       metadata: { itemKey: item.key, quantity },
     });
 
-    return { ok: true as const, data: { character: updatedCharacter, inventoryItem: updatedInventoryItem, marketPrice: updatedPrice, lock } };
+    return {
+      ok: true as const,
+      data: {
+        character: updatedCharacter,
+        inventoryItem: updatedInventoryItem,
+        marketPrice: updatedPrice,
+        lock,
+      },
+    };
   });
 }

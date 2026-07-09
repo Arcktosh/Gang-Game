@@ -39,19 +39,12 @@ const rootPackage = json('package.json');
 const dbPackage = json('packages/db/package.json');
 
 const requiredRootScripts = [
-  'db:apply:admin-roles',
-  'db:apply:job-lifecycle',
-  'db:apply:monetization',
+  'db:setup',
+  'db:apply:all',
+  'db:apply:file',
   'validate:static',
   'validate:ci',
   'validate:runtime',
-  'validate:mvp-pages',
-  'validate:mvp-gameplay',
-  'validate:admin-rbac',
-  'validate:job-lifecycle',
-  'validate:legal-recovery',
-  'validate:release-readiness',
-  'validate:mvp-acceptance',
   'db:backup',
   'db:restore',
 ];
@@ -62,14 +55,21 @@ for (const scriptName of requiredRootScripts) {
   }
 }
 
-if (!rootPackage.scripts?.['validate:static']?.includes('pnpm validate:mvp-acceptance')) {
-  errors.push('package.json validate:static must include pnpm validate:mvp-acceptance.');
+if (
+  !String(rootPackage.scripts?.['validate:static'] ?? '').includes(
+    'scripts/validate-mvp-acceptance.mjs',
+  )
+) {
+  errors.push('package.json validate:static must include scripts/validate-mvp-acceptance.mjs.');
 }
 
-for (const scriptName of ['db:apply:admin-roles', 'db:apply:job-lifecycle', 'db:apply:monetization']) {
-  if (!dbPackage.scripts?.[scriptName]) {
-    errors.push(`packages/db/package.json is missing ${scriptName}.`);
-  }
+if (!String(dbPackage.scripts?.['db:apply:all'] ?? '').includes('apply-migrations.ts')) {
+  errors.push(
+    'packages/db/package.json must keep db:apply:all wired to the tracked migration runner.',
+  );
+}
+if (!String(dbPackage.scripts?.['db:apply:file'] ?? '').includes('run-sql-file.ts')) {
+  errors.push('packages/db/package.json must keep db:apply:file wired for targeted repair.');
 }
 
 const requiredPages = [
@@ -185,12 +185,28 @@ requireIncludes('docs/mvp-release-runbook.md', [
 
 requireIncludes('docs/backup-restore.md', ['pnpm db:backup', 'pnpm db:restore --']);
 requireIncludes('docs/runtime-smoke.md', ['SMOKE_STRICT_HEALTH_OK=true', 'pnpm smoke:runtime']);
-requireIncludes('docs/migration-guide.md', ['pnpm db:apply:admin-roles', 'pnpm db:apply:job-lifecycle', 'pnpm db:apply:monetization', '0031_monetization_foundation.sql']);
-requireIncludes('README.md', ['Feature Pass 56', 'docs/mvp-acceptance.md', 'pnpm validate:mvp-acceptance', 'pnpm prove:mvp-runtime', 'docs/monetization.md']);
+requireIncludes('docs/migration-guide.md', [
+  'pnpm db:setup',
+  'pnpm db:apply:all',
+  'pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql',
+  '0031_monetization_foundation.sql',
+]);
+requireIncludes('README.md', [
+  'Feature Pass 56',
+  'docs/mvp-acceptance.md',
+  'pnpm validate:static',
+  'pnpm prove:mvp-runtime',
+  'docs/monetization.md',
+]);
 requireIncludes('docs/project-status.md', ['Feature Pass 56', 'MVP candidate']);
 requireIncludes('docs/remaining-work.md', ['Feature Pass 56', 'Runtime proof still required']);
 requireIncludes('docs/feature-checklist.md', ['Feature Pass 56', 'Static MVP acceptance gate']);
-requireIncludes('docs/validation-audit.md', ['validate:mvp-acceptance', 'validate:integration-tests', 'validate:monetization', 'MVP acceptance']);
+requireIncludes('docs/validation-audit.md', [
+  'validate:static',
+  'validate-integration-tests.mjs',
+  'validate-monetization-foundation.mjs',
+  'MVP acceptance',
+]);
 
 const result = {
   summary: {

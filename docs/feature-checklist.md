@@ -1,6 +1,6 @@
 # Feature and Function Checklist
 
-This is the cleaned living checklist after Feature Pass 73. Historical implementation details are consolidated in `docs/feature-history.md`; current project status and remaining work live in `docs/project-status.md` and `docs/remaining-work.md`.
+This is the cleaned living checklist after Feature Pass 89. Historical implementation details are consolidated in `docs/feature-history.md`; current project status and remaining work live in `docs/project-status.md` and `docs/remaining-work.md`.
 
 ## Legend
 
@@ -11,7 +11,7 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 
 ## Current MVP readiness summary
 
-- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, richer banking statements/CSV export, and deterministic market-event formula/scheduling/news helpers plus first-pass persistence/API/UI/worker wiring are in place after Feature Pass 84.
+- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, richer banking statements/CSV export, deterministic market-event formula/scheduling/news helpers plus first-pass persistence/API/UI/worker wiring, faction armory, scoped contracts, script/docs consolidation, and Redis-backed rate limiting, idempotent achievement syncing, and worker retry/dead-letter handling are in place after Feature Pass 89.
 
 - [x] Monorepo, web app, worker app, shared packages, database package.
 - [x] Auth/session foundation.
@@ -48,11 +48,12 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 - [x] CI workflow for pull requests and main/master pushes.
 - [x] MVP release runbook and backup/restore scripts.
 - [x] Static release-readiness validation for runbook, backup/restore, environment, Docker, README links, and package scripts.
-- [~] Final lint/format/typecheck/test policy. Static repo validation is runnable without installed package dependencies; `pnpm validate:ci` now chains static validation, typecheck, and tests after install, and static validation includes representative route-contract, MVP page/gameplay, admin RBAC, job lifecycle, and legal recovery drift checks.
+- [x] Final lint/format/typecheck/test policy. Root scripts are consolidated, `pnpm validate:static` runs direct validator files, and `pnpm validate:ci` chains static validation, typecheck, build, and tests after install.
 - [x] Automated static migration validation.
 - [x] Idempotent all-migration runner with `schema_migrations` tracking and checksum validation.
 - [x] Automated static documentation drift validation.
 - [x] Automated static CI workflow validation.
+- [x] Package script consolidation with targeted DB file runner (`pnpm db:apply:file -- drizzle/<file>.sql`).
 - [x] Automated static all-route observability validation.
 - [x] Automated static representative route-contract validation for auth, jobs, crimes, market, shops, contracts, and admin routes.
 - [x] Automated static MVP page coverage validation for dedicated player pages.
@@ -93,7 +94,7 @@ This is the cleaned living checklist after Feature Pass 73. Historical implement
 - [~] Action event logging.
 - [ ] Generic action definition model.
 - [ ] Consistent failure-handling model.
-- [ ] Redis-backed anti-spam/rate limiting.
+- [x] Redis-backed anti-spam/rate limiting with memory fallback and `RATE_LIMIT_REDIS_REQUIRED` fail-closed option.
 - [~] Idempotency keys for mutation routes, with deterministic fingerprint/key parser tests. Enforcement appeal/lift flows and shop listing creation now also support idempotency.
 - [~] Conditional transaction-safety helpers for core economic/resource mutations.
 - [x] Automated test baseline for shared game formulas.
@@ -380,10 +381,10 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] First-pass transaction safety for money transfers and inventory changes.
 - [x] First-pass idempotency keys for high-risk state-changing actions.
 - [~] Pagination for list endpoints.
-- [~] Rate limiting.
+- [x] Rate limiting.
 - [ ] Optimistic locking where needed.
-- [ ] Background job retry policy.
-- [ ] Dead-letter queue.
+- [x] Background job retry policy.
+- [x] Dead-letter queue.
 - [~] Structured logging.
 - [~] Error reporting.
 - [~] Automated tests for formulas, validators, request-safety helpers, hardening helpers, and runtime smoke behavior.
@@ -420,17 +421,15 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Feature Pass 37: hardened contract, finance, admin adjustment, and enforcement cash-penalty mutation paths with conditional database writes and idempotency coverage for finance/admin money routes.
 - [x] Feature Pass 38: completed the focused hardening cycle with database invariant checks, operational indexes, and worker maintenance cleanup.
 
-
 ## Feature Pass 57 - Runtime proof orchestration
 
 - [x] Add `scripts/prove-mvp-runtime.mjs` to run install, Docker startup, migrations, static validation, typecheck, tests, strict smoke, backup, and optional restore proof.
 - [x] Add `pnpm prove:mvp-runtime`.
-- [x] Add `pnpm validate:runtime-proof`.
+- [x] Add runtime-proof validation; Feature Pass 88 consolidated `pnpm validate:runtime-proof` into `pnpm validate:static`.
 - [x] Include runtime-proof validation in `pnpm validate:static`.
 - [x] Document dry-run usage: `MVP_PROOF_DRY_RUN=true pnpm prove:mvp-runtime`.
 - [x] Document disposable restore proof: `MVP_RESTORE_DATABASE_URL=... pnpm prove:mvp-runtime`.
 - [ ] Execute runtime proof in a real installed environment.
-
 
 ### Integration testing
 
@@ -438,7 +437,6 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Add disposable DB safety checks and test helpers.
 - [x] Add integration proof command.
 - [ ] Run integration proof in a real environment.
-
 
 ### Monetization foundation
 
@@ -452,7 +450,7 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 
 - [x] Shared client action form component added.
 - [x] Jobs, crimes, legal, market, shops, messages, and factions expose browser action forms.
-- [x] `pnpm validate:playable-actions` added and included in `pnpm validate:static`.
+- [x] Playable-actions validation added and included in `pnpm validate:static`.
 - [ ] Runtime browser proof still required through `pnpm prove:mvp-runtime`.
 
 Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 builds on it with playable MVP action forms.
@@ -462,10 +460,9 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Add public `/privacy`, `/terms`, `/rules`, and `/onboarding` pages.
 - [x] Add `docs/privacy-policy.md`, `docs/terms-of-service.md`, `docs/community-rules.md`, and `docs/beta-test-plan.md`.
 - [x] Link public policy/onboarding pages from the home page.
-- [x] Add `scripts/validate-public-launch.mjs` and `pnpm validate:public-launch`.
-- [x] Wire `pnpm validate:public-launch` into `pnpm validate:static`.
+- [x] Add `scripts/validate-public-launch.mjs`; Feature Pass 88 consolidated `pnpm validate:public-launch` into `pnpm validate:static`.
+- [x] Wire public-launch validation into `pnpm validate:static`.
 - [ ] Replace draft legal documents with jurisdiction-reviewed final legal documents before commercial launch.
-
 
 ## Feature Pass 60 quality baseline
 
@@ -473,7 +470,7 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Root metadata, viewport, Open Graph, Twitter card, icons, manifest, sitemap, and robots wiring.
 - [x] Skip link, focus-visible styles, reduced-motion handling, responsive nav/grid styles, and accessible touch targets.
 - [x] Shared action-form accessibility improvements with labels, status announcements, and helper/status descriptions.
-- [x] Static site-quality validator via `pnpm validate:site-quality`.
+- [x] Static site-quality validator included in `pnpm validate:static`.
 - [ ] Manual Lighthouse and assistive-technology verification in a real browser.
 
 ## Feature Pass 62 - In-progress page closure
@@ -507,13 +504,10 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Shorten `README.md` and update stale pass/status references.
 - [ ] Execute full dependency-backed typecheck/build and runtime proof in an installed PostgreSQL/Redis environment.
 
-
-
 ## Feature Pass 74 documentation consolidation
 
 - Historical implementation notes now live in `docs/feature-history.md` instead of many individual `feature-pass-XX.md` files.
 - Use current-state/planning docs for active work and search `docs/feature-history.md` only when historical context is needed.
-
 
 ## Feature Pass 75 banking statements
 
@@ -521,14 +515,12 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Bank statement summary totals for inflow, outflow, and net movement.
 - [x] CSV export for recent bank statements.
 
-
 ## Feature Pass 76 - Market event formula foundation
 
 - [x] Add market pressure snapshot helper for normalized supply/demand/volatility pricing.
 - [x] Add deterministic market event catalog and impact calculator.
 - [x] Cover market event helper behavior with package-game formula tests.
 - [x] First-pass market-event persistence, API/UI surfacing, and worker newspaper publishing wiring.
-
 
 ## Feature Pass 77 market event scheduling/news helpers
 
@@ -538,7 +530,6 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Persist active market events in the database.
 - [x] Surface active market events through API/UI and worker-published newspaper articles.
 - [ ] Validate market-event migration, worker publishing, and API/UI behavior in installed runtime proof.
-
 
 ## Feature Pass 78 market event persistence/API/UI worker wiring
 
@@ -555,8 +546,6 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Surface trade exposure summary data through trade-center queries and the `/trades` page.
 - [ ] Installed-environment proof of migration, worker expiry, API routes, UI rendering, and package builds.
 
-
-
 ## Feature Pass 81 timed progression and course prerequisites
 
 - [x] Add progression timer migration/schema fields for due training and course completions.
@@ -566,9 +555,17 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Surface active training/course queue and locked-course reasons on the dashboard.
 - [ ] Installed-environment proof of migration, worker tick, API routes, and dashboard rendering.
 
-
 ## Feature Pass 84 faction operations and migration runner
 
 - [x] Added `pnpm db:apply:all` with migration tracking and checksum validation.
 - [x] Runtime proof now uses the all-migration runner so newly added SQL files are picked up automatically.
 - [x] Faction bank, member rank, permission, and territory action controls are browser-accessible from `/factions`.
+
+## Feature Pass 89 - Achievement idempotency and worker dead letters
+
+- [x] Replace achievement sync read-then-insert with atomic upsert to prevent duplicate `character_achievements` insert failures during concurrent dashboard/progression reads.
+- [x] Add `worker_dead_letters` migration/schema and DB helpers for exhausted worker tick failures.
+- [x] Add shared worker tick scheduler with retry/backoff, overlap skipping, and dead-letter writes.
+- [x] Convert existing worker ticks to the shared scheduler.
+- [x] Add worker retry environment validation and `.env.example` defaults.
+- [ ] Installed-environment proof of worker retry/dead-letter writes and dashboard achievement rendering.

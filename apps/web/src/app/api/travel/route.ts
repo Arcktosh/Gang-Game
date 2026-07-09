@@ -1,6 +1,26 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { assertActionUnlocked, characterEquipment, characterVehicleUpgrades, db, characters, inventoryItems, itemDefinitions, playerEvents, refreshCharacterResources, setActionCooldown, travelCargo, travelPlans, travelRoutes } from '@drugdeal/db';
-import { calculateArrivalAt, calculateVehicleRepairWear, calculateVehicleStats, calculateVehicleTravelPlan, normalizeEquipmentModifiers } from '@drugdeal/game';
+import {
+  assertActionUnlocked,
+  characterEquipment,
+  characterVehicleUpgrades,
+  db,
+  characters,
+  inventoryItems,
+  itemDefinitions,
+  playerEvents,
+  refreshCharacterResources,
+  setActionCooldown,
+  travelCargo,
+  travelPlans,
+  travelRoutes,
+} from '@drugdeal/db';
+import {
+  calculateArrivalAt,
+  calculateVehicleRepairWear,
+  calculateVehicleStats,
+  calculateVehicleTravelPlan,
+  normalizeEquipmentModifiers,
+} from '@drugdeal/game';
 import { startTravelSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
@@ -20,7 +40,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:travel', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:travel', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -47,7 +71,9 @@ export async function POST(request: NextRequest) {
         return { error: jsonError('forbidden', 'Character is not available to travel.', 403) };
       }
 
-      const route = await tx.query.travelRoutes.findFirst({ where: eq(travelRoutes.id, body.data.routeId) });
+      const route = await tx.query.travelRoutes.findFirst({
+        where: eq(travelRoutes.id, body.data.routeId),
+      });
 
       if (!route) {
         return { error: jsonError('not_found', 'Travel route not found.', 404) };
@@ -60,20 +86,35 @@ export async function POST(request: NextRequest) {
       }
 
       if (route.fromLocation !== refreshedCharacter.location) {
-        return { error: jsonError('forbidden', 'Route does not start from the character current location.', 403) };
+        return {
+          error: jsonError(
+            'forbidden',
+            'Route does not start from the character current location.',
+            403,
+          ),
+        };
       }
 
       const vehicle = await tx.query.characterEquipment.findFirst({
-        where: and(eq(characterEquipment.characterId, refreshedCharacter.id), eq(characterEquipment.slot, 'vehicle'), eq(characterEquipment.isEquipped, true)),
+        where: and(
+          eq(characterEquipment.characterId, refreshedCharacter.id),
+          eq(characterEquipment.slot, 'vehicle'),
+          eq(characterEquipment.isEquipped, true),
+        ),
         with: { item: true },
       });
       const installedUpgrades = vehicle
-        ? await tx.query.characterVehicleUpgrades.findMany({ where: eq(characterVehicleUpgrades.equipmentId, vehicle.id), with: { upgrade: true } })
+        ? await tx.query.characterVehicleUpgrades.findMany({
+            where: eq(characterVehicleUpgrades.equipmentId, vehicle.id),
+            with: { upgrade: true },
+          })
         : [];
       const vehicleStats = vehicle
         ? calculateVehicleStats({
             vehicleModifiers: normalizeEquipmentModifiers(vehicle.item?.statModifiers),
-            upgradeModifiers: installedUpgrades.map((upgrade) => normalizeEquipmentModifiers(upgrade.upgrade?.statModifiers)),
+            upgradeModifiers: installedUpgrades.map((upgrade) =>
+              normalizeEquipmentModifiers(upgrade.upgrade?.statModifiers),
+            ),
             durability: vehicle.durability,
             maxDurability: vehicle.item?.maxDurability ?? 100,
           })
@@ -83,11 +124,18 @@ export async function POST(request: NextRequest) {
       let cargoRiskAdded = 0;
       const cargoQuantity = body.data.cargoQuantity ?? 0;
       if (body.data.cargoItemKey && cargoQuantity > 0) {
-        const cargoItem = await tx.query.inventoryItems.findFirst({ where: and(eq(inventoryItems.characterId, refreshedCharacter.id), eq(inventoryItems.itemKey, body.data.cargoItemKey)) });
+        const cargoItem = await tx.query.inventoryItems.findFirst({
+          where: and(
+            eq(inventoryItems.characterId, refreshedCharacter.id),
+            eq(inventoryItems.itemKey, body.data.cargoItemKey),
+          ),
+        });
         if (!cargoItem || cargoItem.quantity < cargoQuantity) {
           return { error: jsonError('forbidden', 'Not enough inventory to load this cargo.', 403) };
         }
-        const definition = await tx.query.itemDefinitions.findFirst({ where: eq(itemDefinitions.key, body.data.cargoItemKey) });
+        const definition = await tx.query.itemDefinitions.findFirst({
+          where: eq(itemDefinitions.key, body.data.cargoItemKey),
+        });
         cargoUnitValue = definition?.basePrice ?? 0;
         cargoRiskAdded = definition?.baseRisk ?? 0;
       }
@@ -121,18 +169,48 @@ export async function POST(request: NextRequest) {
         .returning();
 
       if (body.data.cargoItemKey && cargoQuantity > 0) {
-        await tx.update(inventoryItems).set({ quantity: sql`${inventoryItems.quantity} - ${cargoQuantity}`, updatedAt: sql`now()` }).where(and(eq(inventoryItems.characterId, refreshedCharacter.id), eq(inventoryItems.itemKey, body.data.cargoItemKey)));
-        await tx.insert(travelCargo).values({ travelPlanId: travelPlan.id, characterId: refreshedCharacter.id, itemKey: body.data.cargoItemKey, quantity: cargoQuantity, riskAdded: cargoRiskAdded, cargoValue: plan.cargoValue });
+        await tx
+          .update(inventoryItems)
+          .set({
+            quantity: sql`${inventoryItems.quantity} - ${cargoQuantity}`,
+            updatedAt: sql`now()`,
+          })
+          .where(
+            and(
+              eq(inventoryItems.characterId, refreshedCharacter.id),
+              eq(inventoryItems.itemKey, body.data.cargoItemKey),
+            ),
+          );
+        await tx
+          .insert(travelCargo)
+          .values({
+            travelPlanId: travelPlan.id,
+            characterId: refreshedCharacter.id,
+            itemKey: body.data.cargoItemKey,
+            quantity: cargoQuantity,
+            riskAdded: cargoRiskAdded,
+            cargoValue: plan.cargoValue,
+          });
       }
 
       if (vehicle) {
         const wear = calculateVehicleRepairWear({ riskScore: plan.riskScore, cargoQuantity });
-        await tx.update(characterEquipment).set({ durability: sql`greatest(0, ${characterEquipment.durability} - ${wear})`, updatedAt: sql`now()` }).where(eq(characterEquipment.id, vehicle.id));
+        await tx
+          .update(characterEquipment)
+          .set({
+            durability: sql`greatest(0, ${characterEquipment.durability} - ${wear})`,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(characterEquipment.id, vehicle.id));
       }
 
       const [updatedCharacter] = await tx
         .update(characters)
-        .set({ cash: refreshedCharacter.cash - plan.effectiveCost, status: 'traveling', updatedAt: sql`now()` })
+        .set({
+          cash: refreshedCharacter.cash - plan.effectiveCost,
+          status: 'traveling',
+          updatedAt: sql`now()`,
+        })
         .where(eq(characters.id, refreshedCharacter.id))
         .returning();
 
@@ -140,7 +218,15 @@ export async function POST(request: NextRequest) {
         userId: auth.userId,
         characterId: refreshedCharacter.id,
         type: 'travel_started',
-        payload: { fromLocation: route.fromLocation, toLocation: route.toLocation, cost: plan.effectiveCost, riskScore: plan.riskScore, cargoValue: plan.cargoValue, vehicle: vehicle?.item?.name ?? null, arrivesAt },
+        payload: {
+          fromLocation: route.fromLocation,
+          toLocation: route.toLocation,
+          cost: plan.effectiveCost,
+          riskScore: plan.riskScore,
+          cargoValue: plan.cargoValue,
+          vehicle: vehicle?.item?.name ?? null,
+          arrivesAt,
+        },
       });
 
       const lock = await setActionCooldown({

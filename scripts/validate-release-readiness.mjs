@@ -16,7 +16,6 @@ const requiredPackageScripts = [
   'db:restore',
   'smoke:runtime',
   'validate:runtime',
-  'validate:release-readiness',
   'validate:ci',
 ];
 const requiredReadmeLinks = [
@@ -44,6 +43,10 @@ function exists(relativePath) {
 }
 
 function hasExecutableBit(relativePath) {
+  if (process.platform === 'win32') {
+    return true;
+  }
+
   const mode = fs.statSync(path.join(repoRoot, relativePath)).mode;
   return (mode & 0o111) !== 0;
 }
@@ -58,8 +61,12 @@ for (const scriptName of requiredPackageScripts) {
   }
 }
 
-if (!packageJson.scripts?.['validate:static']?.includes('pnpm validate:release-readiness')) {
-  errors.push('package.json validate:static must include pnpm validate:release-readiness.');
+if (
+  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
+    'scripts/validate-release-readiness.mjs',
+  )
+) {
+  errors.push('package.json validate:static must include scripts/validate-release-readiness.mjs.');
 }
 
 const readme = read('README.md');

@@ -1,7 +1,18 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { calculateGamblingCooldownSeconds, calculateTableLimit, resolveGamblingWager } from '@drugdeal/game';
+import {
+  calculateGamblingCooldownSeconds,
+  calculateTableLimit,
+  resolveGamblingWager,
+} from '@drugdeal/game';
 import { db } from '../client';
-import { characters, financialTransactions, gamblingGames, gamblingWagers, newspaperArticles, playerEvents } from '../schema';
+import {
+  characters,
+  financialTransactions,
+  gamblingGames,
+  gamblingWagers,
+  newspaperArticles,
+  playerEvents,
+} from '../schema';
 import { assertActionUnlocked, refreshCharacterResources, setActionCooldown } from './action-state';
 import { adjustCharacterCash } from './transaction-safety';
 
@@ -10,13 +21,19 @@ export async function listGamblingGames() {
 }
 
 export async function listGamblingWagers(characterId: string, userId: string, limit = 20) {
-  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, characterId), eq(characters.userId, userId)) });
+  const character = await db.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+  });
 
   if (!character) {
     return null;
   }
 
-  return db.query.gamblingWagers.findMany({ where: eq(gamblingWagers.characterId, characterId), orderBy: desc(gamblingWagers.createdAt), limit });
+  return db.query.gamblingWagers.findMany({
+    where: eq(gamblingWagers.characterId, characterId),
+    orderBy: desc(gamblingWagers.createdAt),
+    limit,
+  });
 }
 
 function getGamblingWagerMetadata(metadata: unknown): { label?: string } | null {
@@ -29,10 +46,17 @@ function getGamblingWagerMetadata(metadata: unknown): { label?: string } | null 
   return typeof label === 'string' ? { label } : null;
 }
 
-export async function placeGamblingWager(input: { userId: string; characterId: string; gameKey: string; wager: number }) {
+export async function placeGamblingWager(input: {
+  userId: string;
+  characterId: string;
+  gameKey: string;
+  wager: number;
+}) {
   return db.transaction(async (tx) => {
     const wagerAmount = Math.max(1, Math.floor(input.wager));
-    const characterRow = await tx.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
+    const characterRow = await tx.query.characters.findFirst({
+      where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
+    });
 
     if (!characterRow) {
       return { ok: false as const, code: 'not_found', message: 'Character not found.' };
@@ -41,7 +65,11 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return { ok: false as const, code: 'forbidden', message: 'Character is not available for gambling.' };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: 'Character is not available for gambling.',
+      };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, 'gambling');
@@ -50,17 +78,27 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
       return cooldown;
     }
 
-    const game = await tx.query.gamblingGames.findFirst({ where: eq(gamblingGames.key, input.gameKey) });
+    const game = await tx.query.gamblingGames.findFirst({
+      where: eq(gamblingGames.key, input.gameKey),
+    });
 
     if (!game || !game.isActive) {
       return { ok: false as const, code: 'not_found', message: 'Gambling game not found.' };
     }
 
-    const tableLimit = calculateTableLimit({ level: character.level, gamblingReputation: character.gamblingReputation ?? 0, cash: character.cash });
+    const tableLimit = calculateTableLimit({
+      level: character.level,
+      gamblingReputation: character.gamblingReputation ?? 0,
+      cash: character.cash,
+    });
     const maxWager = Math.min(game.maxWager, tableLimit);
 
     if (wagerAmount < game.minWager || wagerAmount > maxWager) {
-      return { ok: false as const, code: 'forbidden', message: `Wager must be between $${game.minWager} and $${maxWager}.` };
+      return {
+        ok: false as const,
+        code: 'forbidden',
+        message: `Wager must be between $${game.minWager} and $${maxWager}.`,
+      };
     }
 
     if (character.cash < wagerAmount) {
@@ -74,7 +112,12 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
       variance: game.variance,
     });
 
-    const reputationDelta = outcome.profit > 0 ? Math.max(1, Math.floor(outcome.profit / 250)) : outcome.profit < 0 ? -1 : 0;
+    const reputationDelta =
+      outcome.profit > 0
+        ? Math.max(1, Math.floor(outcome.profit / 250))
+        : outcome.profit < 0
+          ? -1
+          : 0;
     const nextReputation = Math.max(0, (character.gamblingReputation ?? 0) + reputationDelta);
 
     const cashAdjustment = await adjustCharacterCash(tx, character.id, outcome.profit);
@@ -108,7 +151,12 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
       type: 'cash',
       amount: String(outcome.profit),
       description: `${outcome.outcome === 'win' ? 'Won' : outcome.outcome === 'push' ? 'Pushed' : 'Lost'} ${game.name}.`,
-      metadata: { gameKey: game.key, wager: wagerAmount, payout: outcome.payout, roll: outcome.roll },
+      metadata: {
+        gameKey: game.key,
+        wager: wagerAmount,
+        payout: outcome.payout,
+        roll: outcome.roll,
+      },
     });
 
     await tx.insert(playerEvents).values({
@@ -116,10 +164,16 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
       characterId: character.id,
       visibility: outcome.profit >= 1000 ? 'public' : 'private',
       type: 'gambling_wager_resolved',
-      payload: { gameKey: game.key, gameName: game.name, wager: wagerAmount, outcome: outcome.outcome, payout: outcome.payout, profit: outcome.profit, label: outcome.label },
+      payload: {
+        gameKey: game.key,
+        gameName: game.name,
+        wager: wagerAmount,
+        outcome: outcome.outcome,
+        payout: outcome.payout,
+        profit: outcome.profit,
+        label: outcome.label,
+      },
     });
-
-
 
     if (outcome.profit >= 1000) {
       await tx.insert(newspaperArticles).values({
@@ -147,7 +201,9 @@ export async function placeGamblingWager(input: { userId: string; characterId: s
 }
 
 export async function getGamblingSummary(characterId: string, userId: string) {
-  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, characterId), eq(characters.userId, userId)) });
+  const character = await db.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+  });
 
   if (!character) {
     return null;
@@ -156,14 +212,22 @@ export async function getGamblingSummary(characterId: string, userId: string) {
   const [recent, totals] = await Promise.all([
     listGamblingWagers(characterId, userId, 10),
     db
-      .select({ wagered: sql<number>`coalesce(sum(${gamblingWagers.wager}), 0)`, profit: sql<number>`coalesce(sum(${gamblingWagers.profit}), 0)`, count: sql<number>`count(*)` })
+      .select({
+        wagered: sql<number>`coalesce(sum(${gamblingWagers.wager}), 0)`,
+        profit: sql<number>`coalesce(sum(${gamblingWagers.profit}), 0)`,
+        count: sql<number>`count(*)`,
+      })
       .from(gamblingWagers)
       .where(eq(gamblingWagers.characterId, characterId)),
   ]);
 
   return {
     reputation: character.gamblingReputation ?? 0,
-    tableLimit: calculateTableLimit({ level: character.level, gamblingReputation: character.gamblingReputation ?? 0, cash: character.cash }),
+    tableLimit: calculateTableLimit({
+      level: character.level,
+      gamblingReputation: character.gamblingReputation ?? 0,
+      cash: character.cash,
+    }),
     totals: totals[0] ?? { wagered: 0, profit: 0, count: 0 },
     recent: (recent ?? []).map((wager) => ({
       ...wager,

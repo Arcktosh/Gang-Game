@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "ES2022"
-    ],
+    "lib": ["dom", "dom.iterable", "ES2022"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -16,20 +12,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "types":["node"],
+    "types": ["node"],
     "paths": {
-      "@drugdeal/db": [
-        "./packages/db/src"
-      ],
-      "@drugdeal/game": [
-        "./packages/game/src"
-      ],
-      "@drugdeal/validators": [
-        "./packages/validators/src"
-      ],
-      "@drugdeal/ui": [
-        "./packages/ui/src"
-      ]
+      "@drugdeal/db": ["./packages/db/src"],
+      "@drugdeal/game": ["./packages/game/src"],
+      "@drugdeal/validators": ["./packages/validators/src"],
+      "@drugdeal/ui": ["./packages/ui/src"]
     }
   }
 }

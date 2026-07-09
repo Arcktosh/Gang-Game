@@ -58,9 +58,18 @@ export async function resetPasswordWithToken(input: { tokenHash: string; passwor
       .update(users)
       .set({ passwordHash: input.passwordHash, updatedAt: sql`now()` })
       .where(eq(users.id, token.userId))
-      .returning({ id: users.id, email: users.email, displayName: users.displayName, isAdmin: users.isAdmin, adminRole: users.adminRole });
+      .returning({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        isAdmin: users.isAdmin,
+        adminRole: users.adminRole,
+      });
 
-    await tx.update(passwordResetTokens).set({ usedAt: sql`now()` }).where(eq(passwordResetTokens.id, token.id));
+    await tx
+      .update(passwordResetTokens)
+      .set({ usedAt: sql`now()` })
+      .where(eq(passwordResetTokens.id, token.id));
     await tx.delete(userSessions).where(eq(userSessions.userId, token.userId));
 
     return user ?? null;
@@ -85,15 +94,32 @@ export async function verifyEmailWithToken(tokenHash: string) {
       .update(users)
       .set({ emailVerifiedAt: sql`now()`, updatedAt: sql`now()` })
       .where(eq(users.id, token.userId))
-      .returning({ id: users.id, email: users.email, displayName: users.displayName, isAdmin: users.isAdmin, adminRole: users.adminRole });
+      .returning({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        isAdmin: users.isAdmin,
+        adminRole: users.adminRole,
+      });
 
-    await tx.update(emailVerificationTokens).set({ usedAt: sql`now()` }).where(eq(emailVerificationTokens.id, token.id));
+    await tx
+      .update(emailVerificationTokens)
+      .set({ usedAt: sql`now()` })
+      .where(eq(emailVerificationTokens.id, token.id));
 
     return user ?? null;
   });
 }
 
 export async function deleteExpiredAccountRecoveryTokens() {
-  await db.delete(passwordResetTokens).where(sql`${passwordResetTokens.expiresAt} <= now() OR ${passwordResetTokens.usedAt} IS NOT NULL`);
-  await db.delete(emailVerificationTokens).where(sql`${emailVerificationTokens.expiresAt} <= now() OR ${emailVerificationTokens.usedAt} IS NOT NULL`);
+  await db
+    .delete(passwordResetTokens)
+    .where(
+      sql`${passwordResetTokens.expiresAt} <= now() OR ${passwordResetTokens.usedAt} IS NOT NULL`,
+    );
+  await db
+    .delete(emailVerificationTokens)
+    .where(
+      sql`${emailVerificationTokens.expiresAt} <= now() OR ${emailVerificationTokens.usedAt} IS NOT NULL`,
+    );
 }

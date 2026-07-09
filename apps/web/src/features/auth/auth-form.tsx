@@ -70,7 +70,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       </button>
       {mode === 'login' ? (
         <p className="auth-card__footer">
-          <Link href="/forgot-password">Forgot password?</Link> · <Link href="/request-verification">Resend verification</Link>
+          <Link href="/forgot-password">Forgot password?</Link> ·{' '}
+          <Link href="/request-verification">Resend verification</Link>
         </p>
       ) : (
         <p className="auth-card__footer">

@@ -12,7 +12,10 @@ import {
   StatList,
 } from '@/features/game/game-page';
 
-type TradeCenterData = Extract<Awaited<ReturnType<typeof listPlayerTradeCenter>>, { ok: true }>['data'];
+type TradeCenterData = Extract<
+  Awaited<ReturnType<typeof listPlayerTradeCenter>>,
+  { ok: true }
+>['data'];
 type TradeOffer = TradeCenterData['sentOffers'][number];
 
 function TradeOfferCard({
@@ -26,19 +29,28 @@ function TradeOfferCard({
   direction: 'sent' | 'received';
   acceptCooldown?: ReturnType<typeof getActionCooldown>;
 }) {
-  const actorLabel = direction === 'sent' ? offer.buyer?.name ?? 'Unknown buyer' : offer.seller?.name ?? 'Unknown seller';
+  const actorLabel =
+    direction === 'sent'
+      ? (offer.buyer?.name ?? 'Unknown buyer')
+      : (offer.seller?.name ?? 'Unknown seller');
   const isOpen = offer.status === 'open' && !offer.isExpired;
 
   return (
     <article style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
-      <header style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
+      <header
+        style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}
+      >
         <div>
           <strong>{offer.item?.name ?? offer.itemKey}</strong>
           <p style={{ color: '#a1a1aa', margin: '4px 0 0' }}>
-            {direction === 'sent' ? 'To' : 'From'} {actorLabel} · {offer.quantity} at {money(offer.priceEach)} each
+            {direction === 'sent' ? 'To' : 'From'} {actorLabel} · {offer.quantity} at{' '}
+            {money(offer.priceEach)} each
           </p>
         </div>
-        <span>{offer.status}{offer.isExpired ? ' · expired window' : ''}</span>
+        <span>
+          {offer.status}
+          {offer.isExpired ? ' · expired window' : ''}
+        </span>
       </header>
       <StatList
         items={[
@@ -99,7 +111,9 @@ export default async function TradesPage() {
   const { sentOffers, receivedOffers, inventory, candidates, summary } = tradeCenter.data;
   const acceptCooldown = getActionCooldown(actionLocks, 'trade_accept');
   const openSent = sentOffers.filter((offer) => offer.status === 'open' && !offer.isExpired);
-  const openReceived = receivedOffers.filter((offer) => offer.status === 'open' && !offer.isExpired);
+  const openReceived = receivedOffers.filter(
+    (offer) => offer.status === 'open' && !offer.isExpired,
+  );
   const history = [...sentOffers, ...receivedOffers]
     .filter((offer) => offer.status !== 'open' || offer.isExpired)
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
@@ -152,9 +166,30 @@ export default async function TradesPage() {
                     value: item.itemKey,
                   })),
                 },
-                { name: 'quantity', label: 'Quantity', type: 'number', defaultValue: 1, min: 1, max: 1000 },
-                { name: 'priceEach', label: 'Price each', type: 'number', defaultValue: 100, min: 1, max: 1000000 },
-                { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 24, min: 1, max: 168 },
+                {
+                  name: 'quantity',
+                  label: 'Quantity',
+                  type: 'number',
+                  defaultValue: 1,
+                  min: 1,
+                  max: 1000,
+                },
+                {
+                  name: 'priceEach',
+                  label: 'Price each',
+                  type: 'number',
+                  defaultValue: 100,
+                  min: 1,
+                  max: 1000000,
+                },
+                {
+                  name: 'expiresInHours',
+                  label: 'Expires in hours',
+                  type: 'number',
+                  defaultValue: 24,
+                  min: 1,
+                  max: 168,
+                },
               ]}
               helper="Inventory is reserved immediately. If the offer is cancelled or expires, unsold items return to your inventory."
               successMessage="Trade offer created."
@@ -173,7 +208,13 @@ export default async function TradesPage() {
           {openReceived.length > 0 ? (
             <div style={{ display: 'grid', gap: 12 }}>
               {openReceived.map((offer) => (
-                <TradeOfferCard key={offer.id} offer={offer} characterId={character.id} direction="received" acceptCooldown={acceptCooldown} />
+                <TradeOfferCard
+                  key={offer.id}
+                  offer={offer}
+                  characterId={character.id}
+                  direction="received"
+                  acceptCooldown={acceptCooldown}
+                />
               ))}
             </div>
           ) : (
@@ -188,7 +229,12 @@ export default async function TradesPage() {
           {openSent.length > 0 ? (
             <div style={{ display: 'grid', gap: 12 }}>
               {openSent.map((offer) => (
-                <TradeOfferCard key={offer.id} offer={offer} characterId={character.id} direction="sent" />
+                <TradeOfferCard
+                  key={offer.id}
+                  offer={offer}
+                  characterId={character.id}
+                  direction="sent"
+                />
               ))}
             </div>
           ) : (

@@ -15,8 +15,10 @@ const PUBLIC_UNSAFE_ROUTES = new Set([
   'api/auth/email-verification/confirm/route.ts',
 ]);
 const STREAM_ROUTES = /\/stream\/route\.ts$/;
-const HIGH_RISK_MUTATION_ROUTES = /(market|finance|gambling|shops\/purchase|contracts|admin\/.*balance|admin\/.*adjust|enforcement)/;
-const LIST_STYLE_GET_ROUTES = /(events|notifications|newspaper|shops|audit|search|messages|contracts|finance|bounties|faction-wars|equipment|vehicles|crafting|contacts)/;
+const HIGH_RISK_MUTATION_ROUTES =
+  /(market|finance|gambling|shops\/purchase|contracts|admin\/.*balance|admin\/.*adjust|enforcement)/;
+const LIST_STYLE_GET_ROUTES =
+  /(events|notifications|newspaper|shops|audit|search|messages|contracts|finance|bounties|faction-wars|equipment|vehicles|crafting|contacts)/;
 
 function walkFiles(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -51,11 +53,14 @@ function auditRoute(path) {
   const unsafeMethods = methods.filter((method) => !SAFE_METHODS.has(method));
   const isPublicUnsafeRoute = PUBLIC_UNSAFE_ROUTES.has(route);
   const isStreamRoute = STREAM_ROUTES.test(route);
-  const hasAuthGuard = /requireRequestUserId|getSessionFromRequest|requireAdmin|isAdmin/.test(source) || isPublicUnsafeRoute;
+  const hasAuthGuard =
+    /requireRequestUserId|getSessionFromRequest|requireAdmin|isAdmin/.test(source) ||
+    isPublicUnsafeRoute;
   const hasAdminGuard = /isAdmin|Admin access required|requireAdmin/.test(source);
   const hasRateLimit = /assertRateLimit|checkRateLimit|rateLimitKey/.test(source);
   const hasIdempotency = /withIdempotency|Idempotency-Key/.test(source);
-  const hasPagination = /parsePagination|paginationMeta|limit\s*=|offset\s*=/.test(source) || isStreamRoute;
+  const hasPagination =
+    /parsePagination|paginationMeta|limit\s*=|offset\s*=/.test(source) || isStreamRoute;
   const hasObservability = /withApiObservability|requestMetadata|x-request-id/.test(source);
   const notes = [];
 
@@ -64,7 +69,10 @@ function auditRoute(path) {
   }
 
   if (unsafeMethods.length > 0 && !hasRateLimit) {
-    notes.push({ severity: 'error', message: 'unsafe route without route-level rate-limit helper' });
+    notes.push({
+      severity: 'error',
+      message: 'unsafe route without route-level rate-limit helper',
+    });
   }
 
   if (!hasObservability) {
@@ -76,7 +84,10 @@ function auditRoute(path) {
   }
 
   if (methods.includes('GET') && LIST_STYLE_GET_ROUTES.test(route) && !hasPagination) {
-    notes.push({ severity: 'warning', message: 'list-style GET route without obvious pagination helper' });
+    notes.push({
+      severity: 'warning',
+      message: 'list-style GET route without obvious pagination helper',
+    });
   }
 
   return {
@@ -94,11 +105,17 @@ function auditRoute(path) {
 }
 
 function main() {
-  const routes = walkFiles(API_ROOT).map(auditRoute).sort((a, b) => a.route.localeCompare(b.route));
+  const routes = walkFiles(API_ROOT)
+    .map(auditRoute)
+    .sort((a, b) => a.route.localeCompare(b.route));
   const unsafeRoutes = routes.filter((route) => hasUnsafeMethods(route.methods));
   const notedRoutes = routes.filter((route) => route.notes.length > 0);
-  const errorRoutes = notedRoutes.filter((route) => route.notes.some((note) => note.severity === 'error'));
-  const warningRoutes = notedRoutes.filter((route) => route.notes.some((note) => note.severity === 'warning'));
+  const errorRoutes = notedRoutes.filter((route) =>
+    route.notes.some((note) => note.severity === 'error'),
+  );
+  const warningRoutes = notedRoutes.filter((route) =>
+    route.notes.some((note) => note.severity === 'warning'),
+  );
   const summary = {
     auditedAt: new Date().toISOString(),
     totalRoutes: routes.length,

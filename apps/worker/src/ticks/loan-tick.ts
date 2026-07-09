@@ -1,12 +1,12 @@
 import { processLoanDefaults } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const LOAN_TICK_MS = 120_000;
 
 export function startLoanTick() {
-  console.log(`loan tick scheduled every ${LOAN_TICK_MS}ms`);
-  setInterval(() => {
-    processLoanDefaults().catch((error) => {
-      console.error('loan tick failed', error);
-    });
-  }, LOAN_TICK_MS);
+  return scheduleWorkerTick({
+    name: 'loans',
+    intervalMs: LOAN_TICK_MS,
+    run: processLoanDefaults,
+  });
 }

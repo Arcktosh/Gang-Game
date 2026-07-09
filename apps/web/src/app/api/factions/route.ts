@@ -19,7 +19,11 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions', auth.userId), windowSeconds: 60, maxRequests: 30 });
+    const limit = await assertRateLimit({
+      key: rateLimitKey(request, 'api:factions', auth.userId),
+      windowSeconds: 60,
+      maxRequests: 30,
+    });
 
     if (!limit.ok) {
       return limit.response;
@@ -41,7 +45,10 @@ export async function POST(request: NextRequest) {
       }
 
       const existingMembership = await tx.query.factionMembers.findFirst({
-        where: and(eq(factionMembers.characterId, character.id), eq(factionMembers.status, 'active')),
+        where: and(
+          eq(factionMembers.characterId, character.id),
+          eq(factionMembers.status, 'active'),
+        ),
       });
 
       if (existingMembership) {

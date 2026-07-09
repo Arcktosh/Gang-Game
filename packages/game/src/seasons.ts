@@ -20,7 +20,17 @@ export function calculateSeasonPoints(input: {
   const socialPoints = Math.floor((input.factionPower ?? 0) / 5);
   const gamblingPoints = Math.floor((input.gamblingReputation ?? 0) / 2);
 
-  return Math.max(0, levelPoints + experiencePoints + wealthPoints + profilePoints + achievementPoints + objectivePoints + socialPoints + gamblingPoints);
+  return Math.max(
+    0,
+    levelPoints +
+      experiencePoints +
+      wealthPoints +
+      profilePoints +
+      achievementPoints +
+      objectivePoints +
+      socialPoints +
+      gamblingPoints,
+  );
 }
 
 export function getSeasonRankBand(points: number): SeasonRankBand {
@@ -31,7 +41,13 @@ export function getSeasonRankBand(points: number): SeasonRankBand {
   return 'bronze';
 }
 
-export function calculatePrestigeReadiness(input: { level: number; profileScore: number; cash: number; bank: number; prestigeLevel: number }) {
+export function calculatePrestigeReadiness(input: {
+  level: number;
+  profileScore: number;
+  cash: number;
+  bank: number;
+  prestigeLevel: number;
+}) {
   const requiredLevel = 10 + input.prestigeLevel * 2;
   const requiredProfileScore = 1000 + input.prestigeLevel * 350;
   const requiredNetWorth = 50000 + input.prestigeLevel * 25000;
@@ -42,19 +58,41 @@ export function calculatePrestigeReadiness(input: { level: number; profileScore:
     requiredProfileScore,
     requiredNetWorth,
     netWorth,
-    ready: input.level >= requiredLevel && input.profileScore >= requiredProfileScore && netWorth >= requiredNetWorth,
+    ready:
+      input.level >= requiredLevel &&
+      input.profileScore >= requiredProfileScore &&
+      netWorth >= requiredNetWorth,
   };
 }
 
-export function calculateLegacyPoints(input: { level: number; experience: number; profileScore: number; cash: number; bank: number; seasonPoints: number; prestigeLevel: number }) {
+export function calculateLegacyPoints(input: {
+  level: number;
+  experience: number;
+  profileScore: number;
+  cash: number;
+  bank: number;
+  seasonPoints: number;
+  prestigeLevel: number;
+}) {
   const netWorth = input.cash + input.bank;
   return Math.max(
     1,
-    Math.floor(input.level * 2 + input.experience / 500 + input.profileScore / 100 + netWorth / 10000 + input.seasonPoints / 1000 + input.prestigeLevel),
+    Math.floor(
+      input.level * 2 +
+        input.experience / 500 +
+        input.profileScore / 100 +
+        netWorth / 10000 +
+        input.seasonPoints / 1000 +
+        input.prestigeLevel,
+    ),
   );
 }
 
-export function calculatePrestigeReset(input: { legacyPointsAwarded: number; totalLegacyPoints: number; prestigeLevel: number }) {
+export function calculatePrestigeReset(input: {
+  legacyPointsAwarded: number;
+  totalLegacyPoints: number;
+  prestigeLevel: number;
+}) {
   return {
     cash: 500 + input.totalLegacyPoints * 25,
     bank: 0,

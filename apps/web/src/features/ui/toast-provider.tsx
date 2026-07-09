@@ -41,42 +41,58 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((items) => items.filter((item) => item.id !== id));
   }, []);
 
-  const showToast = useCallback((toast: ToastInput) => {
-    const id = createToastId();
-    const timeoutMs = toast.timeoutMs ?? (toast.kind === 'error' ? 7000 : 4200);
+  const showToast = useCallback(
+    (toast: ToastInput) => {
+      const id = createToastId();
+      const timeoutMs = toast.timeoutMs ?? (toast.kind === 'error' ? 7000 : 4200);
 
-    setToasts((items) => [
-      ...items.slice(-4),
-      {
-        id,
-        title: toast.title,
-        message: toast.message,
-        kind: toast.kind ?? 'info',
-      },
-    ]);
+      setToasts((items) => [
+        ...items.slice(-4),
+        {
+          id,
+          title: toast.title,
+          message: toast.message,
+          kind: toast.kind ?? 'info',
+        },
+      ]);
 
-    window.setTimeout(() => removeToast(id), timeoutMs);
-  }, [removeToast]);
+      window.setTimeout(() => removeToast(id), timeoutMs);
+    },
+    [removeToast],
+  );
 
-  const value = useMemo<ToastContextValue>(() => ({
-    showToast,
-    success: (message, title = 'Success') => showToast({ kind: 'success', title, message }),
-    error: (message, title = 'Error') => showToast({ kind: 'error', title, message }),
-    info: (message, title = 'Notice') => showToast({ kind: 'info', title, message }),
-    warning: (message, title = 'Warning') => showToast({ kind: 'warning', title, message }),
-  }), [showToast]);
+  const value = useMemo<ToastContextValue>(
+    () => ({
+      showToast,
+      success: (message, title = 'Success') => showToast({ kind: 'success', title, message }),
+      error: (message, title = 'Error') => showToast({ kind: 'error', title, message }),
+      info: (message, title = 'Notice') => showToast({ kind: 'info', title, message }),
+      warning: (message, title = 'Warning') => showToast({ kind: 'warning', title, message }),
+    }),
+    [showToast],
+  );
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="toast-viewport" role="status" aria-live="polite" aria-relevant="additions text">
+      <div
+        className="toast-viewport"
+        role="status"
+        aria-live="polite"
+        aria-relevant="additions text"
+      >
         {toasts.map((toast) => (
           <article className={`toast toast--${toast.kind}`} key={toast.id}>
             <div>
               {toast.title ? <strong className="toast__title">{toast.title}</strong> : null}
               <p className="toast__message">{toast.message}</p>
             </div>
-            <button className="toast__dismiss" type="button" onClick={() => removeToast(toast.id)} aria-label="Dismiss notification">
+            <button
+              className="toast__dismiss"
+              type="button"
+              onClick={() => removeToast(toast.id)}
+              aria-label="Dismiss notification"
+            >
               ×
             </button>
           </article>

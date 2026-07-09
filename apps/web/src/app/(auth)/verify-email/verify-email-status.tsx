@@ -57,8 +57,14 @@ export function VerifyEmailStatus() {
       <section className="auth-card">
         <p className="eyebrow">Account security</p>
         <h1 id="verify-title">Email verification</h1>
-        {!isComplete ? <p className="lead">Verifying your email address...</p> : <p className="lead">Your email status has been updated.</p>}
-        <Link className="button-link button-link--primary" href="/dashboard">Continue to dashboard</Link>
+        {!isComplete ? (
+          <p className="lead">Verifying your email address...</p>
+        ) : (
+          <p className="lead">Your email status has been updated.</p>
+        )}
+        <Link className="button-link button-link--primary" href="/dashboard">
+          Continue to dashboard
+        </Link>
       </section>
     </main>
   );

@@ -14,24 +14,109 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-export const adminRole = pgEnum('admin_role', ['none', 'support', 'moderator', 'economy_manager', 'game_master', 'owner']);
-export const characterStatus = pgEnum('character_status', ['free', 'traveling', 'jailed', 'hospitalized']);
-export const eventVisibility = pgEnum('event_visibility', ['private', 'faction', 'public', 'admin']);
-export const itemCategory = pgEnum('item_category', ['drug', 'gear', 'weapon', 'armor', 'vehicle', 'tool', 'medical', 'collectible']);
-export const itemRarity = pgEnum('item_rarity', ['common', 'uncommon', 'rare', 'epic', 'legendary']);
-export const transactionType = pgEnum('transaction_type', ['cash', 'bank', 'stock', 'crypto', 'shop', 'system']);
-export const travelStatus = pgEnum('travel_status', ['scheduled', 'completed', 'cancelled', 'intercepted']);
+export const adminRole = pgEnum('admin_role', [
+  'none',
+  'support',
+  'moderator',
+  'economy_manager',
+  'game_master',
+  'owner',
+]);
+export const characterStatus = pgEnum('character_status', [
+  'free',
+  'traveling',
+  'jailed',
+  'hospitalized',
+]);
+export const eventVisibility = pgEnum('event_visibility', [
+  'private',
+  'faction',
+  'public',
+  'admin',
+]);
+export const itemCategory = pgEnum('item_category', [
+  'drug',
+  'gear',
+  'weapon',
+  'armor',
+  'vehicle',
+  'tool',
+  'medical',
+  'collectible',
+]);
+export const itemRarity = pgEnum('item_rarity', [
+  'common',
+  'uncommon',
+  'rare',
+  'epic',
+  'legendary',
+]);
+export const transactionType = pgEnum('transaction_type', [
+  'cash',
+  'bank',
+  'stock',
+  'crypto',
+  'shop',
+  'system',
+]);
+export const travelStatus = pgEnum('travel_status', [
+  'scheduled',
+  'completed',
+  'cancelled',
+  'intercepted',
+]);
 export const messageThreadType = pgEnum('message_thread_type', ['direct', 'group', 'faction']);
-export const factionRole = pgEnum('faction_role', ['recruit', 'runner', 'soldier', 'lieutenant', 'captain', 'underboss', 'boss']);
-export const membershipStatus = pgEnum('membership_status', ['active', 'invited', 'left', 'kicked']);
+export const factionRole = pgEnum('faction_role', [
+  'recruit',
+  'runner',
+  'soldier',
+  'lieutenant',
+  'captain',
+  'underboss',
+  'boss',
+]);
+export const membershipStatus = pgEnum('membership_status', [
+  'active',
+  'invited',
+  'left',
+  'kicked',
+]);
 export const listingStatus = pgEnum('listing_status', ['active', 'sold', 'cancelled', 'expired']);
-export const actionOutcome = pgEnum('action_outcome', ['pending', 'success', 'failure', 'critical_failure']);
-export const trainingStat = pgEnum('training_stat', ['strength', 'stamina', 'defense', 'dexterity', 'endurance']);
+export const actionOutcome = pgEnum('action_outcome', [
+  'pending',
+  'success',
+  'failure',
+  'critical_failure',
+]);
+export const trainingStat = pgEnum('training_stat', [
+  'strength',
+  'stamina',
+  'defense',
+  'dexterity',
+  'endurance',
+]);
 export const courseStat = pgEnum('course_stat', ['intelligence', 'labour', 'endurance']);
-export const progressionStatus = pgEnum('progression_status', ['scheduled', 'completed', 'cancelled']);
+export const progressionStatus = pgEnum('progression_status', [
+  'scheduled',
+  'completed',
+  'cancelled',
+]);
 export const jobStatus = pgEnum('job_status', ['active', 'resigned', 'terminated']);
-export const contractType = pgEnum('contract_type', ['delivery', 'protection', 'collection', 'bounty', 'faction_task']);
-export const contractStatus = pgEnum('contract_status', ['open', 'accepted', 'completed', 'cancelled', 'expired', 'failed']);
+export const contractType = pgEnum('contract_type', [
+  'delivery',
+  'protection',
+  'collection',
+  'bounty',
+  'faction_task',
+]);
+export const contractStatus = pgEnum('contract_status', [
+  'open',
+  'accepted',
+  'completed',
+  'cancelled',
+  'expired',
+  'failed',
+]);
 export const adminActionType = pgEnum('admin_action_type', [
   'config_upsert',
   'character_flag',
@@ -57,25 +142,129 @@ export const characterFlagType = pgEnum('character_flag_type', [
   'suspended',
 ]);
 export const announcementStatus = pgEnum('announcement_status', ['draft', 'published', 'archived']);
-export const combatOutcome = pgEnum('combat_outcome', ['attacker_win', 'defender_win', 'draw', 'fled']);
+export const combatOutcome = pgEnum('combat_outcome', [
+  'attacker_win',
+  'defender_win',
+  'draw',
+  'fled',
+]);
 export const bountyStatus = pgEnum('bounty_status', ['open', 'claimed', 'cancelled', 'expired']);
-export const factionWarStatus = pgEnum('faction_war_status', ['declared', 'active', 'resolved', 'cancelled']);
-export const equipmentSlot = pgEnum('equipment_slot', ['weapon', 'armor', 'vehicle', 'tool', 'phone', 'accessory']);
-export const vehicleUpgradeType = pgEnum('vehicle_upgrade_type', ['engine', 'armor', 'storage', 'stealth', 'documents']);
-export const travelCargoStatus = pgEnum('travel_cargo_status', ['loaded', 'delivered', 'seized', 'lost']);
-export const craftingRecipeType = pgEnum('crafting_recipe_type', ['craft', 'modify', 'repair', 'dismantle']);
-export const craftingJobStatus = pgEnum('crafting_job_status', ['queued', 'completed', 'cancelled', 'failed']);
-export const workshopType = pgEnum('workshop_type', ['garage', 'lab', 'electronics', 'clinic', 'forge', 'tailor']);
-export const contactSpecialty = pgEnum('contact_specialty', ['muscle', 'driver', 'dealer', 'lawyer', 'medic', 'hacker', 'broker', 'scout']);
+export const factionWarStatus = pgEnum('faction_war_status', [
+  'declared',
+  'active',
+  'resolved',
+  'cancelled',
+]);
+export const equipmentSlot = pgEnum('equipment_slot', [
+  'weapon',
+  'armor',
+  'vehicle',
+  'tool',
+  'phone',
+  'accessory',
+]);
+export const vehicleUpgradeType = pgEnum('vehicle_upgrade_type', [
+  'engine',
+  'armor',
+  'storage',
+  'stealth',
+  'documents',
+]);
+export const travelCargoStatus = pgEnum('travel_cargo_status', [
+  'loaded',
+  'delivered',
+  'seized',
+  'lost',
+]);
+export const craftingRecipeType = pgEnum('crafting_recipe_type', [
+  'craft',
+  'modify',
+  'repair',
+  'dismantle',
+]);
+export const craftingJobStatus = pgEnum('crafting_job_status', [
+  'queued',
+  'completed',
+  'cancelled',
+  'failed',
+]);
+export const workshopType = pgEnum('workshop_type', [
+  'garage',
+  'lab',
+  'electronics',
+  'clinic',
+  'forge',
+  'tailor',
+]);
+export const contactSpecialty = pgEnum('contact_specialty', [
+  'muscle',
+  'driver',
+  'dealer',
+  'lawyer',
+  'medic',
+  'hacker',
+  'broker',
+  'scout',
+]);
 export const contactStatus = pgEnum('contact_status', ['idle', 'assigned', 'injured', 'inactive']);
-export const contactAssignmentType = pgEnum('contact_assignment_type', ['job_assist', 'crime_setup', 'shop_shift', 'territory_scout', 'market_tip', 'recovery_support']);
-export const contactAssignmentStatus = pgEnum('contact_assignment_status', ['queued', 'completed', 'failed', 'cancelled']);
-export const notificationCategory = pgEnum('notification_category', ['system', 'combat', 'economy', 'contract', 'faction', 'travel', 'crew', 'crafting', 'market', 'season', 'admin']);
-export const notificationPriority = pgEnum('notification_priority', ['low', 'normal', 'high', 'urgent']);
-export const activityFeedScope = pgEnum('activity_feed_scope', ['private', 'faction', 'public', 'admin']);
-export const messageReportStatus = pgEnum('message_report_status', ['open', 'reviewed', 'dismissed', 'actioned']);
-export const enforcementActionType = pgEnum('enforcement_action_type', ['warning', 'social_mute', 'shop_restriction', 'temporary_suspension', 'cash_penalty']);
-export const enforcementAppealStatus = pgEnum('enforcement_appeal_status', ['open', 'accepted', 'rejected', 'withdrawn']);
+export const contactAssignmentType = pgEnum('contact_assignment_type', [
+  'job_assist',
+  'crime_setup',
+  'shop_shift',
+  'territory_scout',
+  'market_tip',
+  'recovery_support',
+]);
+export const contactAssignmentStatus = pgEnum('contact_assignment_status', [
+  'queued',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+export const notificationCategory = pgEnum('notification_category', [
+  'system',
+  'combat',
+  'economy',
+  'contract',
+  'faction',
+  'travel',
+  'crew',
+  'crafting',
+  'market',
+  'season',
+  'admin',
+]);
+export const notificationPriority = pgEnum('notification_priority', [
+  'low',
+  'normal',
+  'high',
+  'urgent',
+]);
+export const activityFeedScope = pgEnum('activity_feed_scope', [
+  'private',
+  'faction',
+  'public',
+  'admin',
+]);
+export const messageReportStatus = pgEnum('message_report_status', [
+  'open',
+  'reviewed',
+  'dismissed',
+  'actioned',
+]);
+export const enforcementActionType = pgEnum('enforcement_action_type', [
+  'warning',
+  'social_mute',
+  'shop_restriction',
+  'temporary_suspension',
+  'cash_penalty',
+]);
+export const enforcementAppealStatus = pgEnum('enforcement_appeal_status', [
+  'open',
+  'accepted',
+  'rejected',
+  'withdrawn',
+]);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -88,8 +277,6 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
-
-
 
 export const passwordResetTokens = pgTable(
   'password_reset_tokens',
@@ -107,7 +294,10 @@ export const passwordResetTokens = pgTable(
   },
   (table) => ({
     tokenHashUnique: uniqueIndex('password_reset_tokens_hash_unique').on(table.tokenHash),
-    userCreatedAtIdx: index('password_reset_tokens_user_created_idx').on(table.userId, table.createdAt),
+    userCreatedAtIdx: index('password_reset_tokens_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
     expiresAtIdx: index('password_reset_tokens_expires_idx').on(table.expiresAt, table.usedAt),
   }),
 );
@@ -128,7 +318,10 @@ export const emailVerificationTokens = pgTable(
   },
   (table) => ({
     tokenHashUnique: uniqueIndex('email_verification_tokens_hash_unique').on(table.tokenHash),
-    userCreatedAtIdx: index('email_verification_tokens_user_created_idx').on(table.userId, table.createdAt),
+    userCreatedAtIdx: index('email_verification_tokens_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
     expiresAtIdx: index('email_verification_tokens_expires_idx').on(table.expiresAt, table.usedAt),
   }),
 );
@@ -187,7 +380,9 @@ export const characters = pgTable(
     seasonPoints: integer('season_points').notNull().default(0),
     statusUntil: timestamp('status_until', { withTimezone: true }),
     statusReason: text('status_reason'),
-    lastResourceTickAt: timestamp('last_resource_tick_at', { withTimezone: true }).notNull().defaultNow(),
+    lastResourceTickAt: timestamp('last_resource_tick_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     lastHeatTickAt: timestamp('last_heat_tick_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -219,7 +414,10 @@ export const playerEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('player_events_character_created_at_idx').on(table.characterId, table.createdAt),
+    characterCreatedAtIdx: index('player_events_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
     typeIdx: index('player_events_type_idx').on(table.type),
   }),
 );
@@ -257,10 +455,12 @@ export const inventoryItems = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterItemUnique: uniqueIndex('inventory_character_item_unique').on(table.characterId, table.itemKey),
+    characterItemUnique: uniqueIndex('inventory_character_item_unique').on(
+      table.characterId,
+      table.itemKey,
+    ),
   }),
 );
-
 
 export const characterEquipment = pgTable(
   'character_equipment',
@@ -269,7 +469,9 @@ export const characterEquipment = pgTable(
     characterId: uuid('character_id')
       .notNull()
       .references(() => characters.id, { onDelete: 'cascade' }),
-    inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id, { onDelete: 'set null' }),
+    inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id, {
+      onDelete: 'set null',
+    }),
     itemKey: text('item_key')
       .notNull()
       .references(() => itemDefinitions.key),
@@ -281,7 +483,10 @@ export const characterEquipment = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterEquippedIdx: index('character_equipment_character_equipped_idx').on(table.characterId, table.isEquipped),
+    characterEquippedIdx: index('character_equipment_character_equipped_idx').on(
+      table.characterId,
+      table.isEquipped,
+    ),
     characterSlotIdx: index('character_equipment_slot_idx').on(table.characterId, table.slot),
     itemIdx: index('character_equipment_item_idx').on(table.itemKey),
   }),
@@ -301,7 +506,11 @@ export const marketPrices = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    locationItemCreatedAtIdx: index('market_prices_location_item_created_at_idx').on(table.location, table.itemKey, table.createdAt),
+    locationItemCreatedAtIdx: index('market_prices_location_item_created_at_idx').on(
+      table.location,
+      table.itemKey,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -317,15 +526,27 @@ export const marketEvents = pgTable(
     status: text('status').notNull().default('scheduled'),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
-    publishedArticleId: uuid('published_article_id').references(() => newspaperArticles.id, { onDelete: 'set null' }),
+    publishedArticleId: uuid('published_article_id').references(() => newspaperArticles.id, {
+      onDelete: 'set null',
+    }),
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    eventLocationItemStartsUnique: uniqueIndex('market_events_event_location_item_starts_unique').on(table.eventKey, table.location, table.itemKey, table.startsAt),
-    locationWindowIdx: index('market_events_location_window_idx').on(table.location, table.startsAt, table.endsAt),
-    statusWindowIdx: index('market_events_status_window_idx').on(table.status, table.startsAt, table.endsAt),
+    eventLocationItemStartsUnique: uniqueIndex(
+      'market_events_event_location_item_starts_unique',
+    ).on(table.eventKey, table.location, table.itemKey, table.startsAt),
+    locationWindowIdx: index('market_events_location_window_idx').on(
+      table.location,
+      table.startsAt,
+      table.endsAt,
+    ),
+    statusWindowIdx: index('market_events_status_window_idx').on(
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
     publishedArticleIdx: index('market_events_published_article_idx').on(table.publishedArticleId),
   }),
 );
@@ -354,9 +575,20 @@ export const playerTradeOffers = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    sellerStatusCreatedIdx: index('player_trade_offers_seller_status_created_idx').on(table.sellerCharacterId, table.status, table.createdAt),
-    buyerStatusCreatedIdx: index('player_trade_offers_buyer_status_created_idx').on(table.buyerCharacterId, table.status, table.createdAt),
-    statusExpiresIdx: index('player_trade_offers_status_expires_idx').on(table.status, table.expiresAt),
+    sellerStatusCreatedIdx: index('player_trade_offers_seller_status_created_idx').on(
+      table.sellerCharacterId,
+      table.status,
+      table.createdAt,
+    ),
+    buyerStatusCreatedIdx: index('player_trade_offers_buyer_status_created_idx').on(
+      table.buyerCharacterId,
+      table.status,
+      table.createdAt,
+    ),
+    statusExpiresIdx: index('player_trade_offers_status_expires_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
     itemStatusIdx: index('player_trade_offers_item_status_idx').on(table.itemKey, table.status),
   }),
 );
@@ -388,10 +620,12 @@ export const jobRuns = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStartedAtIdx: index('job_runs_character_started_at_idx').on(table.characterId, table.startedAt),
+    characterStartedAtIdx: index('job_runs_character_started_at_idx').on(
+      table.characterId,
+      table.startedAt,
+    ),
   }),
 );
-
 
 export const characterJobs = pgTable(
   'character_jobs',
@@ -414,7 +648,10 @@ export const characterJobs = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterStatusIdx: index('character_jobs_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('character_jobs_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     jobStatusIdx: index('character_jobs_job_status_idx').on(table.jobKey, table.status),
   }),
 );
@@ -449,7 +686,10 @@ export const crimeAttempts = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('crime_attempts_character_created_at_idx').on(table.characterId, table.createdAt),
+    characterCreatedAtIdx: index('crime_attempts_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -464,7 +704,10 @@ export const travelRoutes = pgTable(
     risk: integer('risk').notNull().default(1),
   },
   (table) => ({
-    fromToUnique: uniqueIndex('travel_routes_from_to_unique').on(table.fromLocation, table.toLocation),
+    fromToUnique: uniqueIndex('travel_routes_from_to_unique').on(
+      table.fromLocation,
+      table.toLocation,
+    ),
   }),
 );
 
@@ -486,15 +729,18 @@ export const travelPlans = pgTable(
     effectiveDurationSeconds: integer('effective_duration_seconds').notNull().default(0),
     riskScore: integer('risk_score').notNull().default(0),
     cargoValue: integer('cargo_value').notNull().default(0),
-    vehicleEquipmentId: uuid('vehicle_equipment_id').references(() => characterEquipment.id, { onDelete: 'set null' }),
+    vehicleEquipmentId: uuid('vehicle_equipment_id').references(() => characterEquipment.id, {
+      onDelete: 'set null',
+    }),
   },
   (table) => ({
-    characterStatusIdx: index('travel_plans_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('travel_plans_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     arrivesAtIdx: index('travel_plans_arrives_at_idx').on(table.arrivesAt),
   }),
 );
-
-
 
 export const vehicleUpgradeDefinitions = pgTable('vehicle_upgrade_definitions', {
   key: text('key').primaryKey(),
@@ -524,7 +770,10 @@ export const characterVehicleUpgrades = pgTable(
     metadata: jsonb('metadata').notNull().default({}),
   },
   (table) => ({
-    equipmentUpgradeUnique: uniqueIndex('character_vehicle_upgrade_unique').on(table.equipmentId, table.upgradeKey),
+    equipmentUpgradeUnique: uniqueIndex('character_vehicle_upgrade_unique').on(
+      table.equipmentId,
+      table.upgradeKey,
+    ),
     characterIdx: index('character_vehicle_upgrades_character_idx').on(table.characterId),
     equipmentIdx: index('character_vehicle_upgrades_equipment_idx').on(table.equipmentId),
   }),
@@ -551,11 +800,13 @@ export const travelCargo = pgTable(
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStatusIdx: index('travel_cargo_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('travel_cargo_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     planIdx: index('travel_cargo_plan_idx').on(table.travelPlanId),
   }),
 );
-
 
 export const craftingRecipeDefinitions = pgTable('crafting_recipe_definitions', {
   key: text('key').primaryKey(),
@@ -598,7 +849,10 @@ export const characterWorkshops = pgTable(
   },
   (table) => ({
     characterIdx: index('character_workshops_character_idx').on(table.characterId),
-    characterTypeUnique: uniqueIndex('character_workshops_character_type_unique').on(table.characterId, table.workshopType),
+    characterTypeUnique: uniqueIndex('character_workshops_character_type_unique').on(
+      table.characterId,
+      table.workshopType,
+    ),
   }),
 );
 
@@ -612,7 +866,9 @@ export const craftingJobs = pgTable(
     recipeKey: text('recipe_key')
       .notNull()
       .references(() => craftingRecipeDefinitions.key),
-    workshopId: uuid('workshop_id').references(() => characterWorkshops.id, { onDelete: 'set null' }),
+    workshopId: uuid('workshop_id').references(() => characterWorkshops.id, {
+      onDelete: 'set null',
+    }),
     status: craftingJobStatus('status').notNull().default('queued'),
     outputItemKey: text('output_item_key')
       .notNull()
@@ -627,7 +883,10 @@ export const craftingJobs = pgTable(
     metadata: jsonb('metadata').notNull().default({}),
   },
   (table) => ({
-    characterStatusIdx: index('crafting_jobs_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('crafting_jobs_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     completesAtIdx: index('crafting_jobs_completes_at_idx').on(table.completesAt),
   }),
 );
@@ -699,7 +958,6 @@ export const messages = pgTable(
   }),
 );
 
-
 export const messageReports = pgTable(
   'message_reports',
   {
@@ -714,13 +972,21 @@ export const messageReports = pgTable(
     status: messageReportStatus('status').notNull().default('open'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     resolutionNote: text('resolution_note'),
   },
   (table) => ({
     messageIdx: index('message_reports_message_idx').on(table.messageId),
-    reporterCreatedAtIdx: index('message_reports_reporter_created_at_idx').on(table.reporterCharacterId, table.createdAt),
-    statusCreatedAtIdx: index('message_reports_status_created_at_idx').on(table.status, table.createdAt),
+    reporterCreatedAtIdx: index('message_reports_reporter_created_at_idx').on(
+      table.reporterCharacterId,
+      table.createdAt,
+    ),
+    statusCreatedAtIdx: index('message_reports_status_created_at_idx').on(
+      table.status,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -752,7 +1018,9 @@ export const factions = pgTable(
     bank: integer('bank').notNull().default(0),
     reputation: integer('reputation').notNull().default(0),
     power: integer('power').notNull().default(0),
-    createdByCharacterId: uuid('created_by_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    createdByCharacterId: uuid('created_by_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
@@ -781,7 +1049,6 @@ export const factionMembers = pgTable(
   }),
 );
 
-
 export const factionInventoryItems = pgTable(
   'faction_inventory_items',
   {
@@ -798,12 +1065,17 @@ export const factionInventoryItems = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    factionItemUnique: uniqueIndex('faction_inventory_items_faction_item_unique').on(table.factionId, table.itemKey),
-    factionUpdatedIdx: index('faction_inventory_items_faction_updated_idx').on(table.factionId, table.updatedAt),
+    factionItemUnique: uniqueIndex('faction_inventory_items_faction_item_unique').on(
+      table.factionId,
+      table.itemKey,
+    ),
+    factionUpdatedIdx: index('faction_inventory_items_faction_updated_idx').on(
+      table.factionId,
+      table.updatedAt,
+    ),
     itemIdx: index('faction_inventory_items_item_idx').on(table.itemKey),
   }),
 );
-
 
 export const factionLedgerEntries = pgTable(
   'faction_ledger_entries',
@@ -821,8 +1093,14 @@ export const factionLedgerEntries = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    factionCreatedAtIdx: index('faction_ledger_entries_faction_created_at_idx').on(table.factionId, table.createdAt),
-    characterCreatedAtIdx: index('faction_ledger_entries_character_created_at_idx').on(table.characterId, table.createdAt),
+    factionCreatedAtIdx: index('faction_ledger_entries_faction_created_at_idx').on(
+      table.factionId,
+      table.createdAt,
+    ),
+    characterCreatedAtIdx: index('faction_ledger_entries_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -836,7 +1114,9 @@ export const territories = pgTable(
     incomePerTick: integer('income_per_tick').notNull().default(0),
     defenseRating: integer('defense_rating').notNull().default(1),
     heatModifier: integer('heat_modifier').notNull().default(0),
-    controlledByFactionId: uuid('controlled_by_faction_id').references(() => factions.id, { onDelete: 'set null' }),
+    controlledByFactionId: uuid('controlled_by_faction_id').references(() => factions.id, {
+      onDelete: 'set null',
+    }),
     controlScore: integer('control_score').notNull().default(0),
     contestedUntil: timestamp('contested_until', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -869,8 +1149,14 @@ export const territoryActions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    territoryCreatedAtIdx: index('territory_actions_territory_created_at_idx').on(table.territoryKey, table.createdAt),
-    factionCreatedAtIdx: index('territory_actions_faction_created_at_idx').on(table.factionId, table.createdAt),
+    territoryCreatedAtIdx: index('territory_actions_territory_created_at_idx').on(
+      table.territoryKey,
+      table.createdAt,
+    ),
+    factionCreatedAtIdx: index('territory_actions_faction_created_at_idx').on(
+      table.factionId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -894,7 +1180,11 @@ export const shops = pgTable(
   },
   (table) => ({
     ownerIdx: index('shops_owner_idx').on(table.ownerCharacterId),
-    locationOpenAdIdx: index('shops_location_open_ad_idx').on(table.location, table.isOpen, table.advertisingUntil),
+    locationOpenAdIdx: index('shops_location_open_ad_idx').on(
+      table.location,
+      table.isOpen,
+      table.advertisingUntil,
+    ),
   }),
 );
 
@@ -914,7 +1204,10 @@ export const shopReviews = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    shopReviewerUnique: uniqueIndex('shop_reviews_shop_reviewer_unique').on(table.shopId, table.reviewerCharacterId),
+    shopReviewerUnique: uniqueIndex('shop_reviews_shop_reviewer_unique').on(
+      table.shopId,
+      table.reviewerCharacterId,
+    ),
     shopCreatedAtIdx: index('shop_reviews_shop_created_at_idx').on(table.shopId, table.createdAt),
   }),
 );
@@ -962,7 +1255,6 @@ export const shopListings = pgTable(
   }),
 );
 
-
 export const shopLedgerEntries = pgTable(
   'shop_ledger_entries',
   {
@@ -970,8 +1262,12 @@ export const shopLedgerEntries = pgTable(
     shopId: uuid('shop_id')
       .notNull()
       .references(() => shops.id, { onDelete: 'cascade' }),
-    sellerCharacterId: uuid('seller_character_id').references(() => characters.id, { onDelete: 'set null' }),
-    buyerCharacterId: uuid('buyer_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    sellerCharacterId: uuid('seller_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
+    buyerCharacterId: uuid('buyer_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     listingId: uuid('listing_id').references(() => shopListings.id, { onDelete: 'set null' }),
     entryType: text('entry_type').notNull(),
     itemKey: text('item_key').references(() => itemDefinitions.key),
@@ -983,9 +1279,18 @@ export const shopLedgerEntries = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    shopCreatedAtIdx: index('shop_ledger_entries_shop_created_at_idx').on(table.shopId, table.createdAt),
-    buyerCreatedAtIdx: index('shop_ledger_entries_buyer_created_at_idx').on(table.buyerCharacterId, table.createdAt),
-    sellerCreatedAtIdx: index('shop_ledger_entries_seller_created_at_idx').on(table.sellerCharacterId, table.createdAt),
+    shopCreatedAtIdx: index('shop_ledger_entries_shop_created_at_idx').on(
+      table.shopId,
+      table.createdAt,
+    ),
+    buyerCreatedAtIdx: index('shop_ledger_entries_buyer_created_at_idx').on(
+      table.buyerCharacterId,
+      table.createdAt,
+    ),
+    sellerCreatedAtIdx: index('shop_ledger_entries_seller_created_at_idx').on(
+      table.sellerCharacterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -993,7 +1298,9 @@ export const newspaperArticles = pgTable(
   'newspaper_articles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    authorCharacterId: uuid('author_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    authorCharacterId: uuid('author_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     location: text('location'),
     category: text('category').notNull().default('news'),
     title: text('title').notNull(),
@@ -1008,8 +1315,14 @@ export const newspaperArticles = pgTable(
   },
   (table) => ({
     createdAtIdx: index('newspaper_articles_created_at_idx').on(table.createdAt),
-    categoryCreatedAtIdx: index('newspaper_articles_category_created_at_idx').on(table.category, table.createdAt),
-    locationCreatedAtIdx: index('newspaper_articles_location_created_at_idx').on(table.location, table.createdAt),
+    categoryCreatedAtIdx: index('newspaper_articles_category_created_at_idx').on(
+      table.category,
+      table.createdAt,
+    ),
+    locationCreatedAtIdx: index('newspaper_articles_location_created_at_idx').on(
+      table.location,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1031,8 +1344,14 @@ export const newspaperArticleComments = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    articleCreatedAtIdx: index('newspaper_article_comments_article_created_at_idx').on(table.articleId, table.createdAt),
-    authorCreatedAtIdx: index('newspaper_article_comments_author_created_at_idx').on(table.authorCharacterId, table.createdAt),
+    articleCreatedAtIdx: index('newspaper_article_comments_article_created_at_idx').on(
+      table.articleId,
+      table.createdAt,
+    ),
+    authorCreatedAtIdx: index('newspaper_article_comments_author_created_at_idx').on(
+      table.authorCharacterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1050,8 +1369,13 @@ export const newspaperArticleReactions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    articleCharacterReactionUnique: uniqueIndex('newspaper_article_reactions_article_character_reaction_unique').on(table.articleId, table.characterId, table.reactionType),
-    articleReactionIdx: index('newspaper_article_reactions_article_reaction_idx').on(table.articleId, table.reactionType),
+    articleCharacterReactionUnique: uniqueIndex(
+      'newspaper_article_reactions_article_character_reaction_unique',
+    ).on(table.articleId, table.characterId, table.reactionType),
+    articleReactionIdx: index('newspaper_article_reactions_article_reaction_idx').on(
+      table.articleId,
+      table.reactionType,
+    ),
   }),
 );
 
@@ -1070,16 +1394,26 @@ export const newspaperArticleReports = pgTable(
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     resolutionNote: text('resolution_note'),
   },
   (table) => ({
-    articleCreatedAtIdx: index('newspaper_article_reports_article_created_at_idx').on(table.articleId, table.createdAt),
-    reporterCreatedAtIdx: index('newspaper_article_reports_reporter_created_at_idx').on(table.reporterCharacterId, table.createdAt),
-    statusCreatedAtIdx: index('newspaper_article_reports_status_created_at_idx').on(table.status, table.createdAt),
+    articleCreatedAtIdx: index('newspaper_article_reports_article_created_at_idx').on(
+      table.articleId,
+      table.createdAt,
+    ),
+    reporterCreatedAtIdx: index('newspaper_article_reports_reporter_created_at_idx').on(
+      table.reporterCharacterId,
+      table.createdAt,
+    ),
+    statusCreatedAtIdx: index('newspaper_article_reports_status_created_at_idx').on(
+      table.status,
+      table.createdAt,
+    ),
   }),
 );
-
 
 export const financialAssets = pgTable('financial_assets', {
   key: text('key').primaryKey(),
@@ -1108,7 +1442,10 @@ export const assetPrices = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    assetCreatedAtIdx: index('asset_prices_asset_created_at_idx').on(table.assetKey, table.createdAt),
+    assetCreatedAtIdx: index('asset_prices_asset_created_at_idx').on(
+      table.assetKey,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1129,7 +1466,10 @@ export const characterAssetPositions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterAssetUnique: uniqueIndex('character_asset_positions_character_asset_unique').on(table.characterId, table.assetKey),
+    characterAssetUnique: uniqueIndex('character_asset_positions_character_asset_unique').on(
+      table.characterId,
+      table.assetKey,
+    ),
     characterIdx: index('character_asset_positions_character_idx').on(table.characterId),
   }),
 );
@@ -1153,12 +1493,16 @@ export const assetOrders = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('asset_orders_character_created_at_idx').on(table.characterId, table.createdAt),
-    assetCreatedAtIdx: index('asset_orders_asset_created_at_idx').on(table.assetKey, table.createdAt),
+    characterCreatedAtIdx: index('asset_orders_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
+    assetCreatedAtIdx: index('asset_orders_asset_created_at_idx').on(
+      table.assetKey,
+      table.createdAt,
+    ),
   }),
 );
-
-
 
 export const gamblingGames = pgTable('gambling_games', {
   key: text('key').primaryKey(),
@@ -1191,8 +1535,14 @@ export const gamblingWagers = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('gambling_wagers_character_created_at_idx').on(table.characterId, table.createdAt),
-    gameCreatedAtIdx: index('gambling_wagers_game_created_at_idx').on(table.gameKey, table.createdAt),
+    characterCreatedAtIdx: index('gambling_wagers_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
+    gameCreatedAtIdx: index('gambling_wagers_game_created_at_idx').on(
+      table.gameKey,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1228,7 +1578,10 @@ export const trainingSessions = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStartedAtIdx: index('training_sessions_character_started_at_idx').on(table.characterId, table.startedAt),
+    characterStartedAtIdx: index('training_sessions_character_started_at_idx').on(
+      table.characterId,
+      table.startedAt,
+    ),
     statusDueAtIdx: index('training_sessions_status_due_at_idx').on(table.status, table.dueAt),
   }),
 );
@@ -1267,11 +1620,13 @@ export const courseEnrollments = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStartedAtIdx: index('course_enrollments_character_started_at_idx').on(table.characterId, table.startedAt),
+    characterStartedAtIdx: index('course_enrollments_character_started_at_idx').on(
+      table.characterId,
+      table.startedAt,
+    ),
     statusDueAtIdx: index('course_enrollments_status_due_at_idx').on(table.status, table.dueAt),
   }),
 );
-
 
 export const characterActionLocks = pgTable(
   'character_action_locks',
@@ -1287,11 +1642,13 @@ export const characterActionLocks = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterActionUnique: uniqueIndex('character_action_locks_character_action_unique').on(table.characterId, table.actionType),
+    characterActionUnique: uniqueIndex('character_action_locks_character_action_unique').on(
+      table.characterId,
+      table.actionType,
+    ),
     lockedUntilIdx: index('character_action_locks_locked_until_idx').on(table.lockedUntil),
   }),
 );
-
 
 export const hospitalStays = pgTable(
   'hospital_stays',
@@ -1310,7 +1667,10 @@ export const hospitalStays = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStatusIdx: index('hospital_stays_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('hospital_stays_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     releaseIdx: index('hospital_stays_release_idx').on(table.status, table.releasedAt),
   }),
 );
@@ -1331,11 +1691,13 @@ export const jailSentences = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => ({
-    characterStatusIdx: index('jail_sentences_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('jail_sentences_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     releaseIdx: index('jail_sentences_release_idx').on(table.status, table.releaseAt),
   }),
 );
-
 
 export const legalServiceLogs = pgTable(
   'legal_service_logs',
@@ -1354,7 +1716,10 @@ export const legalServiceLogs = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('legal_service_logs_character_created_at_idx').on(table.characterId, table.createdAt),
+    characterCreatedAtIdx: index('legal_service_logs_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1367,11 +1732,16 @@ export const moderationNotes = pgTable(
     note: text('note').notNull(),
     severity: text('severity').notNull().default('info'),
     metadata: jsonb('metadata').notNull().default({}),
-    createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('moderation_notes_character_created_at_idx').on(table.characterId, table.createdAt),
+    characterCreatedAtIdx: index('moderation_notes_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1382,7 +1752,9 @@ export const contracts = pgTable(
     createdByCharacterId: uuid('created_by_character_id')
       .notNull()
       .references(() => characters.id, { onDelete: 'cascade' }),
-    assignedToCharacterId: uuid('assigned_to_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    assignedToCharacterId: uuid('assigned_to_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     factionId: uuid('faction_id').references(() => factions.id, { onDelete: 'set null' }),
     contractType: contractType('contract_type').notNull(),
     status: contractStatus('status').notNull().default('open'),
@@ -1407,7 +1779,10 @@ export const contracts = pgTable(
     creatorIdx: index('contracts_creator_idx').on(table.createdByCharacterId, table.createdAt),
     assigneeIdx: index('contracts_assignee_idx').on(table.assignedToCharacterId, table.createdAt),
     factionIdx: index('contracts_faction_idx').on(table.factionId, table.createdAt),
-    targetLocationIdx: index('contracts_target_location_idx').on(table.targetLocation, table.status),
+    targetLocationIdx: index('contracts_target_location_idx').on(
+      table.targetLocation,
+      table.status,
+    ),
   }),
 );
 
@@ -1418,7 +1793,9 @@ export const contractEvents = pgTable(
     contractId: uuid('contract_id')
       .notNull()
       .references(() => contracts.id, { onDelete: 'cascade' }),
-    actorCharacterId: uuid('actor_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    actorCharacterId: uuid('actor_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     eventType: text('event_type').notNull(),
     amount: integer('amount').notNull().default(0),
     description: text('description').notNull().default(''),
@@ -1426,8 +1803,14 @@ export const contractEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    contractCreatedAtIdx: index('contract_events_contract_created_at_idx').on(table.contractId, table.createdAt),
-    actorCreatedAtIdx: index('contract_events_actor_created_at_idx').on(table.actorCharacterId, table.createdAt),
+    contractCreatedAtIdx: index('contract_events_contract_created_at_idx').on(
+      table.contractId,
+      table.createdAt,
+    ),
+    actorCreatedAtIdx: index('contract_events_actor_created_at_idx').on(
+      table.actorCharacterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1441,8 +1824,12 @@ export const combatLogs = pgTable(
     defenderCharacterId: uuid('defender_character_id')
       .notNull()
       .references(() => characters.id, { onDelete: 'cascade' }),
-    attackerFactionId: uuid('attacker_faction_id').references(() => factions.id, { onDelete: 'set null' }),
-    defenderFactionId: uuid('defender_faction_id').references(() => factions.id, { onDelete: 'set null' }),
+    attackerFactionId: uuid('attacker_faction_id').references(() => factions.id, {
+      onDelete: 'set null',
+    }),
+    defenderFactionId: uuid('defender_faction_id').references(() => factions.id, {
+      onDelete: 'set null',
+    }),
     territoryKey: text('territory_key').references(() => territories.key, { onDelete: 'set null' }),
     outcome: combatOutcome('outcome').notNull(),
     attackerPower: integer('attacker_power').notNull().default(0),
@@ -1456,9 +1843,18 @@ export const combatLogs = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    attackerCreatedAtIdx: index('combat_logs_attacker_created_at_idx').on(table.attackerCharacterId, table.createdAt),
-    defenderCreatedAtIdx: index('combat_logs_defender_created_at_idx').on(table.defenderCharacterId, table.createdAt),
-    territoryCreatedAtIdx: index('combat_logs_territory_created_at_idx').on(table.territoryKey, table.createdAt),
+    attackerCreatedAtIdx: index('combat_logs_attacker_created_at_idx').on(
+      table.attackerCharacterId,
+      table.createdAt,
+    ),
+    defenderCreatedAtIdx: index('combat_logs_defender_created_at_idx').on(
+      table.defenderCharacterId,
+      table.createdAt,
+    ),
+    territoryCreatedAtIdx: index('combat_logs_territory_created_at_idx').on(
+      table.territoryKey,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1472,7 +1868,9 @@ export const bounties = pgTable(
     targetCharacterId: uuid('target_character_id')
       .notNull()
       .references(() => characters.id, { onDelete: 'cascade' }),
-    claimedByCharacterId: uuid('claimed_by_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    claimedByCharacterId: uuid('claimed_by_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     status: bountyStatus('status').notNull().default('open'),
     reward: integer('reward').notNull().default(0),
     postingFee: integer('posting_fee').notNull().default(0),
@@ -1487,7 +1885,10 @@ export const bounties = pgTable(
   (table) => ({
     statusRewardIdx: index('bounties_status_reward_idx').on(table.status, table.reward),
     targetStatusIdx: index('bounties_target_status_idx').on(table.targetCharacterId, table.status),
-    creatorCreatedAtIdx: index('bounties_creator_created_at_idx').on(table.createdByCharacterId, table.createdAt),
+    creatorCreatedAtIdx: index('bounties_creator_created_at_idx').on(
+      table.createdByCharacterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1501,7 +1902,9 @@ export const factionWars = pgTable(
     defenderFactionId: uuid('defender_faction_id')
       .notNull()
       .references(() => factions.id, { onDelete: 'cascade' }),
-    declaredByCharacterId: uuid('declared_by_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    declaredByCharacterId: uuid('declared_by_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     territoryKey: text('territory_key').references(() => territories.key, { onDelete: 'set null' }),
     status: factionWarStatus('status').notNull().default('declared'),
     attackerScore: integer('attacker_score').notNull().default(0),
@@ -1509,18 +1912,25 @@ export const factionWars = pgTable(
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
-    winnerFactionId: uuid('winner_faction_id').references(() => factions.id, { onDelete: 'set null' }),
+    winnerFactionId: uuid('winner_faction_id').references(() => factions.id, {
+      onDelete: 'set null',
+    }),
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     statusEndsAtIdx: index('faction_wars_status_ends_at_idx').on(table.status, table.endsAt),
-    attackerStatusIdx: index('faction_wars_attacker_status_idx').on(table.attackerFactionId, table.status),
-    defenderStatusIdx: index('faction_wars_defender_status_idx').on(table.defenderFactionId, table.status),
+    attackerStatusIdx: index('faction_wars_attacker_status_idx').on(
+      table.attackerFactionId,
+      table.status,
+    ),
+    defenderStatusIdx: index('faction_wars_defender_status_idx').on(
+      table.defenderFactionId,
+      table.status,
+    ),
   }),
 );
-
 
 export const achievementDefinitions = pgTable('achievement_definitions', {
   key: text('key').primaryKey(),
@@ -1558,7 +1968,11 @@ export const characterAchievements = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.characterId, table.achievementKey] }),
-    characterCompletedIdx: index('character_achievements_character_completed_idx').on(table.characterId, table.isCompleted, table.completedAt),
+    characterCompletedIdx: index('character_achievements_character_completed_idx').on(
+      table.characterId,
+      table.isCompleted,
+      table.completedAt,
+    ),
   }),
 );
 
@@ -1576,8 +1990,14 @@ export const characterTitles = pgTable(
     earnedAt: timestamp('earned_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterTitleUnique: uniqueIndex('character_titles_character_title_unique').on(table.characterId, table.titleKey),
-    characterActiveIdx: index('character_titles_character_active_idx').on(table.characterId, table.isActive),
+    characterTitleUnique: uniqueIndex('character_titles_character_title_unique').on(
+      table.characterId,
+      table.titleKey,
+    ),
+    characterActiveIdx: index('character_titles_character_active_idx').on(
+      table.characterId,
+      table.isActive,
+    ),
   }),
 );
 
@@ -1618,11 +2038,19 @@ export const characterObjectives = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterObjectiveUnique: uniqueIndex('character_objectives_character_objective_unique').on(table.characterId, table.objectiveKey, table.periodStart),
-    characterPeriodIdx: index('character_objectives_character_period_idx').on(table.characterId, table.cadence, table.periodStart, table.status),
+    characterObjectiveUnique: uniqueIndex('character_objectives_character_objective_unique').on(
+      table.characterId,
+      table.objectiveKey,
+      table.periodStart,
+    ),
+    characterPeriodIdx: index('character_objectives_character_period_idx').on(
+      table.characterId,
+      table.cadence,
+      table.periodStart,
+      table.status,
+    ),
   }),
 );
-
 
 export const seasons = pgTable(
   'seasons',
@@ -1639,7 +2067,11 @@ export const seasons = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    statusDatesIdx: index('seasons_status_dates_idx').on(table.status, table.startsAt, table.endsAt),
+    statusDatesIdx: index('seasons_status_dates_idx').on(
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
   }),
 );
 
@@ -1663,8 +2095,14 @@ export const seasonRewardTiers = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    seasonTierUnique: uniqueIndex('season_reward_tiers_season_tier_unique').on(table.seasonId, table.tier),
-    seasonPointsIdx: index('season_reward_tiers_season_points_idx').on(table.seasonId, table.pointsRequired),
+    seasonTierUnique: uniqueIndex('season_reward_tiers_season_tier_unique').on(
+      table.seasonId,
+      table.tier,
+    ),
+    seasonPointsIdx: index('season_reward_tiers_season_points_idx').on(
+      table.seasonId,
+      table.pointsRequired,
+    ),
   }),
 );
 
@@ -1685,7 +2123,10 @@ export const characterSeasonProgress = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.characterId, table.seasonId] }),
-    seasonPointsIdx: index('character_season_progress_season_points_idx').on(table.seasonId, table.seasonPoints),
+    seasonPointsIdx: index('character_season_progress_season_points_idx').on(
+      table.seasonId,
+      table.seasonPoints,
+    ),
   }),
 );
 
@@ -1706,7 +2147,10 @@ export const legacyRecords = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedIdx: index('legacy_records_character_created_idx').on(table.characterId, table.createdAt),
+    characterCreatedIdx: index('legacy_records_character_created_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
     userCreatedIdx: index('legacy_records_user_created_idx').on(table.userId, table.createdAt),
   }),
 );
@@ -1724,11 +2168,12 @@ export const legacyPerks = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterPerkUnique: uniqueIndex('legacy_perks_character_perk_unique').on(table.characterId, table.perkKey),
+    characterPerkUnique: uniqueIndex('legacy_perks_character_perk_unique').on(
+      table.characterId,
+      table.perkKey,
+    ),
   }),
 );
-
-
 
 export const productCatalog = pgTable(
   'product_catalog',
@@ -1760,7 +2205,9 @@ export const userEntitlements = pgTable(
     entitlementKey: text('entitlement_key').notNull(),
     source: text('source').notNull().default('system'),
     status: text('status').notNull().default('active'),
-    grantedByUserId: uuid('granted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    grantedByUserId: uuid('granted_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     metadata: jsonb('metadata').notNull().default({}),
@@ -1768,7 +2215,12 @@ export const userEntitlements = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    userStatusIdx: index('user_entitlements_user_status_idx').on(table.userId, table.status, table.startsAt, table.endsAt),
+    userStatusIdx: index('user_entitlements_user_status_idx').on(
+      table.userId,
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
     userKeyActiveUnique: uniqueIndex('user_entitlements_user_key_active_unique')
       .on(table.userId, table.entitlementKey)
       .where(sql`${table.status} = 'active' AND ${table.endsAt} IS NULL`),
@@ -1784,21 +2236,29 @@ export const characterCosmetics = pgTable(
       .references(() => characters.id, { onDelete: 'cascade' }),
     cosmeticKey: text('cosmetic_key').notNull(),
     slot: text('slot').notNull(),
-    sourceEntitlementId: uuid('source_entitlement_id').references(() => userEntitlements.id, { onDelete: 'set null' }),
+    sourceEntitlementId: uuid('source_entitlement_id').references(() => userEntitlements.id, {
+      onDelete: 'set null',
+    }),
     isEquipped: boolean('is_equipped').notNull().default(false),
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterSlotIdx: index('character_cosmetics_character_slot_idx').on(table.characterId, table.slot, table.isEquipped),
-    characterCosmeticUnique: uniqueIndex('character_cosmetics_unique').on(table.characterId, table.cosmeticKey),
+    characterSlotIdx: index('character_cosmetics_character_slot_idx').on(
+      table.characterId,
+      table.slot,
+      table.isEquipped,
+    ),
+    characterCosmeticUnique: uniqueIndex('character_cosmetics_unique').on(
+      table.characterId,
+      table.cosmeticKey,
+    ),
     oneEquippedPerSlotIdx: uniqueIndex('character_cosmetics_one_equipped_per_slot_idx')
       .on(table.characterId, table.slot)
       .where(sql`${table.isEquipped} = true`),
   }),
 );
-
 
 export const productCatalogRelations = relations(productCatalog, ({ many }) => ({
   entitlements: many(userEntitlements),
@@ -1806,14 +2266,27 @@ export const productCatalogRelations = relations(productCatalog, ({ many }) => (
 
 export const userEntitlementsRelations = relations(userEntitlements, ({ one, many }) => ({
   user: one(users, { fields: [userEntitlements.userId], references: [users.id] }),
-  product: one(productCatalog, { fields: [userEntitlements.productKey], references: [productCatalog.key] }),
-  grantedBy: one(users, { fields: [userEntitlements.grantedByUserId], references: [users.id], relationName: 'entitlementGrantedBy' }),
+  product: one(productCatalog, {
+    fields: [userEntitlements.productKey],
+    references: [productCatalog.key],
+  }),
+  grantedBy: one(users, {
+    fields: [userEntitlements.grantedByUserId],
+    references: [users.id],
+    relationName: 'entitlementGrantedBy',
+  }),
   cosmetics: many(characterCosmetics),
 }));
 
 export const characterCosmeticsRelations = relations(characterCosmetics, ({ one }) => ({
-  character: one(characters, { fields: [characterCosmetics.characterId], references: [characters.id] }),
-  entitlement: one(userEntitlements, { fields: [characterCosmetics.sourceEntitlementId], references: [userEntitlements.id] }),
+  character: one(characters, {
+    fields: [characterCosmetics.characterId],
+    references: [characters.id],
+  }),
+  entitlement: one(userEntitlements, {
+    fields: [characterCosmetics.sourceEntitlementId],
+    references: [userEntitlements.id],
+  }),
 }));
 
 export const seasonsRelations = relations(seasons, ({ many }) => ({
@@ -1826,7 +2299,10 @@ export const seasonRewardTiersRelations = relations(seasonRewardTiers, ({ one })
 }));
 
 export const characterSeasonProgressRelations = relations(characterSeasonProgress, ({ one }) => ({
-  character: one(characters, { fields: [characterSeasonProgress.characterId], references: [characters.id] }),
+  character: one(characters, {
+    fields: [characterSeasonProgress.characterId],
+    references: [characters.id],
+  }),
   season: one(seasons, { fields: [characterSeasonProgress.seasonId], references: [seasons.id] }),
 }));
 
@@ -1838,7 +2314,6 @@ export const legacyRecordsRelations = relations(legacyRecords, ({ one }) => ({
 export const legacyPerksRelations = relations(legacyPerks, ({ one }) => ({
   character: one(characters, { fields: [legacyPerks.characterId], references: [characters.id] }),
 }));
-
 
 export const npcContactDefinitions = pgTable('npc_contact_definitions', {
   key: text('key').primaryKey(),
@@ -1876,8 +2351,14 @@ export const characterContacts = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterContactUnique: uniqueIndex('character_contacts_character_contact_unique').on(table.characterId, table.contactKey),
-    characterStatusIdx: index('character_contacts_character_status_idx').on(table.characterId, table.status),
+    characterContactUnique: uniqueIndex('character_contacts_character_contact_unique').on(
+      table.characterId,
+      table.contactKey,
+    ),
+    characterStatusIdx: index('character_contacts_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
   }),
 );
 
@@ -1903,11 +2384,13 @@ export const contactAssignments = pgTable(
     metadata: jsonb('metadata').notNull().default({}),
   },
   (table) => ({
-    characterStatusIdx: index('contact_assignments_character_status_idx').on(table.characterId, table.status),
+    characterStatusIdx: index('contact_assignments_character_status_idx').on(
+      table.characterId,
+      table.status,
+    ),
     readyIdx: index('contact_assignments_ready_idx').on(table.status, table.completesAt),
   }),
 );
-
 
 export const notifications = pgTable(
   'notifications',
@@ -1928,8 +2411,16 @@ export const notifications = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    userUnreadIdx: index('notifications_user_unread_idx').on(table.userId, table.readAt, table.archivedAt, table.createdAt),
-    characterCreatedIdx: index('notifications_character_created_idx').on(table.characterId, table.createdAt),
+    userUnreadIdx: index('notifications_user_unread_idx').on(
+      table.userId,
+      table.readAt,
+      table.archivedAt,
+      table.createdAt,
+    ),
+    characterCreatedIdx: index('notifications_character_created_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1951,8 +2442,14 @@ export const activityFeedEntries = pgTable(
   },
   (table) => ({
     scopeCreatedIdx: index('activity_feed_scope_created_idx').on(table.scope, table.createdAt),
-    characterCreatedIdx: index('activity_feed_character_created_idx').on(table.characterId, table.createdAt),
-    factionCreatedIdx: index('activity_feed_faction_created_idx').on(table.factionId, table.createdAt),
+    characterCreatedIdx: index('activity_feed_character_created_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
+    factionCreatedIdx: index('activity_feed_faction_created_idx').on(
+      table.factionId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1981,7 +2478,10 @@ export const notificationDigests = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    userCreatedIdx: index('notification_digests_user_created_idx').on(table.userId, table.createdAt),
+    userCreatedIdx: index('notification_digests_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1994,7 +2494,9 @@ export const gameConfigEntries = pgTable(
     value: jsonb('value').notNull().default({}),
     category: text('category').notNull().default('general'),
     isPublic: boolean('is_public').notNull().default(false),
-    updatedByUserId: uuid('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    updatedByUserId: uuid('updated_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -2009,7 +2511,9 @@ export const adminActionLogs = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     adminUserId: uuid('admin_user_id').references(() => users.id, { onDelete: 'set null' }),
     targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
-    targetCharacterId: uuid('target_character_id').references(() => characters.id, { onDelete: 'set null' }),
+    targetCharacterId: uuid('target_character_id').references(() => characters.id, {
+      onDelete: 'set null',
+    }),
     actionType: adminActionType('action_type').notNull(),
     summary: text('summary').notNull(),
     beforeValue: jsonb('before_value').notNull().default({}),
@@ -2018,9 +2522,18 @@ export const adminActionLogs = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    adminCreatedIdx: index('admin_action_logs_admin_created_idx').on(table.adminUserId, table.createdAt),
-    targetCharacterCreatedIdx: index('admin_action_logs_target_character_created_idx').on(table.targetCharacterId, table.createdAt),
-    typeCreatedIdx: index('admin_action_logs_type_created_idx').on(table.actionType, table.createdAt),
+    adminCreatedIdx: index('admin_action_logs_admin_created_idx').on(
+      table.adminUserId,
+      table.createdAt,
+    ),
+    targetCharacterCreatedIdx: index('admin_action_logs_target_character_created_idx').on(
+      table.targetCharacterId,
+      table.createdAt,
+    ),
+    typeCreatedIdx: index('admin_action_logs_type_created_idx').on(
+      table.actionType,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -2035,14 +2548,21 @@ export const characterFlags = pgTable(
     reason: text('reason').notNull(),
     severity: integer('severity').notNull().default(1),
     isActive: boolean('is_active').notNull().default(true),
-    createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-    resolvedByUserId: uuid('resolved_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    resolvedByUserId: uuid('resolved_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterActiveIdx: index('character_flags_character_active_idx').on(table.characterId, table.isActive),
+    characterActiveIdx: index('character_flags_character_active_idx').on(
+      table.characterId,
+      table.isActive,
+    ),
     typeActiveIdx: index('character_flags_type_active_idx').on(table.flagType, table.isActive),
   }),
 );
@@ -2060,7 +2580,9 @@ export const characterEnforcements = pgTable(
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     isActive: boolean('is_active').notNull().default(true),
-    createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     liftedByUserId: uuid('lifted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
     liftedAt: timestamp('lifted_at', { withTimezone: true }),
     expiredAt: timestamp('expired_at', { withTimezone: true }),
@@ -2070,8 +2592,16 @@ export const characterEnforcements = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterActiveIdx: index('character_enforcements_character_active_idx').on(table.characterId, table.isActive, table.endsAt),
-    actionActiveIdx: index('character_enforcements_action_active_idx').on(table.actionType, table.isActive, table.endsAt),
+    characterActiveIdx: index('character_enforcements_character_active_idx').on(
+      table.characterId,
+      table.isActive,
+      table.endsAt,
+    ),
+    actionActiveIdx: index('character_enforcements_action_active_idx').on(
+      table.actionType,
+      table.isActive,
+      table.endsAt,
+    ),
   }),
 );
 
@@ -2087,19 +2617,29 @@ export const enforcementAppeals = pgTable(
       .references(() => characters.id, { onDelete: 'cascade' }),
     body: text('body').notNull(),
     status: enforcementAppealStatus('status').notNull().default('open'),
-    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    reviewedByUserId: uuid('reviewed_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     resolutionNote: text('resolution_note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    enforcementCharacterUnique: uniqueIndex('enforcement_appeals_enforcement_character_unique').on(table.enforcementId, table.characterId),
-    statusCreatedIdx: index('enforcement_appeals_status_created_idx').on(table.status, table.createdAt),
-    characterCreatedIdx: index('enforcement_appeals_character_created_idx').on(table.characterId, table.createdAt),
+    enforcementCharacterUnique: uniqueIndex('enforcement_appeals_enforcement_character_unique').on(
+      table.enforcementId,
+      table.characterId,
+    ),
+    statusCreatedIdx: index('enforcement_appeals_status_created_idx').on(
+      table.status,
+      table.createdAt,
+    ),
+    characterCreatedIdx: index('enforcement_appeals_character_created_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
-
 
 export const systemAnnouncements = pgTable(
   'system_announcements',
@@ -2111,12 +2651,44 @@ export const systemAnnouncements = pgTable(
     severity: text('severity').notNull().default('info'),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
-    createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    statusWindowIdx: index('system_announcements_status_window_idx').on(table.status, table.startsAt, table.endsAt),
+    statusWindowIdx: index('system_announcements_status_window_idx').on(
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
+  }),
+);
+
+export const workerDeadLetters = pgTable(
+  'worker_dead_letters',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tickName: text('tick_name').notNull(),
+    attempts: integer('attempts').notNull().default(1),
+    errorName: text('error_name').notNull().default('Error'),
+    errorMessage: text('error_message').notNull(),
+    errorStack: text('error_stack'),
+    payload: jsonb('payload').notNull().default({}),
+    status: text('status').notNull().default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  },
+  (table) => ({
+    statusCreatedIdx: index('worker_dead_letters_status_created_idx').on(
+      table.status,
+      table.createdAt,
+    ),
+    tickCreatedIdx: index('worker_dead_letters_tick_created_idx').on(
+      table.tickName,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -2125,84 +2697,171 @@ export const gameConfigEntriesRelations = relations(gameConfigEntries, ({ one })
 }));
 
 export const adminActionLogsRelations = relations(adminActionLogs, ({ one }) => ({
-  admin: one(users, { fields: [adminActionLogs.adminUserId], references: [users.id], relationName: 'adminActionActor' }),
-  targetUser: one(users, { fields: [adminActionLogs.targetUserId], references: [users.id], relationName: 'adminActionTargetUser' }),
-  targetCharacter: one(characters, { fields: [adminActionLogs.targetCharacterId], references: [characters.id] }),
+  admin: one(users, {
+    fields: [adminActionLogs.adminUserId],
+    references: [users.id],
+    relationName: 'adminActionActor',
+  }),
+  targetUser: one(users, {
+    fields: [adminActionLogs.targetUserId],
+    references: [users.id],
+    relationName: 'adminActionTargetUser',
+  }),
+  targetCharacter: one(characters, {
+    fields: [adminActionLogs.targetCharacterId],
+    references: [characters.id],
+  }),
 }));
 
 export const characterFlagsRelations = relations(characterFlags, ({ one }) => ({
   character: one(characters, { fields: [characterFlags.characterId], references: [characters.id] }),
-  createdBy: one(users, { fields: [characterFlags.createdByUserId], references: [users.id], relationName: 'flagCreatedBy' }),
-  resolvedBy: one(users, { fields: [characterFlags.resolvedByUserId], references: [users.id], relationName: 'flagResolvedBy' }),
+  createdBy: one(users, {
+    fields: [characterFlags.createdByUserId],
+    references: [users.id],
+    relationName: 'flagCreatedBy',
+  }),
+  resolvedBy: one(users, {
+    fields: [characterFlags.resolvedByUserId],
+    references: [users.id],
+    relationName: 'flagResolvedBy',
+  }),
 }));
 
-
 export const characterEnforcementsRelations = relations(characterEnforcements, ({ one, many }) => ({
-  character: one(characters, { fields: [characterEnforcements.characterId], references: [characters.id] }),
-  createdBy: one(users, { fields: [characterEnforcements.createdByUserId], references: [users.id], relationName: 'enforcementCreatedBy' }),
-  liftedBy: one(users, { fields: [characterEnforcements.liftedByUserId], references: [users.id], relationName: 'enforcementLiftedBy' }),
+  character: one(characters, {
+    fields: [characterEnforcements.characterId],
+    references: [characters.id],
+  }),
+  createdBy: one(users, {
+    fields: [characterEnforcements.createdByUserId],
+    references: [users.id],
+    relationName: 'enforcementCreatedBy',
+  }),
+  liftedBy: one(users, {
+    fields: [characterEnforcements.liftedByUserId],
+    references: [users.id],
+    relationName: 'enforcementLiftedBy',
+  }),
   appeals: many(enforcementAppeals),
 }));
 
 export const enforcementAppealsRelations = relations(enforcementAppeals, ({ one }) => ({
-  enforcement: one(characterEnforcements, { fields: [enforcementAppeals.enforcementId], references: [characterEnforcements.id] }),
-  character: one(characters, { fields: [enforcementAppeals.characterId], references: [characters.id] }),
-  reviewedBy: one(users, { fields: [enforcementAppeals.reviewedByUserId], references: [users.id], relationName: 'appealReviewedBy' }),
+  enforcement: one(characterEnforcements, {
+    fields: [enforcementAppeals.enforcementId],
+    references: [characterEnforcements.id],
+  }),
+  character: one(characters, {
+    fields: [enforcementAppeals.characterId],
+    references: [characters.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [enforcementAppeals.reviewedByUserId],
+    references: [users.id],
+    relationName: 'appealReviewedBy',
+  }),
 }));
 
 export const systemAnnouncementsRelations = relations(systemAnnouncements, ({ one }) => ({
   createdBy: one(users, { fields: [systemAnnouncements.createdByUserId], references: [users.id] }),
 }));
 
-
-
 export const characterEquipmentRelations = relations(characterEquipment, ({ one, many }) => ({
-  character: one(characters, { fields: [characterEquipment.characterId], references: [characters.id] }),
-  inventoryItem: one(inventoryItems, { fields: [characterEquipment.inventoryItemId], references: [inventoryItems.id] }),
-  item: one(itemDefinitions, { fields: [characterEquipment.itemKey], references: [itemDefinitions.key] }),
+  character: one(characters, {
+    fields: [characterEquipment.characterId],
+    references: [characters.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [characterEquipment.inventoryItemId],
+    references: [inventoryItems.id],
+  }),
+  item: one(itemDefinitions, {
+    fields: [characterEquipment.itemKey],
+    references: [itemDefinitions.key],
+  }),
   vehicleUpgrades: many(characterVehicleUpgrades),
 }));
 
-export const vehicleUpgradeDefinitionsRelations = relations(vehicleUpgradeDefinitions, ({ many }) => ({
-  installedUpgrades: many(characterVehicleUpgrades),
-}));
+export const vehicleUpgradeDefinitionsRelations = relations(
+  vehicleUpgradeDefinitions,
+  ({ many }) => ({
+    installedUpgrades: many(characterVehicleUpgrades),
+  }),
+);
 
 export const characterVehicleUpgradesRelations = relations(characterVehicleUpgrades, ({ one }) => ({
-  character: one(characters, { fields: [characterVehicleUpgrades.characterId], references: [characters.id] }),
-  equipment: one(characterEquipment, { fields: [characterVehicleUpgrades.equipmentId], references: [characterEquipment.id] }),
-  upgrade: one(vehicleUpgradeDefinitions, { fields: [characterVehicleUpgrades.upgradeKey], references: [vehicleUpgradeDefinitions.key] }),
+  character: one(characters, {
+    fields: [characterVehicleUpgrades.characterId],
+    references: [characters.id],
+  }),
+  equipment: one(characterEquipment, {
+    fields: [characterVehicleUpgrades.equipmentId],
+    references: [characterEquipment.id],
+  }),
+  upgrade: one(vehicleUpgradeDefinitions, {
+    fields: [characterVehicleUpgrades.upgradeKey],
+    references: [vehicleUpgradeDefinitions.key],
+  }),
 }));
 
 export const travelCargoRelations = relations(travelCargo, ({ one }) => ({
-  travelPlan: one(travelPlans, { fields: [travelCargo.travelPlanId], references: [travelPlans.id] }),
+  travelPlan: one(travelPlans, {
+    fields: [travelCargo.travelPlanId],
+    references: [travelPlans.id],
+  }),
   character: one(characters, { fields: [travelCargo.characterId], references: [characters.id] }),
   item: one(itemDefinitions, { fields: [travelCargo.itemKey], references: [itemDefinitions.key] }),
 }));
 
-export const craftingRecipeDefinitionsRelations = relations(craftingRecipeDefinitions, ({ one, many }) => ({
-  outputItem: one(itemDefinitions, { fields: [craftingRecipeDefinitions.outputItemKey], references: [itemDefinitions.key] }),
-  jobs: many(craftingJobs),
-}));
+export const craftingRecipeDefinitionsRelations = relations(
+  craftingRecipeDefinitions,
+  ({ one, many }) => ({
+    outputItem: one(itemDefinitions, {
+      fields: [craftingRecipeDefinitions.outputItemKey],
+      references: [itemDefinitions.key],
+    }),
+    jobs: many(craftingJobs),
+  }),
+);
 
 export const characterWorkshopsRelations = relations(characterWorkshops, ({ one, many }) => ({
-  character: one(characters, { fields: [characterWorkshops.characterId], references: [characters.id] }),
+  character: one(characters, {
+    fields: [characterWorkshops.characterId],
+    references: [characters.id],
+  }),
   jobs: many(craftingJobs),
 }));
 
 export const craftingJobsRelations = relations(craftingJobs, ({ one, many }) => ({
   character: one(characters, { fields: [craftingJobs.characterId], references: [characters.id] }),
-  recipe: one(craftingRecipeDefinitions, { fields: [craftingJobs.recipeKey], references: [craftingRecipeDefinitions.key] }),
-  workshop: one(characterWorkshops, { fields: [craftingJobs.workshopId], references: [characterWorkshops.id] }),
-  outputItem: one(itemDefinitions, { fields: [craftingJobs.outputItemKey], references: [itemDefinitions.key] }),
+  recipe: one(craftingRecipeDefinitions, {
+    fields: [craftingJobs.recipeKey],
+    references: [craftingRecipeDefinitions.key],
+  }),
+  workshop: one(characterWorkshops, {
+    fields: [craftingJobs.workshopId],
+    references: [characterWorkshops.id],
+  }),
+  outputItem: one(itemDefinitions, {
+    fields: [craftingJobs.outputItemKey],
+    references: [itemDefinitions.key],
+  }),
   inputs: many(craftingJobInputs),
 }));
 
 export const craftingJobInputsRelations = relations(craftingJobInputs, ({ one }) => ({
-  job: one(craftingJobs, { fields: [craftingJobInputs.craftingJobId], references: [craftingJobs.id] }),
-  character: one(characters, { fields: [craftingJobInputs.characterId], references: [characters.id] }),
-  item: one(itemDefinitions, { fields: [craftingJobInputs.itemKey], references: [itemDefinitions.key] }),
+  job: one(craftingJobs, {
+    fields: [craftingJobInputs.craftingJobId],
+    references: [craftingJobs.id],
+  }),
+  character: one(characters, {
+    fields: [craftingJobInputs.characterId],
+    references: [characters.id],
+  }),
+  item: one(itemDefinitions, {
+    fields: [craftingJobInputs.itemKey],
+    references: [itemDefinitions.key],
+  }),
 }));
-
 
 export const apiIdempotencyKeys = pgTable(
   'api_idempotency_keys',
@@ -2222,8 +2881,15 @@ export const apiIdempotencyKeys = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },
   (table) => ({
-    userKeyScopeUnique: uniqueIndex('api_idempotency_user_key_scope_unique').on(table.userId, table.requestKey, table.routeScope),
-    userCreatedAtIdx: index('api_idempotency_user_created_at_idx').on(table.userId, table.createdAt),
+    userKeyScopeUnique: uniqueIndex('api_idempotency_user_key_scope_unique').on(
+      table.userId,
+      table.requestKey,
+      table.routeScope,
+    ),
+    userCreatedAtIdx: index('api_idempotency_user_created_at_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
     expiresAtIdx: index('api_idempotency_expires_at_idx').on(table.expiresAt),
   }),
 );
@@ -2247,7 +2913,11 @@ export const characterLoans = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterStatusIdx: index('character_loans_character_status_idx').on(table.characterId, table.status, table.dueAt),
+    characterStatusIdx: index('character_loans_character_status_idx').on(
+      table.characterId,
+      table.status,
+      table.dueAt,
+    ),
     createdAtIdx: index('character_loans_created_at_idx').on(table.createdAt),
   }),
 );
@@ -2264,10 +2934,12 @@ export const financialTransactions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    characterCreatedAtIdx: index('financial_transactions_character_created_at_idx').on(table.characterId, table.createdAt),
+    characterCreatedAtIdx: index('financial_transactions_character_created_at_idx').on(
+      table.characterId,
+      table.createdAt,
+    ),
   }),
 );
-
 
 export const apiIdempotencyKeysRelations = relations(apiIdempotencyKeys, ({ one }) => ({
   user: one(users, { fields: [apiIdempotencyKeys.userId], references: [users.id] }),
@@ -2353,8 +3025,6 @@ export const charactersRelations = relations(characters, ({ one, many }) => ({
   tradeOffersReceived: many(playerTradeOffers, { relationName: 'tradeBuyer' }),
 }));
 
-
-
 export const itemDefinitionsRelations = relations(itemDefinitions, ({ many }) => ({
   inventoryItems: many(inventoryItems),
   equipment: many(characterEquipment),
@@ -2369,15 +3039,20 @@ export const itemDefinitionsRelations = relations(itemDefinitions, ({ many }) =>
   factionInventoryItems: many(factionInventoryItems),
 }));
 
-
 export const factionInventoryItemsRelations = relations(factionInventoryItems, ({ one }) => ({
   faction: one(factions, { fields: [factionInventoryItems.factionId], references: [factions.id] }),
-  item: one(itemDefinitions, { fields: [factionInventoryItems.itemKey], references: [itemDefinitions.key] }),
+  item: one(itemDefinitions, {
+    fields: [factionInventoryItems.itemKey],
+    references: [itemDefinitions.key],
+  }),
 }));
 
 export const inventoryItemsRelations = relations(inventoryItems, ({ one, many }) => ({
   character: one(characters, { fields: [inventoryItems.characterId], references: [characters.id] }),
-  item: one(itemDefinitions, { fields: [inventoryItems.itemKey], references: [itemDefinitions.key] }),
+  item: one(itemDefinitions, {
+    fields: [inventoryItems.itemKey],
+    references: [itemDefinitions.key],
+  }),
   equipmentRecords: many(characterEquipment),
 }));
 
@@ -2391,12 +3066,18 @@ export const shopsRelations = relations(shops, ({ one, many }) => ({
 
 export const shopReviewsRelations = relations(shopReviews, ({ one }) => ({
   shop: one(shops, { fields: [shopReviews.shopId], references: [shops.id] }),
-  reviewer: one(characters, { fields: [shopReviews.reviewerCharacterId], references: [characters.id] }),
+  reviewer: one(characters, {
+    fields: [shopReviews.reviewerCharacterId],
+    references: [characters.id],
+  }),
 }));
 
 export const shopAdCampaignsRelations = relations(shopAdCampaigns, ({ one }) => ({
   shop: one(shops, { fields: [shopAdCampaigns.shopId], references: [shops.id] }),
-  character: one(characters, { fields: [shopAdCampaigns.characterId], references: [characters.id] }),
+  character: one(characters, {
+    fields: [shopAdCampaigns.characterId],
+    references: [characters.id],
+  }),
 }));
 
 export const shopListingsRelations = relations(shopListings, ({ one, many }) => ({
@@ -2407,52 +3088,108 @@ export const shopListingsRelations = relations(shopListings, ({ one, many }) => 
 
 export const shopLedgerEntriesRelations = relations(shopLedgerEntries, ({ one }) => ({
   shop: one(shops, { fields: [shopLedgerEntries.shopId], references: [shops.id] }),
-  listing: one(shopListings, { fields: [shopLedgerEntries.listingId], references: [shopListings.id] }),
-  seller: one(characters, { fields: [shopLedgerEntries.sellerCharacterId], references: [characters.id], relationName: 'seller' }),
-  buyer: one(characters, { fields: [shopLedgerEntries.buyerCharacterId], references: [characters.id], relationName: 'buyer' }),
-  item: one(itemDefinitions, { fields: [shopLedgerEntries.itemKey], references: [itemDefinitions.key] }),
+  listing: one(shopListings, {
+    fields: [shopLedgerEntries.listingId],
+    references: [shopListings.id],
+  }),
+  seller: one(characters, {
+    fields: [shopLedgerEntries.sellerCharacterId],
+    references: [characters.id],
+    relationName: 'seller',
+  }),
+  buyer: one(characters, {
+    fields: [shopLedgerEntries.buyerCharacterId],
+    references: [characters.id],
+    relationName: 'buyer',
+  }),
+  item: one(itemDefinitions, {
+    fields: [shopLedgerEntries.itemKey],
+    references: [itemDefinitions.key],
+  }),
 }));
-
 
 export const marketEventsRelations = relations(marketEvents, ({ one }) => ({
   item: one(itemDefinitions, { fields: [marketEvents.itemKey], references: [itemDefinitions.key] }),
-  publishedArticle: one(newspaperArticles, { fields: [marketEvents.publishedArticleId], references: [newspaperArticles.id] }),
+  publishedArticle: one(newspaperArticles, {
+    fields: [marketEvents.publishedArticleId],
+    references: [newspaperArticles.id],
+  }),
 }));
 
 export const playerTradeOffersRelations = relations(playerTradeOffers, ({ one }) => ({
-  seller: one(characters, { fields: [playerTradeOffers.sellerCharacterId], references: [characters.id], relationName: 'tradeSeller' }),
-  buyer: one(characters, { fields: [playerTradeOffers.buyerCharacterId], references: [characters.id], relationName: 'tradeBuyer' }),
-  item: one(itemDefinitions, { fields: [playerTradeOffers.itemKey], references: [itemDefinitions.key] }),
+  seller: one(characters, {
+    fields: [playerTradeOffers.sellerCharacterId],
+    references: [characters.id],
+    relationName: 'tradeSeller',
+  }),
+  buyer: one(characters, {
+    fields: [playerTradeOffers.buyerCharacterId],
+    references: [characters.id],
+    relationName: 'tradeBuyer',
+  }),
+  item: one(itemDefinitions, {
+    fields: [playerTradeOffers.itemKey],
+    references: [itemDefinitions.key],
+  }),
 }));
 
 export const newspaperArticlesRelations = relations(newspaperArticles, ({ one, many }) => ({
-  author: one(characters, { fields: [newspaperArticles.authorCharacterId], references: [characters.id] }),
+  author: one(characters, {
+    fields: [newspaperArticles.authorCharacterId],
+    references: [characters.id],
+  }),
   comments: many(newspaperArticleComments),
   reactions: many(newspaperArticleReactions),
   reports: many(newspaperArticleReports),
 }));
 
 export const newspaperArticleCommentsRelations = relations(newspaperArticleComments, ({ one }) => ({
-  article: one(newspaperArticles, { fields: [newspaperArticleComments.articleId], references: [newspaperArticles.id] }),
-  author: one(characters, { fields: [newspaperArticleComments.authorCharacterId], references: [characters.id] }),
+  article: one(newspaperArticles, {
+    fields: [newspaperArticleComments.articleId],
+    references: [newspaperArticles.id],
+  }),
+  author: one(characters, {
+    fields: [newspaperArticleComments.authorCharacterId],
+    references: [characters.id],
+  }),
 }));
 
-export const newspaperArticleReactionsRelations = relations(newspaperArticleReactions, ({ one }) => ({
-  article: one(newspaperArticles, { fields: [newspaperArticleReactions.articleId], references: [newspaperArticles.id] }),
-  character: one(characters, { fields: [newspaperArticleReactions.characterId], references: [characters.id] }),
-}));
+export const newspaperArticleReactionsRelations = relations(
+  newspaperArticleReactions,
+  ({ one }) => ({
+    article: one(newspaperArticles, {
+      fields: [newspaperArticleReactions.articleId],
+      references: [newspaperArticles.id],
+    }),
+    character: one(characters, {
+      fields: [newspaperArticleReactions.characterId],
+      references: [characters.id],
+    }),
+  }),
+);
 
 export const newspaperArticleReportsRelations = relations(newspaperArticleReports, ({ one }) => ({
-  article: one(newspaperArticles, { fields: [newspaperArticleReports.articleId], references: [newspaperArticles.id] }),
-  reporter: one(characters, { fields: [newspaperArticleReports.reporterCharacterId], references: [characters.id] }),
+  article: one(newspaperArticles, {
+    fields: [newspaperArticleReports.articleId],
+    references: [newspaperArticles.id],
+  }),
+  reporter: one(characters, {
+    fields: [newspaperArticleReports.reporterCharacterId],
+    references: [characters.id],
+  }),
 }));
 
-
-
-
 export const contractsRelations = relations(contracts, ({ one, many }) => ({
-  creator: one(characters, { fields: [contracts.createdByCharacterId], references: [characters.id], relationName: 'contractCreator' }),
-  assignee: one(characters, { fields: [contracts.assignedToCharacterId], references: [characters.id], relationName: 'contractAssignee' }),
+  creator: one(characters, {
+    fields: [contracts.createdByCharacterId],
+    references: [characters.id],
+    relationName: 'contractCreator',
+  }),
+  assignee: one(characters, {
+    fields: [contracts.assignedToCharacterId],
+    references: [characters.id],
+    relationName: 'contractAssignee',
+  }),
   faction: one(factions, { fields: [contracts.factionId], references: [factions.id] }),
   item: one(itemDefinitions, { fields: [contracts.itemKey], references: [itemDefinitions.key] }),
   events: many(contractEvents),
@@ -2460,47 +3197,101 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
 
 export const contractEventsRelations = relations(contractEvents, ({ one }) => ({
   contract: one(contracts, { fields: [contractEvents.contractId], references: [contracts.id] }),
-  actor: one(characters, { fields: [contractEvents.actorCharacterId], references: [characters.id] }),
+  actor: one(characters, {
+    fields: [contractEvents.actorCharacterId],
+    references: [characters.id],
+  }),
 }));
 
 export const combatLogsRelations = relations(combatLogs, ({ one }) => ({
-  attacker: one(characters, { fields: [combatLogs.attackerCharacterId], references: [characters.id], relationName: 'combatAttacker' }),
-  defender: one(characters, { fields: [combatLogs.defenderCharacterId], references: [characters.id], relationName: 'combatDefender' }),
-  attackerFaction: one(factions, { fields: [combatLogs.attackerFactionId], references: [factions.id], relationName: 'combatAttackerFaction' }),
-  defenderFaction: one(factions, { fields: [combatLogs.defenderFactionId], references: [factions.id], relationName: 'combatDefenderFaction' }),
+  attacker: one(characters, {
+    fields: [combatLogs.attackerCharacterId],
+    references: [characters.id],
+    relationName: 'combatAttacker',
+  }),
+  defender: one(characters, {
+    fields: [combatLogs.defenderCharacterId],
+    references: [characters.id],
+    relationName: 'combatDefender',
+  }),
+  attackerFaction: one(factions, {
+    fields: [combatLogs.attackerFactionId],
+    references: [factions.id],
+    relationName: 'combatAttackerFaction',
+  }),
+  defenderFaction: one(factions, {
+    fields: [combatLogs.defenderFactionId],
+    references: [factions.id],
+    relationName: 'combatDefenderFaction',
+  }),
   territory: one(territories, { fields: [combatLogs.territoryKey], references: [territories.key] }),
 }));
 
 export const bountiesRelations = relations(bounties, ({ one }) => ({
-  creator: one(characters, { fields: [bounties.createdByCharacterId], references: [characters.id], relationName: 'bountyCreator' }),
-  target: one(characters, { fields: [bounties.targetCharacterId], references: [characters.id], relationName: 'bountyTarget' }),
-  claimant: one(characters, { fields: [bounties.claimedByCharacterId], references: [characters.id], relationName: 'bountyClaimant' }),
+  creator: one(characters, {
+    fields: [bounties.createdByCharacterId],
+    references: [characters.id],
+    relationName: 'bountyCreator',
+  }),
+  target: one(characters, {
+    fields: [bounties.targetCharacterId],
+    references: [characters.id],
+    relationName: 'bountyTarget',
+  }),
+  claimant: one(characters, {
+    fields: [bounties.claimedByCharacterId],
+    references: [characters.id],
+    relationName: 'bountyClaimant',
+  }),
 }));
 
 export const factionWarsRelations = relations(factionWars, ({ one }) => ({
-  attackerFaction: one(factions, { fields: [factionWars.attackerFactionId], references: [factions.id], relationName: 'warAttackerFaction' }),
-  defenderFaction: one(factions, { fields: [factionWars.defenderFactionId], references: [factions.id], relationName: 'warDefenderFaction' }),
-  declaredBy: one(characters, { fields: [factionWars.declaredByCharacterId], references: [characters.id] }),
-  territory: one(territories, { fields: [factionWars.territoryKey], references: [territories.key] }),
+  attackerFaction: one(factions, {
+    fields: [factionWars.attackerFactionId],
+    references: [factions.id],
+    relationName: 'warAttackerFaction',
+  }),
+  defenderFaction: one(factions, {
+    fields: [factionWars.defenderFactionId],
+    references: [factions.id],
+    relationName: 'warDefenderFaction',
+  }),
+  declaredBy: one(characters, {
+    fields: [factionWars.declaredByCharacterId],
+    references: [characters.id],
+  }),
+  territory: one(territories, {
+    fields: [factionWars.territoryKey],
+    references: [territories.key],
+  }),
 }));
-
-
 
 export const npcContactDefinitionsRelations = relations(npcContactDefinitions, ({ many }) => ({
   contacts: many(characterContacts),
 }));
 
 export const characterContactsRelations = relations(characterContacts, ({ one, many }) => ({
-  character: one(characters, { fields: [characterContacts.characterId], references: [characters.id] }),
-  definition: one(npcContactDefinitions, { fields: [characterContacts.contactKey], references: [npcContactDefinitions.key] }),
+  character: one(characters, {
+    fields: [characterContacts.characterId],
+    references: [characters.id],
+  }),
+  definition: one(npcContactDefinitions, {
+    fields: [characterContacts.contactKey],
+    references: [npcContactDefinitions.key],
+  }),
   assignments: many(contactAssignments),
 }));
 
 export const contactAssignmentsRelations = relations(contactAssignments, ({ one }) => ({
-  character: one(characters, { fields: [contactAssignments.characterId], references: [characters.id] }),
-  contact: one(characterContacts, { fields: [contactAssignments.contactId], references: [characterContacts.id] }),
+  character: one(characters, {
+    fields: [contactAssignments.characterId],
+    references: [characters.id],
+  }),
+  contact: one(characterContacts, {
+    fields: [contactAssignments.contactId],
+    references: [characterContacts.id],
+  }),
 }));
-
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
@@ -2509,7 +3300,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const activityFeedEntriesRelations = relations(activityFeedEntries, ({ one }) => ({
   user: one(users, { fields: [activityFeedEntries.userId], references: [users.id] }),
-  character: one(characters, { fields: [activityFeedEntries.characterId], references: [characters.id] }),
+  character: one(characters, {
+    fields: [activityFeedEntries.characterId],
+    references: [characters.id],
+  }),
   faction: one(factions, { fields: [activityFeedEntries.factionId], references: [factions.id] }),
 }));
 
@@ -2526,12 +3320,21 @@ export const achievementDefinitionsRelations = relations(achievementDefinitions,
 }));
 
 export const characterAchievementsRelations = relations(characterAchievements, ({ one }) => ({
-  character: one(characters, { fields: [characterAchievements.characterId], references: [characters.id] }),
-  achievement: one(achievementDefinitions, { fields: [characterAchievements.achievementKey], references: [achievementDefinitions.key] }),
+  character: one(characters, {
+    fields: [characterAchievements.characterId],
+    references: [characters.id],
+  }),
+  achievement: one(achievementDefinitions, {
+    fields: [characterAchievements.achievementKey],
+    references: [achievementDefinitions.key],
+  }),
 }));
 
 export const characterTitlesRelations = relations(characterTitles, ({ one }) => ({
-  character: one(characters, { fields: [characterTitles.characterId], references: [characters.id] }),
+  character: one(characters, {
+    fields: [characterTitles.characterId],
+    references: [characters.id],
+  }),
 }));
 
 export const objectiveDefinitionsRelations = relations(objectiveDefinitions, ({ many }) => ({
@@ -2539,12 +3342,17 @@ export const objectiveDefinitionsRelations = relations(objectiveDefinitions, ({ 
 }));
 
 export const characterObjectivesRelations = relations(characterObjectives, ({ one }) => ({
-  character: one(characters, { fields: [characterObjectives.characterId], references: [characters.id] }),
-  objective: one(objectiveDefinitions, { fields: [characterObjectives.objectiveKey], references: [objectiveDefinitions.key] }),
+  character: one(characters, {
+    fields: [characterObjectives.characterId],
+    references: [characters.id],
+  }),
+  objective: one(objectiveDefinitions, {
+    fields: [characterObjectives.objectiveKey],
+    references: [objectiveDefinitions.key],
+  }),
 }));
 
 export const gamblingWagersRelations = relations(gamblingWagers, ({ one }) => ({
   character: one(characters, { fields: [gamblingWagers.characterId], references: [characters.id] }),
   game: one(gamblingGames, { fields: [gamblingWagers.gameKey], references: [gamblingGames.key] }),
 }));
-

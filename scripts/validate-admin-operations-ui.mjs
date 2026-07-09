@@ -54,7 +54,14 @@ for (const snippet of requiredPanelSnippets) {
   }
 }
 
-for (const snippet of ['hasAdminCapability', 'view_admin', 'listAdminAudit', 'listAdminLoanExposure', 'listModerationQueue', 'getModerationTransparencySummary']) {
+for (const snippet of [
+  'hasAdminCapability',
+  'view_admin',
+  'listAdminAudit',
+  'listAdminLoanExposure',
+  'listModerationQueue',
+  'getModerationTransparencySummary',
+]) {
   if (!adminPage.includes(snippet)) {
     errors.push(`Admin page is missing ${snippet}.`);
   }
@@ -82,11 +89,12 @@ for (const route of adminRoutes) {
   }
 }
 
-if (!packageJson.scripts?.['validate:admin-operations-ui']) {
-  errors.push('package.json is missing validate:admin-operations-ui script.');
-}
-if (!packageJson.scripts?.['validate:static']?.includes('pnpm validate:admin-operations-ui')) {
-  errors.push('validate:static does not include validate:admin-operations-ui.');
+if (
+  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
+    'scripts/validate-admin-operations-ui.mjs',
+  )
+) {
+  errors.push('validate:static does not include scripts/validate-admin-operations-ui.mjs.');
 }
 
 if (errors.length > 0) {
@@ -95,4 +103,6 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('Admin operations UI validation passed: search, moderation, enforcement, appeal, flag, status, economy, loan exposure, and audit surfaces are wired.');
+console.log(
+  'Admin operations UI validation passed: search, moderation, enforcement, appeal, flag, status, economy, loan exposure, and audit surfaces are wired.',
+);

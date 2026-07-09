@@ -1,17 +1,18 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
 import { characters, db, hospitalStays, jailSentences, playerEvents } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const STATUS_RELEASE_TICK_MS = 30_000;
 
 export function startStatusReleaseTick() {
-  console.log(`status release tick scheduled every ${STATUS_RELEASE_TICK_MS}ms`);
-  setInterval(() => {
-    releaseDueHospitalStays()
-      .then(() => releaseDueJailSentences())
-      .catch((error) => {
-        console.error('status release tick failed', error);
-      });
-  }, STATUS_RELEASE_TICK_MS);
+  return scheduleWorkerTick({
+    name: 'status-release',
+    intervalMs: STATUS_RELEASE_TICK_MS,
+    run: async () => {
+      await releaseDueHospitalStays();
+      await releaseDueJailSentences();
+    },
+  });
 }
 
 export async function releaseDueHospitalStays() {
@@ -22,7 +23,9 @@ export async function releaseDueHospitalStays() {
 
   for (const stay of dueStays) {
     await db.transaction(async (tx) => {
-      const character = await tx.query.characters.findFirst({ where: eq(characters.id, stay.characterId) });
+      const character = await tx.query.characters.findFirst({
+        where: eq(characters.id, stay.characterId),
+      });
 
       await tx
         .update(hospitalStays)
@@ -64,7 +67,9 @@ export async function releaseDueJailSentences() {
 
   for (const sentence of dueSentences) {
     await db.transaction(async (tx) => {
-      const character = await tx.query.characters.findFirst({ where: eq(characters.id, sentence.characterId) });
+      const character = await tx.query.characters.findFirst({
+        where: eq(characters.id, sentence.characterId),
+      });
 
       await tx
         .update(jailSentences)

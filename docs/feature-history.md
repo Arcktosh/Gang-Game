@@ -3165,13 +3165,13 @@ The runtime script probes:
 
 Environment variables:
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `SMOKE_BASE_URL` | `http://localhost:3000` | Running web app base URL. |
-| `SMOKE_TIMEOUT_MS` | `5000` | Per-request timeout. |
-| `SMOKE_RETRIES` | `0` | Retries for each smoke step. |
-| `SMOKE_RETRY_DELAY_MS` | `500` | Delay between retries. |
-| `SMOKE_STRICT_HEALTH_OK` | `false` | Treat degraded `/api/health` as failure instead of warning. |
+| Variable                 | Default                 | Purpose                                                     |
+| ------------------------ | ----------------------- | ----------------------------------------------------------- |
+| `SMOKE_BASE_URL`         | `http://localhost:3000` | Running web app base URL.                                   |
+| `SMOKE_TIMEOUT_MS`       | `5000`                  | Per-request timeout.                                        |
+| `SMOKE_RETRIES`          | `0`                     | Retries for each smoke step.                                |
+| `SMOKE_RETRY_DELAY_MS`   | `500`                   | Delay between retries.                                      |
+| `SMOKE_STRICT_HEALTH_OK` | `false`                 | Treat degraded `/api/health` as failure instead of warning. |
 
 Example:
 
@@ -5207,8 +5207,6 @@ Validation performed:
 
 ---
 
-
-
 ---
 
 ## Pass 75: Richer Banking Statements and CSV Export
@@ -5261,8 +5259,6 @@ node scripts/validate-runtime-proof.mjs
 
 Full `pnpm typecheck`, `pnpm test`, and runtime proof still require the installed local workspace.
 
-
-
 ---
 
 ## Pass 76: Market Event Formula Foundation
@@ -5278,7 +5274,6 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
-
 
 ---
 
@@ -5320,7 +5315,6 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 A dependency-backed TypeScript check over the changed DB/worker/web files was attempted but blocked because the uploaded workspace has no installed `drizzle-orm`, Next/React, workspace package type links, or `@types/node`. Full migration, worker, API, UI, typecheck, tests, and runtime proof still require the installed local workspace.
-
 
 ---
 
@@ -5365,8 +5359,6 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
-
-
 
 ---
 
@@ -5450,7 +5442,6 @@ Full dependency-backed workspace typecheck/tests/runtime proof still require the
 - Expanded the Factions page with faction bank forms, boss-only member role updates, member permission summaries, and territory scout/claim/reinforce/attack controls with cooldown feedback.
 - Restored `.github/workflows/ci.yml` with Node 22, Corepack, pnpm install, and `pnpm validate:ci`.
 
-
 ## Feature Pass 85 - Faction armory
 
 - Added `faction_inventory_items` with idempotent SQL migration `0040_faction_armory.sql`, schema mappings, and dedicated apply scripts while preserving the all-migration runner path.
@@ -5479,3 +5470,51 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
 
+## Feature Pass 87 - TypeScript 7 build and database bootstrap cleanup
+
+- Standardized scripts across all seven package manifests. Root commands now expose concise validation, proof, database setup, and migration aliases while package-level `lint` scripts use `tsc --noEmit` instead of placeholder commands.
+- Pinned TypeScript `7.0.2` consistently and added `scripts/validate-package-scripts.mjs` to guard that version, the root pnpm override, package-script presence, and the web build wrapper.
+- Reworked `apps/web` build to call `scripts/build-next-web.mjs`. The wrapper runs `tsc --noEmit` first, then runs `next build`, while `next.config.ts` skips Next's internal type checker because Next currently probes the legacy `typescript/lib/typescript.js` compiler API path that the native TypeScript 7 package no longer ships.
+- Added `packages/db/scripts/ensure-database.ts`, `pnpm db:ensure`, and `pnpm db:setup` so fresh local setup can create the `DATABASE_URL` database before applying the 41 tracked SQL migrations.
+- Updated README, migration, validation, current-state, next-task, and remaining-work docs to make `pnpm db:setup` the fresh-database path and keep `pnpm db:apply:all` as the migration-only path.
+
+Sandbox validation performed:
+
+```bash
+node scripts/validate-package-scripts.mjs
+node scripts/validate-migrations.mjs
+```
+
+Full dependency-backed `pnpm run build`, PostgreSQL setup, and runtime proof still need to run in the local workspace.
+
+---
+
+## Feature Pass 88 - Script consolidation, documentation pruning, and Redis rate limiting
+
+Reduced manifest and documentation sprawl while preserving the production-readiness guardrails.
+
+- Cut the root `package.json` scripts from 78 to 29 by removing duplicate aliases and one-script-per-migration commands.
+- Cut `packages/db/package.json` scripts from 53 to 13 by keeping the tracked all-migration runner and adding `db:apply:file` for targeted repair.
+- Updated static validators so `pnpm validate:static` calls validator files directly instead of requiring one root alias per validator.
+- Pruned overlapping planning/status documentation and updated the retrieval guide, current state, migration guide, validation audit, remaining-work brief, and README.
+- Added Redis-backed rate limiting to the web app using `RATE_LIMIT_REDIS_URL` or `REDIS_URL`, with memory fallback by default and `RATE_LIMIT_REDIS_REQUIRED=true` for fail-closed deployments.
+- Added rate-limit backend status helpers and unit-test coverage for fallback behavior.
+- Updated `.env.example` and environment validation for rate-limit Redis configuration.
+
+Sandbox validation performed:
+
+```bash
+node scripts/validate-migrations.mjs
+node scripts/validate-docs.mjs
+```
+
+Full dependency-backed `pnpm validate:ci`, runtime smoke, Redis connectivity proof, PostgreSQL migration proof, backup/restore proof, and DB integration proof still require the local installed workspace.
+
+## Pass 89: Achievement idempotency and worker dead-letter handling
+
+- Fixed dashboard/progression achievement sync by replacing the read-then-insert path with an atomic `onConflictDoUpdate` upsert on `(character_id, achievement_key)`.
+- Added `0041_worker_dead_letters.sql` plus Drizzle schema/query helpers for recording exhausted worker tick failures.
+- Added a shared worker tick scheduler with retry/backoff, overlap skipping, and dead-letter persistence.
+- Migrated worker ticks to the shared scheduler.
+- Added worker retry/dead-letter environment defaults and validation.
+- Pinned `tsx` to the v4 line to avoid stale deprecated `@esbuild-kit/*` subdependency resolution from older installs.

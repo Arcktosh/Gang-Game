@@ -1,12 +1,12 @@
 import { completeReadyCraftingJobs } from '@drugdeal/db';
+import { scheduleWorkerTick } from '../tick-runner';
 
 const CRAFTING_TICK_MS = 60_000;
 
 export function startCraftingTick() {
-  console.log(`crafting tick scheduled every ${CRAFTING_TICK_MS}ms`);
-  setInterval(() => {
-    completeReadyCraftingJobs().catch((error) => {
-      console.error('crafting tick failed', error);
-    });
-  }, CRAFTING_TICK_MS);
+  return scheduleWorkerTick({
+    name: 'crafting',
+    intervalMs: CRAFTING_TICK_MS,
+    run: completeReadyCraftingJobs,
+  });
 }
