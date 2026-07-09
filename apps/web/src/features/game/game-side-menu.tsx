@@ -26,20 +26,50 @@ export type GameSectionLink = {
   icon: string;
 };
 
-const menuItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: '▣' },
-  { label: 'Profile', href: '/profile', icon: '◉' },
-  { label: 'Jobs', href: '/jobs', icon: '▤' },
-  { label: 'Crimes', href: '/crimes', icon: '⚑' },
-  { label: 'Legal', href: '/legal', icon: '⚖' },
-  { label: 'Market', href: '/market', icon: '↕' },
-  { label: 'Inventory', href: '/inventory', icon: '◈' },
-  { label: 'Shops', href: '/shops', icon: '◈' },
-  { label: 'Contracts', href: '/contracts', icon: '▥' },
-  { label: 'Trades', href: '/trades', icon: '⇄' },
-  { label: 'Messages', href: '/messages', icon: '✉' },
-  { label: 'Newspaper', href: '/newspaper', icon: '◫' },
-  { label: 'Factions', href: '/factions', icon: '⬢' },
+type NavGroup = {
+  label: string;
+  icon: string;
+  items: readonly { label: string; href: string; icon: string }[];
+};
+
+const navGroups: readonly NavGroup[] = [
+  {
+    label: 'Core',
+    icon: '⬢',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '▣' },
+      { label: 'Profile', href: '/profile', icon: '◉' },
+    ],
+  },
+  {
+    label: 'Activities',
+    icon: '⚑',
+    items: [
+      { label: 'Jobs', href: '/jobs', icon: '▤' },
+      { label: 'Crimes', href: '/crimes', icon: '⚑' },
+      { label: 'Legal', href: '/legal', icon: '⚖' },
+    ],
+  },
+  {
+    label: 'Trading',
+    icon: '↕',
+    items: [
+      { label: 'Market', href: '/market', icon: '↕' },
+      { label: 'Inventory', href: '/inventory', icon: '◈' },
+      { label: 'Shops', href: '/shops', icon: '◈' },
+      { label: 'Contracts', href: '/contracts', icon: '▥' },
+      { label: 'Trades', href: '/trades', icon: '⇄' },
+    ],
+  },
+  {
+    label: 'Social',
+    icon: '✉',
+    items: [
+      { label: 'Messages', href: '/messages', icon: '✉' },
+      { label: 'Newspaper', href: '/newspaper', icon: '◫' },
+      { label: 'Factions', href: '/factions', icon: '⬢' },
+    ],
+  },
 ] as const;
 
 function isActivePath(pathname: string, href: string) {
@@ -72,6 +102,72 @@ function SidebarProgress({ label, value, max }: { label: string; value: number; 
         max={safeMax}
         aria-label={`${label} ${safeValue} of ${safeMax}`}
       />
+    </div>
+  );
+}
+
+function NavDropdown({
+  group,
+  pathname,
+  activeHash,
+  onSectionClick,
+}: {
+  group: NavGroup;
+  pathname: string;
+  activeHash: string;
+  onSectionClick: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(
+    group.items.some((item) => isActivePath(pathname, item.href)),
+  );
+  const isGroupActive = group.items.some((item) => isActivePath(pathname, item.href));
+
+  return (
+    <div className="game-sidebar__nav-dropdown">
+      <button
+        type="button"
+        className={`dropdown-trigger${isOpen ? ' dropdown-trigger--open' : ''}${
+          isGroupActive ? ' dropdown-trigger--active' : ''
+        }`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <span className="nav-dropdown__label">
+          <span className="game-sidebar__icon" aria-hidden="true">
+            {group.icon}
+          </span>
+          <span>{group.label}</span>
+        </span>
+        <span className="dropdown-arrow" aria-hidden="true">
+          ▼
+        </span>
+      </button>
+      {isOpen && (
+        <div className="dropdown-content">
+          {group.items.map((item) => {
+            const active = isActivePath(pathname, item.href);
+            const hrefPath = linkPath(item.href);
+            const hrefHash = linkHash(item.href);
+            const sectionActive =
+              active && (activeHash ? activeHash === hrefHash : hrefHash === '');
+
+            return (
+              <a
+                key={item.href}
+                className={`dropdown-item${sectionActive ? ' dropdown-item--active' : ''}`}
+                href={item.href}
+                aria-current={sectionActive ? 'page' : undefined}
+                onClick={(e) => onSectionClick(e, item.href)}
+              >
+                <span className="game-sidebar__icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -175,63 +271,16 @@ export function GameSideMenu({
         ) : null}
       </section>
 
-      <nav className="game-sidebar__nav" aria-label="Game pages">
-        {menuItems.map((item) => {
-          const active = isActivePath(pathname, item.href);
-          const nestedSections = sectionItems.filter(
-            (section) => linkPath(section.href) === item.href,
-          );
-
-          return (
-            <div key={item.href} className="game-sidebar__nav-group">
-              <Link
-                className={`game-sidebar__link${active ? ' game-sidebar__link--active' : ''}`}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-              >
-                <span className="game-sidebar__icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </Link>
-
-              {nestedSections.length ? (
-                <div
-                  className="game-sidebar__nested-sections"
-                  role="group"
-                  aria-label={`${item.label} sections`}
-                >
-                  {nestedSections.map((section, index) => {
-                    const hrefPath = linkPath(section.href);
-                    const hrefHash = linkHash(section.href);
-                    const sectionActive =
-                      isActivePath(pathname, hrefPath) &&
-                      (activeHash ? activeHash === hrefHash : index === 0);
-
-                    const sectionClass = `game-sidebar__link game-sidebar__link--section${
-                      sectionActive ? ' game-sidebar__link--active' : ''
-                    }`;
-
-                    return (
-                      <a
-                        key={section.href}
-                        className={sectionClass}
-                        href={section.href}
-                        aria-current={sectionActive ? 'location' : undefined}
-                        onClick={(event) => handleSamePageSectionClick(event, section.href)}
-                      >
-                        <span className="game-sidebar__icon" aria-hidden="true">
-                          {section.icon}
-                        </span>
-                        <span>{section.label}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+      <nav className="game-sidebar__nav" aria-label="Game navigation">
+        {navGroups.map((group) => (
+          <NavDropdown
+            key={group.label}
+            group={group}
+            pathname={pathname}
+            activeHash={activeHash}
+            onSectionClick={handleSamePageSectionClick}
+          />
+        ))}
       </nav>
     </aside>
   );
