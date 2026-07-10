@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const uuidSchema = z.string().uuid();
 
+
+
+
 export const paginationQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(25),
   offset: z.coerce.number().int().min(0).max(10_000).optional().default(0),
@@ -15,12 +18,7 @@ export const publicPaginationQuerySchema = z.object({
 const originSchema = z.string().trim().url().optional();
 
 export const serverEnvSchema = z.object({
-  DATABASE_URL: z
-    .string()
-    .trim()
-    .url()
-    .or(z.string().trim().startsWith('postgres://'))
-    .or(z.string().trim().startsWith('postgresql://')),
+  DATABASE_URL: z.string().trim().url().or(z.string().trim().startsWith('postgres://')).or(z.string().trim().startsWith('postgresql://')),
   AUTH_SECRET: z.string().trim().min(16, 'AUTH_SECRET must be at least 16 characters.'),
   REDIS_URL: z.string().trim().url().optional(),
   RATE_LIMIT_REDIS_URL: z.string().trim().url().optional(),
@@ -30,6 +28,14 @@ export const serverEnvSchema = z.object({
   WORKER_TICK_RETRY_BASE_MS: z.coerce.number().int().min(100).max(60_000).optional(),
   WORKER_TICK_RETRY_MAX_MS: z.coerce.number().int().min(100).max(300_000).optional(),
   WORKER_DEAD_LETTER_DISABLED: z.enum(['true', 'false']).optional(),
+  MESSAGE_RETENTION_DAYS: z.coerce.number().int().min(0).max(3650).optional(),
+  ANOMALY_SCAN_TICK_MS: z.coerce.number().int().min(60_000).max(86_400_000).optional(),
+  ANOMALY_SCAN_WINDOW_HOURS: z.coerce.number().int().min(1).max(720).optional(),
+  ANOMALY_HIGH_NET_WORTH: z.coerce.number().int().min(1).max(100_000_000).optional(),
+  ANOMALY_TRANSACTION_VOLUME: z.coerce.number().int().min(1).max(100_000_000).optional(),
+  ANOMALY_TRANSACTION_COUNT: z.coerce.number().int().min(1).max(10_000).optional(),
+  ANOMALY_INVENTORY_QUANTITY: z.coerce.number().int().min(1).max(10_000_000).optional(),
+  ANOMALY_SESSION_IP_COUNT: z.coerce.number().int().min(1).max(1_000).optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).optional().default('development'),
   NEXT_PUBLIC_APP_NAME: z.string().trim().min(1).optional().default('DrugDeal Game'),
   NEXT_PUBLIC_APP_URL: originSchema,
@@ -42,12 +48,7 @@ export const rateLimitOptionsSchema = z.object({
   maxRequests: z.coerce.number().int().min(1).max(10_000),
 });
 
-export const emailSchema = z
-  .string()
-  .trim()
-  .email()
-  .max(254)
-  .transform((value) => value.toLowerCase());
+export const emailSchema = z.string().trim().email().max(254).transform((value) => value.toLowerCase());
 
 export const passwordSchema = z
   .string()
@@ -81,6 +82,7 @@ export const verifyEmailSchema = z.object({
   token: z.string().trim().min(32).max(256),
 });
 
+
 export const characterNameSchema = z
   .string()
   .trim()
@@ -113,12 +115,7 @@ export const startTravelSchema = z.object({
 export const createFactionSchema = z.object({
   characterId: uuidSchema,
   name: z.string().trim().min(3).max(32),
-  tag: z
-    .string()
-    .trim()
-    .min(2)
-    .max(6)
-    .regex(/^[A-Z0-9]+$/),
+  tag: z.string().trim().min(2).max(6).regex(/^[A-Z0-9]+$/),
   description: z.string().trim().max(500).optional().default(''),
 });
 
@@ -176,6 +173,7 @@ export const sendMessageSchema = z.object({
   body: z.string().trim().min(1).max(2000),
 });
 
+
 export const completeTrainingSchema = z.object({
   characterId: uuidSchema,
   activityKey: z.string().min(1).max(64),
@@ -190,6 +188,7 @@ export const characterIdQuerySchema = z.object({
   characterId: uuidSchema,
 });
 
+
 export const marketTradeSchema = z.object({
   characterId: uuidSchema,
   itemKey: z.string().min(1).max(64),
@@ -199,6 +198,10 @@ export const marketTradeSchema = z.object({
 export const marketActionSchema = marketTradeSchema.extend({
   action: z.enum(['buy', 'sell']),
 });
+
+
+
+
 
 export const inventoryProfileQuerySchema = z.object({
   characterId: uuidSchema,
@@ -332,6 +335,7 @@ export const territoryActionSchema = z.object({
   action: z.enum(['scout', 'claim', 'reinforce', 'attack']),
 });
 
+
 export const createShopSchema = z.object({
   characterId: uuidSchema,
   name: z.string().trim().min(3).max(48),
@@ -351,6 +355,7 @@ export const purchaseShopListingSchema = z.object({
   listingId: uuidSchema,
   quantity: z.coerce.number().int().min(1).max(1000),
 });
+
 
 export const shopActionSchema = z.discriminatedUnion('action', [
   z.object({
@@ -416,6 +421,7 @@ export const newspaperActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
+
 export const financeTradeSchema = z.object({
   characterId: uuidSchema,
   assetKey: z.string().trim().min(1).max(96),
@@ -476,6 +482,49 @@ export const adminLoanExposureQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).max(10_000).optional().default(0),
 });
 
+
+export const adminAuditFormatSchema = z.enum(['json', 'csv']);
+
+export const adminEconomyAuditQuerySchema = z
+  .object({
+    q: z.string().trim().max(100).optional().default(''),
+    type: z.enum(['all', 'cash', 'bank', 'stock', 'crypto', 'shop', 'system']).optional().default('all'),
+    minAmount: z.coerce.number().min(0).max(100_000_000).optional(),
+    maxAmount: z.coerce.number().min(0).max(100_000_000).optional(),
+    days: z.coerce.number().int().min(1).max(3650).optional().default(30),
+    format: adminAuditFormatSchema.optional().default('json'),
+    limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+    offset: z.coerce.number().int().min(0).max(50_000).optional().default(0),
+  })
+  .refine((value) => value.minAmount === undefined || value.maxAmount === undefined || value.minAmount <= value.maxAmount, {
+    message: 'minAmount must be less than or equal to maxAmount.',
+    path: ['minAmount'],
+  });
+
+export const adminInventoryAuditQuerySchema = z
+  .object({
+    q: z.string().trim().max(100).optional().default(''),
+    itemKey: z.string().trim().max(96).optional().default(''),
+    minQuantity: z.coerce.number().int().min(0).max(100_000_000).optional(),
+    maxQuantity: z.coerce.number().int().min(0).max(100_000_000).optional(),
+    format: adminAuditFormatSchema.optional().default('json'),
+    limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+    offset: z.coerce.number().int().min(0).max(50_000).optional().default(0),
+  })
+  .refine((value) => value.minQuantity === undefined || value.maxQuantity === undefined || value.minQuantity <= value.maxQuantity, {
+    message: 'minQuantity must be less than or equal to maxQuantity.',
+    path: ['minQuantity'],
+  });
+
+export const adminSessionAuditQuerySchema = z.object({
+  q: z.string().trim().max(100).optional().default(''),
+  ipAddress: z.string().trim().max(128).optional().default(''),
+  days: z.coerce.number().int().min(1).max(3650).optional().default(30),
+  format: adminAuditFormatSchema.optional().default('json'),
+  limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+  offset: z.coerce.number().int().min(0).max(50_000).optional().default(0),
+});
+
 export const loanActionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('request'),
@@ -489,6 +538,7 @@ export const loanActionSchema = z.discriminatedUnion('action', [
     amount: z.coerce.number().int().min(1).max(1_000_000).optional(),
   }),
 ]);
+
 
 export const gamblingWagerSchema = z.object({
   characterId: uuidSchema,
@@ -576,14 +626,8 @@ export const declareFactionWarSchema = z.object({
   durationHours: z.coerce.number().int().min(6).max(72).optional(),
 });
 
-export const equipmentSlotSchema = z.enum([
-  'weapon',
-  'armor',
-  'vehicle',
-  'tool',
-  'phone',
-  'accessory',
-]);
+
+export const equipmentSlotSchema = z.enum(['weapon', 'armor', 'vehicle', 'tool', 'phone', 'accessory']);
 
 export const equipmentProfileQuerySchema = z.object({
   characterId: uuidSchema,
@@ -607,6 +651,7 @@ export const equipmentActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
+
 export const vehicleProfileQuerySchema = z.object({
   characterId: uuidSchema,
 });
@@ -622,14 +667,7 @@ export const craftingProfileQuerySchema = z.object({
   characterId: uuidSchema,
 });
 
-export const workshopTypeSchema = z.enum([
-  'garage',
-  'lab',
-  'electronics',
-  'clinic',
-  'forge',
-  'tailor',
-]);
+export const workshopTypeSchema = z.enum(['garage', 'lab', 'electronics', 'clinic', 'forge', 'tailor']);
 
 export const craftingActionSchema = z.discriminatedUnion('action', [
   z.object({
@@ -655,14 +693,7 @@ export const contactsProfileQuerySchema = z.object({
   characterId: uuidSchema,
 });
 
-export const contactAssignmentTypeSchema = z.enum([
-  'job_assist',
-  'crime_setup',
-  'shop_shift',
-  'territory_scout',
-  'market_tip',
-  'recovery_support',
-]);
+export const contactAssignmentTypeSchema = z.enum(['job_assist', 'crime_setup', 'shop_shift', 'territory_scout', 'market_tip', 'recovery_support']);
 
 export const contactActionSchema = z.discriminatedUnion('action', [
   z.object({
@@ -691,23 +722,7 @@ export const contactActionSchema = z.discriminatedUnion('action', [
 
 export const notificationCenterQuerySchema = z.object({
   characterId: uuidSchema.optional(),
-  category: z
-    .enum([
-      'all',
-      'system',
-      'combat',
-      'economy',
-      'contract',
-      'faction',
-      'travel',
-      'crew',
-      'crafting',
-      'market',
-      'season',
-      'admin',
-    ])
-    .optional()
-    .default('all'),
+  category: z.enum(['all', 'system', 'combat', 'economy', 'contract', 'faction', 'travel', 'crew', 'crafting', 'market', 'season', 'admin']).optional().default('all'),
   priority: z.enum(['all', 'low', 'normal', 'high', 'urgent']).optional().default('all'),
   unreadOnly: z.coerce.boolean().optional().default(false),
 });
@@ -733,24 +748,7 @@ export const notificationActionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('preferences'),
-    mutedCategories: z
-      .array(
-        z.enum([
-          'system',
-          'combat',
-          'economy',
-          'contract',
-          'faction',
-          'travel',
-          'crew',
-          'crafting',
-          'market',
-          'season',
-          'admin',
-        ]),
-      )
-      .max(11)
-      .default([]),
+    mutedCategories: z.array(z.enum(['system', 'combat', 'economy', 'contract', 'faction', 'travel', 'crew', 'crafting', 'market', 'season', 'admin'])).max(11).default([]),
     digestEnabled: z.boolean().default(true),
     digestFrequencyMinutes: z.coerce.number().int().min(60).max(10080).default(1440),
   }),

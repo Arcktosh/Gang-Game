@@ -12,7 +12,7 @@
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "validate": "pnpm validate:static",
-    "validate:static": "node scripts/validate-migrations.mjs && node scripts/audit-hardening.mjs && node scripts/audit-route-contracts.mjs && node scripts/validate-mvp-pages.mjs && node scripts/validate-playable-actions.mjs && node scripts/validate-mvp-gameplay.mjs && node scripts/validate-admin-rbac.mjs && node scripts/validate-admin-operations-ui.mjs && node scripts/validate-job-lifecycle.mjs && node scripts/validate-legal-recovery.mjs && node scripts/validate-release-readiness.mjs && node scripts/validate-integration-tests.mjs && node scripts/validate-mvp-acceptance.mjs && node scripts/validate-runtime-proof.mjs && node scripts/validate-monetization-foundation.mjs && node scripts/validate-public-launch.mjs && node scripts/validate-site-quality.mjs && node scripts/validate-in-progress-closures.mjs && node scripts/validate-worker-hardening.mjs && node scripts/validate-docs.mjs && node scripts/validate-ci-workflow.mjs",
+    "validate:static": "node scripts/validate-migrations.mjs && node scripts/audit-hardening.mjs && node scripts/audit-route-contracts.mjs && node scripts/validate-mvp-pages.mjs && node scripts/validate-playable-actions.mjs && node scripts/validate-mvp-gameplay.mjs && node scripts/validate-admin-rbac.mjs && node scripts/validate-admin-operations-ui.mjs && node scripts/validate-job-lifecycle.mjs && node scripts/validate-legal-recovery.mjs && node scripts/validate-release-readiness.mjs && node scripts/validate-integration-tests.mjs && node scripts/validate-mvp-acceptance.mjs && node scripts/validate-runtime-proof.mjs && node scripts/validate-monetization-foundation.mjs && node scripts/validate-public-launch.mjs && node scripts/validate-site-quality.mjs && node scripts/validate-in-progress-closures.mjs && node scripts/validate-worker-hardening.mjs && node scripts/validate-message-moderation.mjs && node scripts/validate-feature-flags.mjs && node scripts/validate-operational-anomalies.mjs && node scripts/validate-admin-audit-workbench.mjs && node scripts/validate-admin-rollback-tooling.mjs && node scripts/generate-agent-memory.mjs --check && node scripts/validate-docs.mjs && node scripts/validate-ci-workflow.mjs",
     "validate:ci": "pnpm validate:static && pnpm typecheck && pnpm build && pnpm test",
     "validate:docs": "node scripts/validate-docs.mjs",
     "validate:migrations": "node scripts/validate-migrations.mjs",
@@ -32,7 +32,10 @@
     "db:apply:file": "pnpm --filter @drugdeal/db db:apply:file",
     "db:seed": "pnpm db:apply:file -- drizzle/0001_seed_starter_content.sql",
     "db:backup": "bash scripts/backup-db.sh",
-    "db:restore": "bash scripts/restore-db.sh"
+    "db:restore": "bash scripts/restore-db.sh",
+    "agent:memory": "node scripts/generate-agent-memory.mjs",
+    "agent:memory:check": "node scripts/generate-agent-memory.mjs --check",
+    "validate:agent-memory": "node scripts/generate-agent-memory.mjs --check"
   },
   "devDependencies": {
     "@types/node": "latest",

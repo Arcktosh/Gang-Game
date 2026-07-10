@@ -3,8 +3,7 @@ import { ToastProvider } from '@/features/ui/toast-provider';
 import './globals.css';
 
 const siteName = 'DrugDeal Game';
-const siteDescription =
-  'A fictional text-based persistent browser MMO with jobs, crimes, factions, markets, shops, messaging, and seasonal progression.';
+const siteDescription = 'A fictional text-based persistent browser MMO with jobs, crimes, factions, markets, shops, messaging, and seasonal progression.';
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export const metadata: Metadata = {
@@ -15,13 +14,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteName}`,
   },
   description: siteDescription,
-  keywords: [
-    'browser MMO',
-    'text-based game',
-    'persistent game',
-    'fictional crime economy',
-    'strategy RPG',
-  ],
+  keywords: ['browser MMO', 'text-based game', 'persistent game', 'fictional crime economy', 'strategy RPG'],
   authors: [{ name: 'DrugDeal Game Team' }],
   creator: 'DrugDeal Game Team',
   publisher: 'DrugDeal Game Team',

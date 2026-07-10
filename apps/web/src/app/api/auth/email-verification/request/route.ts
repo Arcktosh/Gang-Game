@@ -10,11 +10,7 @@ const EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 60 * 24;
 
 export async function POST(request: NextRequest) {
   return withApiObservability(request, async () => {
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'auth:email-verification-request'),
-      windowSeconds: 300,
-      maxRequests: 5,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'auth:email-verification-request'), windowSeconds: 300, maxRequests: 5 });
 
     if (!limit.ok) {
       return limit.response;
@@ -42,8 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     return jsonOk({
-      message:
-        'If verification is needed for that email address, a verification link has been prepared.',
+      message: 'If verification is needed for that email address, a verification link has been prepared.',
       verificationUrl: process.env.NODE_ENV === 'production' ? null : verificationUrl,
     });
   });

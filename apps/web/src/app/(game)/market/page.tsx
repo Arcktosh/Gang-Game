@@ -1,11 +1,5 @@
 import { eq } from 'drizzle-orm';
-import {
-  db,
-  inventoryItems,
-  listActiveActionLocks,
-  listActiveMarketEventsForLocation,
-  listMarketForLocation,
-} from '@drugdeal/db';
+import { db, inventoryItems, listActiveActionLocks, listActiveMarketEventsForLocation, listMarketForLocation } from '@drugdeal/db';
 import { GameActionForm } from '@/features/game/action-form';
 import {
   Card,
@@ -50,10 +44,7 @@ export default async function MarketPage() {
                   </div>
                   <div>
                     <dt>Risk</dt>
-                    <dd>
-                      {event.event.riskDelta >= 0 ? '+' : ''}
-                      {event.event.riskDelta}
-                    </dd>
+                    <dd>{event.event.riskDelta >= 0 ? '+' : ''}{event.event.riskDelta}</dd>
                   </div>
                   <div>
                     <dt>Price impact</dt>
@@ -119,10 +110,7 @@ export default async function MarketPage() {
           {inventory.length > 0 ? (
             <div className="compact-market-grid compact-market-grid--inventory">
               {inventory.map((item) => (
-                <article
-                  key={item.id}
-                  className="compact-market-card compact-market-card--inventory"
-                >
+                <article key={item.id} className="compact-market-card compact-market-card--inventory">
                   <div className="compact-market-card__header">
                     <strong>{item.itemKey}</strong>
                     <span>Owned: {item.quantity}</span>

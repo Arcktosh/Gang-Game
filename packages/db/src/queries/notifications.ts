@@ -1,21 +1,7 @@
 import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
-import {
-  bodyForEvent,
-  buildNotificationDigestSummary,
-  categoryForEventType,
-  priorityForEventType,
-  shouldNotifyForEventType,
-  titleForEventType,
-} from '@drugdeal/game';
+import { bodyForEvent, buildNotificationDigestSummary, categoryForEventType, priorityForEventType, shouldNotifyForEventType, titleForEventType } from '@drugdeal/game';
 import { db } from '../client';
-import {
-  activityFeedEntries,
-  characters,
-  notificationDigests,
-  notificationPreferences,
-  notifications,
-  playerEvents,
-} from '../schema';
+import { activityFeedEntries, characters, notificationDigests, notificationPreferences, notifications, playerEvents } from '../schema';
 
 type Tx = any;
 
@@ -24,12 +10,7 @@ type NotificationAction =
   | { action: 'archive'; characterId?: string; notificationId: string }
   | { action: 'mark_all_read'; characterId?: string }
   | { action: 'archive_read'; characterId?: string }
-  | {
-      action: 'preferences';
-      mutedCategories: string[];
-      digestEnabled: boolean;
-      digestFrequencyMinutes: number;
-    };
+  | { action: 'preferences'; mutedCategories: string[]; digestEnabled: boolean; digestFrequencyMinutes: number };
 
 export async function createNotification(input: {
   tx?: Tx;
@@ -97,6 +78,7 @@ export async function createActivityFeedEntry(input: {
   return row ?? null;
 }
 
+
 export type NotificationCenterFilters = {
   userId: string;
   characterId?: string | null;
@@ -107,10 +89,7 @@ export type NotificationCenterFilters = {
   offset?: number;
 };
 
-export async function listNotificationStreamSnapshot(input: {
-  userId: string;
-  characterId?: string | null;
-}) {
+export async function listNotificationStreamSnapshot(input: { userId: string; characterId?: string | null }) {
   const center = await listNotificationCenter(input);
 
   if (!center) {
@@ -163,19 +142,14 @@ export async function listNotificationCenter(input: NotificationCenterFilters) {
   const limit = Math.min(Math.max(input.limit ?? 40, 1), 100);
   const offset = Math.min(Math.max(input.offset ?? 0, 0), 10_000);
   const character = input.characterId
-    ? await db.query.characters.findFirst({
-        where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
-      })
+    ? await db.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) })
     : null;
 
   if (input.characterId && !character) {
     return null;
   }
 
-  const notificationConditions = [
-    eq(notifications.userId, input.userId),
-    isNull(notifications.archivedAt),
-  ];
+  const notificationConditions = [eq(notifications.userId, input.userId), isNull(notifications.archivedAt)];
 
   if (input.characterId) {
     notificationConditions.push(eq(notifications.characterId, input.characterId));
@@ -196,53 +170,28 @@ export async function listNotificationCenter(input: NotificationCenterFilters) {
   const whereForCharacter = and(...notificationConditions);
 
   const [recent, unread, feed, preferences, digests] = await Promise.all([
-    db.query.notifications.findMany({
-      where: whereForCharacter,
-      orderBy: desc(notifications.createdAt),
-      limit,
-      offset,
-    }),
-    db.query.notifications.findMany({
-      where: and(whereForCharacter, isNull(notifications.readAt)),
-      orderBy: desc(notifications.createdAt),
-      limit: 20,
-    }),
+    db.query.notifications.findMany({ where: whereForCharacter, orderBy: desc(notifications.createdAt), limit, offset }),
+    db.query.notifications.findMany({ where: and(whereForCharacter, isNull(notifications.readAt)), orderBy: desc(notifications.createdAt), limit: 20 }),
     db.query.activityFeedEntries.findMany({
       where: input.characterId
-        ? or(
-            eq(activityFeedEntries.characterId, input.characterId),
-            eq(activityFeedEntries.scope, 'public'),
-          )
+        ? or(eq(activityFeedEntries.characterId, input.characterId), eq(activityFeedEntries.scope, 'public'))
         : or(eq(activityFeedEntries.userId, input.userId), eq(activityFeedEntries.scope, 'public')),
       orderBy: desc(activityFeedEntries.createdAt),
       limit,
       offset,
     }),
-    db.query.notificationPreferences.findFirst({
-      where: eq(notificationPreferences.userId, input.userId),
-    }),
-    db.query.notificationDigests.findMany({
-      where: eq(notificationDigests.userId, input.userId),
-      orderBy: desc(notificationDigests.createdAt),
-      limit: 5,
-    }),
+    db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, input.userId) }),
+    db.query.notificationDigests.findMany({ where: eq(notificationDigests.userId, input.userId), orderBy: desc(notificationDigests.createdAt), limit: 5 }),
   ]);
 
   return {
     character,
     unreadCount: unread.length,
-    highPriorityCount: unread.filter(
-      (item: any) => item.priority === 'high' || item.priority === 'urgent',
-    ).length,
+    highPriorityCount: unread.filter((item: any) => item.priority === 'high' || item.priority === 'urgent').length,
     recent,
     unread,
     feed,
-    preferences: preferences ?? {
-      userId: input.userId,
-      mutedCategories: [],
-      digestEnabled: true,
-      digestFrequencyMinutes: 1440,
-    },
+    preferences: preferences ?? { userId: input.userId, mutedCategories: [], digestEnabled: true, digestFrequencyMinutes: 1440 },
     filters: {
       category: input.category ?? 'all',
       priority: input.priority ?? 'all',
@@ -278,72 +227,24 @@ export async function runNotificationAction(input: { userId: string } & Notifica
     return { ok: true as const, data: { preferences } };
   }
 
-  const characterClause = input.characterId
-    ? eq(notifications.characterId, input.characterId)
-    : sql`true`;
+  const characterClause = input.characterId ? eq(notifications.characterId, input.characterId) : sql`true`;
 
   if (input.action === 'mark_read') {
-    const [row] = await db
-      .update(notifications)
-      .set({ readAt: sql`now()` })
-      .where(
-        and(
-          eq(notifications.id, input.notificationId),
-          eq(notifications.userId, input.userId),
-          characterClause,
-        ),
-      )
-      .returning();
-    return row
-      ? { ok: true as const, data: { notification: row } }
-      : { ok: false as const, code: 'not_found', message: 'Notification not found.' };
+    const [row] = await db.update(notifications).set({ readAt: sql`now()` }).where(and(eq(notifications.id, input.notificationId), eq(notifications.userId, input.userId), characterClause)).returning();
+    return row ? { ok: true as const, data: { notification: row } } : { ok: false as const, code: 'not_found', message: 'Notification not found.' };
   }
 
   if (input.action === 'archive') {
-    const [row] = await db
-      .update(notifications)
-      .set({ archivedAt: sql`now()`, readAt: sql`coalesce(${notifications.readAt}, now())` })
-      .where(
-        and(
-          eq(notifications.id, input.notificationId),
-          eq(notifications.userId, input.userId),
-          characterClause,
-        ),
-      )
-      .returning();
-    return row
-      ? { ok: true as const, data: { notification: row } }
-      : { ok: false as const, code: 'not_found', message: 'Notification not found.' };
+    const [row] = await db.update(notifications).set({ archivedAt: sql`now()`, readAt: sql`coalesce(${notifications.readAt}, now())` }).where(and(eq(notifications.id, input.notificationId), eq(notifications.userId, input.userId), characterClause)).returning();
+    return row ? { ok: true as const, data: { notification: row } } : { ok: false as const, code: 'not_found', message: 'Notification not found.' };
   }
 
   if (input.action === 'mark_all_read') {
-    const rows = await db
-      .update(notifications)
-      .set({ readAt: sql`now()` })
-      .where(
-        and(
-          eq(notifications.userId, input.userId),
-          characterClause,
-          isNull(notifications.readAt),
-          isNull(notifications.archivedAt),
-        ),
-      )
-      .returning();
+    const rows = await db.update(notifications).set({ readAt: sql`now()` }).where(and(eq(notifications.userId, input.userId), characterClause, isNull(notifications.readAt), isNull(notifications.archivedAt))).returning();
     return { ok: true as const, data: { updated: rows.length } };
   }
 
-  const rows = await db
-    .update(notifications)
-    .set({ archivedAt: sql`now()` })
-    .where(
-      and(
-        eq(notifications.userId, input.userId),
-        characterClause,
-        isNull(notifications.archivedAt),
-        sql`${notifications.readAt} is not null`,
-      ),
-    )
-    .returning();
+  const rows = await db.update(notifications).set({ archivedAt: sql`now()` }).where(and(eq(notifications.userId, input.userId), characterClause, isNull(notifications.archivedAt), sql`${notifications.readAt} is not null`)).returning();
   return { ok: true as const, data: { updated: rows.length } };
 }
 
@@ -358,33 +259,27 @@ export async function createNotificationsFromRecentEvents() {
 
   for (const event of events as any[]) {
     if (!event.characterId || !shouldNotifyForEventType(event.type)) continue;
-    const character = await db.query.characters.findFirst({
-      where: eq(characters.id, event.characterId),
-    });
+    const character = await db.query.characters.findFirst({ where: eq(characters.id, event.characterId) });
     if (!character) continue;
 
     const category = categoryForEventType(event.type);
-    const preferences = await db.query.notificationPreferences.findFirst({
-      where: eq(notificationPreferences.userId, character.userId),
-    });
+    const preferences = await db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, character.userId) });
     const categoryMuted = preferences?.mutedCategories?.includes(category) ?? false;
     const title = titleForEventType(event.type);
     const body = bodyForEvent(event.type, event.payload ?? {});
 
-    const result = categoryMuted
-      ? null
-      : await createNotification({
-          userId: character.userId,
-          characterId: character.id,
-          category,
-          priority: priorityForEventType(event.type),
-          title,
-          body,
-          actionUrl: '/dashboard',
-          sourceType: 'player_event',
-          sourceId: event.id,
-          metadata: { eventType: event.type, payload: event.payload ?? {} },
-        });
+    const result = categoryMuted ? null : await createNotification({
+      userId: character.userId,
+      characterId: character.id,
+      category,
+      priority: priorityForEventType(event.type),
+      title,
+      body,
+      actionUrl: '/dashboard',
+      sourceType: 'player_event',
+      sourceId: event.id,
+      metadata: { eventType: event.type, payload: event.payload ?? {} },
+    });
 
     await createActivityFeedEntry({
       scope: event.visibility === 'public' ? 'public' : 'private',

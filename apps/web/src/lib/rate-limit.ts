@@ -26,6 +26,8 @@ type RedisConstructor = new (
     lazyConnect: boolean;
     maxRetriesPerRequest: number;
     enableOfflineQueue: boolean;
+    connectTimeout: number;
+    retryStrategy: () => null;
   },
 ) => RedisClient & { connect(): Promise<void> };
 
@@ -112,6 +114,8 @@ async function getRedisClient(): Promise<RedisClient | null> {
           lazyConnect: true,
           maxRetriesPerRequest: 1,
           enableOfflineQueue: false,
+          connectTimeout: 1_000,
+          retryStrategy: () => null,
         });
         await client.connect();
         return client;
@@ -132,10 +136,7 @@ async function getRedisClient(): Promise<RedisClient | null> {
   return redisClientPromise;
 }
 
-async function incrementRedisBucket(
-  options: RateLimitOptions,
-  now: number,
-): Promise<BucketIncrement | null> {
+async function incrementRedisBucket(options: RateLimitOptions, now: number): Promise<BucketIncrement | null> {
   const client = await getRedisClient();
 
   if (!client) {
@@ -182,11 +183,7 @@ async function incrementBucket(options: RateLimitOptions): Promise<BucketIncreme
     : memoryBucket;
 }
 
-export function rateLimitKey(
-  request: Pick<NextRequest, 'headers'>,
-  scope: string,
-  actorId?: string | null,
-) {
+export function rateLimitKey(request: Pick<NextRequest, 'headers'>, scope: string, actorId?: string | null) {
   return `${scope}:${actorId ?? getClientIp(request)}`;
 }
 

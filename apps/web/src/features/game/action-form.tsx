@@ -167,11 +167,7 @@ export function GameActionForm({
     <form
       className={`action-form${isDisabled ? ' action-form--disabled' : ''}`}
       onSubmit={handleSubmit}
-      aria-describedby={
-        [helper ? helperId : null, effectiveDisabledReason ? disabledNoteId : null]
-          .filter(Boolean)
-          .join(' ') || undefined
-      }
+      aria-describedby={[helper ? helperId : null, effectiveDisabledReason ? disabledNoteId : null].filter(Boolean).join(' ') || undefined}
     >
       {fields.map((field) => {
         const fieldId = `${formId}-${field.name}`;
@@ -179,13 +175,7 @@ export function GameActionForm({
           <label className="action-form__label" htmlFor={fieldId} key={field.name}>
             <span>{field.label}</span>
             {field.type === 'select' ? (
-              <select
-                className="action-form__control"
-                id={fieldId}
-                name={field.name}
-                defaultValue={String(field.defaultValue ?? field.options?.[0]?.value ?? '')}
-                disabled={isDisabled}
-              >
+              <select className="action-form__control" id={fieldId} name={field.name} defaultValue={String(field.defaultValue ?? field.options?.[0]?.value ?? '')} disabled={isDisabled}>
                 {(field.options ?? []).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -229,11 +219,7 @@ export function GameActionForm({
         </p>
       ) : null}
       <button className="action-form__button" disabled={isDisabled} type="submit">
-        {isPending
-          ? 'Working...'
-          : isCooldownActive
-            ? `Ready in ${formatRemainingTime(cooldownRemainingMs)}`
-            : submitLabel}
+        {isPending ? 'Working...' : isCooldownActive ? `Ready in ${formatRemainingTime(cooldownRemainingMs)}` : submitLabel}
       </button>
     </form>
   );

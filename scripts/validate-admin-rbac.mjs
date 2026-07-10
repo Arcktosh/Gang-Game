@@ -49,18 +49,14 @@ for (const filePath of routeFiles) {
   }
 
   if (source.includes('getSessionFromRequest')) {
-    errors.push(
-      `${relative} still imports or calls getSessionFromRequest directly instead of capability auth.`,
-    );
+    errors.push(`${relative} still imports or calls getSessionFromRequest directly instead of capability auth.`);
   }
 
   if (source.includes('session.user.isAdmin')) {
     errors.push(`${relative} still checks session.user.isAdmin directly.`);
   }
 
-  const matches = [...source.matchAll(/requireAdminCapability\(request, '([a-z_]+)'\)/g)].map(
-    (match) => match[1],
-  );
+  const matches = [...source.matchAll(/requireAdminCapability\(request, '([a-z_]+)'\)/g)].map((match) => match[1]);
   if (matches.length === 0) {
     errors.push(`${relative} does not declare a literal admin capability.`);
   }
@@ -73,15 +69,7 @@ for (const filePath of routeFiles) {
   }
 }
 
-const requiredCapabilities = [
-  'view_admin',
-  'search_players',
-  'manage_config',
-  'manage_announcements',
-  'moderate_content',
-  'enforce_players',
-  'manage_economy',
-];
+const requiredCapabilities = ['view_admin', 'search_players', 'manage_config', 'manage_announcements', 'moderate_content', 'enforce_players', 'manage_economy'];
 for (const capability of requiredCapabilities) {
   if (!capabilityUsage.has(capability)) {
     errors.push(`No admin route declares required capability ${capability}.`);
@@ -102,29 +90,18 @@ if (!authQuery.includes('adminRole')) {
 }
 
 const schema = read(schemaPath);
-if (
-  !schema.includes("pgEnum('admin_role'") ||
-  !schema.includes("adminRole: adminRole('admin_role')")
-) {
+if (!schema.includes("pgEnum('admin_role'") || !schema.includes("adminRole: adminRole('admin_role')")) {
   errors.push('Database schema does not declare the admin_role enum and users.adminRole column.');
 }
 
 const migration = read(migrationPath);
-if (
-  !migration.includes('CREATE TYPE admin_role') ||
-  !migration.includes('ALTER TABLE users') ||
-  !migration.includes('UPDATE users')
-) {
-  errors.push(
-    'Admin-role migration is missing enum creation, users column, or legacy is_admin backfill.',
-  );
+if (!migration.includes('CREATE TYPE admin_role') || !migration.includes('ALTER TABLE users') || !migration.includes('UPDATE users')) {
+  errors.push('Admin-role migration is missing enum creation, users column, or legacy is_admin backfill.');
 }
 
 const packageJson = JSON.parse(read(packageJsonPath));
 if (!String(packageJson.scripts?.['db:apply:all'] ?? '').includes('apply-migrations.ts')) {
-  errors.push(
-    'packages/db/package.json must keep db:apply:all wired to the tracked migration runner.',
-  );
+  errors.push('packages/db/package.json must keep db:apply:all wired to the tracked migration runner.');
 }
 
 const result = {

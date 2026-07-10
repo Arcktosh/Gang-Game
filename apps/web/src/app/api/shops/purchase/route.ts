@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 import { withIdempotency } from '@/lib/idempotency';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -14,14 +15,16 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'shops:purchase', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'shops:purchase', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.shops');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const body = await parseJsonBody(request, purchaseShopListingSchema);
@@ -39,8 +42,7 @@ export async function POST(request: NextRequest) {
         const result = await purchaseShopListing({ ...body.data, userId: auth.userId });
 
         if (!result.ok) {
-          const status =
-            result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
           return jsonError(result.code, result.message, status);
         }
 

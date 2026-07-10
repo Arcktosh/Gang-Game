@@ -1,14 +1,7 @@
 import { listNotificationCenter, runNotificationAction } from '@drugdeal/db';
 import { notificationActionSchema, notificationCenterQuerySchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
-import {
-  jsonError,
-  jsonOk,
-  paginationMeta,
-  parseJsonBody,
-  parsePagination,
-  requireRequestUserId,
-} from '@/lib/api';
+import { jsonError, jsonOk, paginationMeta, parseJsonBody, parsePagination, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
@@ -20,11 +13,7 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:notifications', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:notifications', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -61,10 +50,7 @@ export async function GET(request: NextRequest) {
       return jsonError('not_found', 'Character not found.', 404);
     }
 
-    return jsonOk({
-      ...center,
-      pagination: paginationMeta({ ...pagination.pagination, count: center.recent.length }),
-    });
+    return jsonOk({ ...center, pagination: paginationMeta({ ...pagination.pagination, count: center.recent.length }) });
   });
 }
 
@@ -76,11 +62,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:notifications', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:notifications', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;

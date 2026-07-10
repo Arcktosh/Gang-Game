@@ -139,16 +139,8 @@ export default async function DashboardPage() {
         listFinanceMarket(),
         listCharacterPortfolio(activeCharacter.id, activeSession.user.id),
         listAssetOrders(activeCharacter.id, activeSession.user.id, 10),
-        listCharacterBankTransactions({
-          characterId: activeCharacter.id,
-          userId: activeSession.user.id,
-          limit: 8,
-        }),
-        listCharacterLoans({
-          characterId: activeCharacter.id,
-          userId: activeSession.user.id,
-          limit: 8,
-        }),
+        listCharacterBankTransactions({ characterId: activeCharacter.id, userId: activeSession.user.id, limit: 8 }),
+        listCharacterLoans({ characterId: activeCharacter.id, userId: activeSession.user.id, limit: 8 }),
         listGamblingGames(),
         listMoneySinks(),
         getGamblingSummary(activeCharacter.id, activeSession.user.id),
@@ -210,11 +202,7 @@ export default async function DashboardPage() {
         null,
         [],
         [],
-        {
-          training: [],
-          courses: [],
-          queue: { activeTraining: 0, activeCourses: 0, overdueCompletions: 0, nextDueAt: null },
-        },
+        { training: [], courses: [], queue: { activeTraining: 0, activeCourses: 0, overdueCompletions: 0, nextDueAt: null } },
       ];
 
   return (

@@ -11,11 +11,7 @@ export function calculateTradeFee(grossAmount: number, assetType: string): numbe
   return Math.max(1, Math.ceil(grossAmount * rate));
 }
 
-export function calculateNextAssetPrice(input: AssetTickInput): {
-  price: number;
-  sentiment: number;
-  volume: number;
-} {
+export function calculateNextAssetPrice(input: AssetTickInput): { price: number; sentiment: number; volume: number } {
   const volatility = Math.max(1, input.volatility);
   const previousSentiment = Math.max(-10, Math.min(10, input.sentiment));
   const randomSwing = Math.floor(Math.random() * (volatility * 2 + 1)) - volatility;
@@ -23,20 +19,12 @@ export function calculateNextAssetPrice(input: AssetTickInput): {
   const movementPercent = input.drift + sentiment + randomSwing;
   const movement = Math.round(input.currentPrice * (movementPercent / 100));
   const price = Math.max(1, input.currentPrice + movement);
-  const volume = Math.max(
-    10,
-    Math.floor(input.volume * (0.8 + Math.random() * 0.6)) + Math.abs(movement) * 5,
-  );
+  const volume = Math.max(10, Math.floor(input.volume * (0.8 + Math.random() * 0.6)) + Math.abs(movement) * 5);
 
   return { price, sentiment, volume };
 }
 
-export function calculateAverageCost(input: {
-  previousQuantity: number;
-  previousAverageCost: number;
-  buyQuantity: number;
-  buyPriceEach: number;
-}) {
+export function calculateAverageCost(input: { previousQuantity: number; previousAverageCost: number; buyQuantity: number; buyPriceEach: number }) {
   const totalQuantity = input.previousQuantity + input.buyQuantity;
 
   if (totalQuantity <= 0) {

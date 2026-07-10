@@ -79,6 +79,7 @@ For a stricter CI stage with PostgreSQL and migrations:
 SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime
 ```
 
+
 ## Orchestrated MVP runtime proof
 
 For final MVP validation, prefer the Feature Pass 54 orchestrator instead of running smoke checks manually:

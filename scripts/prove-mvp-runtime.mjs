@@ -7,18 +7,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 const repoRoot = process.cwd();
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run') || parseBoolean(process.env.MVP_PROOF_DRY_RUN, false);
-const skipInstall =
-  args.has('--skip-install') || parseBoolean(process.env.MVP_PROOF_SKIP_INSTALL, false);
-const skipDocker =
-  args.has('--skip-docker') || parseBoolean(process.env.MVP_PROOF_SKIP_DOCKER, false);
-const skipMigrations =
-  args.has('--skip-migrations') || parseBoolean(process.env.MVP_PROOF_SKIP_MIGRATIONS, false);
-const skipValidation =
-  args.has('--skip-validation') || parseBoolean(process.env.MVP_PROOF_SKIP_VALIDATION, false);
-const skipServer =
-  args.has('--skip-server') || parseBoolean(process.env.MVP_PROOF_SKIP_SERVER, false);
-const skipBackup =
-  args.has('--skip-backup') || parseBoolean(process.env.MVP_PROOF_SKIP_BACKUP, false);
+const skipInstall = args.has('--skip-install') || parseBoolean(process.env.MVP_PROOF_SKIP_INSTALL, false);
+const skipDocker = args.has('--skip-docker') || parseBoolean(process.env.MVP_PROOF_SKIP_DOCKER, false);
+const skipMigrations = args.has('--skip-migrations') || parseBoolean(process.env.MVP_PROOF_SKIP_MIGRATIONS, false);
+const skipValidation = args.has('--skip-validation') || parseBoolean(process.env.MVP_PROOF_SKIP_VALIDATION, false);
+const skipServer = args.has('--skip-server') || parseBoolean(process.env.MVP_PROOF_SKIP_SERVER, false);
+const skipBackup = args.has('--skip-backup') || parseBoolean(process.env.MVP_PROOF_SKIP_BACKUP, false);
 const restoreDatabaseUrl = process.env.MVP_RESTORE_DATABASE_URL;
 const smokeBaseUrl = process.env.SMOKE_BASE_URL ?? 'http://localhost:3000';
 const startupTimeoutMs = parsePositiveInteger(process.env.MVP_PROOF_STARTUP_TIMEOUT_MS, 120000);
@@ -30,8 +24,7 @@ let useCurrentDatabase = parseBoolean(process.env.MVP_PROOF_USE_CURRENT_DATABASE
 
 const migrationScripts = ['db:apply:all'];
 
-const proofCommandSummary =
-  'pnpm install, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm test, SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime, pnpm db:backup, pnpm db:restore';
+const proofCommandSummary = 'pnpm install, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm test, SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime, pnpm db:backup, pnpm db:restore';
 
 const validationScripts = ['validate:static', 'typecheck', 'test'];
 const results = [{ step: 'proof-command-summary', ok: true, command: proofCommandSummary }];
@@ -78,9 +71,7 @@ function loadEnvFileIfPresent(filePath) {
       continue;
     }
 
-    const assignment = trimmed.startsWith('export ')
-      ? trimmed.slice('export '.length).trim()
-      : trimmed;
+    const assignment = trimmed.startsWith('export ') ? trimmed.slice('export '.length).trim() : trimmed;
     const equalsIndex = assignment.indexOf('=');
 
     if (equalsIndex <= 0) {
@@ -98,12 +89,7 @@ function loadEnvFileIfPresent(filePath) {
 
 function loadRootEnv() {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
-  const envFiles = [
-    `.env.${nodeEnv}.local`,
-    nodeEnv === 'test' ? null : '.env.local',
-    `.env.${nodeEnv}`,
-    '.env',
-  ];
+  const envFiles = [`.env.${nodeEnv}.local`, nodeEnv === 'test' ? null : '.env.local', `.env.${nodeEnv}`, '.env'];
 
   for (const envFile of envFiles) {
     if (envFile) {
@@ -136,19 +122,25 @@ function getRuntimeEnv(proofDatabaseUrl) {
 }
 
 function resolveExecutable(command) {
-  if (process.platform !== 'win32') {
-    return command;
-  }
-
-  if (command === 'pnpm') {
-    return 'pnpm.cmd';
-  }
-
-  if (command === 'docker') {
-    return 'docker.exe';
-  }
-
   return command;
+}
+
+function shouldUseShell() {
+  return process.platform === 'win32';
+}
+
+function sanitizeEnv(env) {
+  const sanitized = {};
+
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    sanitized[key] = String(value);
+  }
+
+  return sanitized;
 }
 
 function ensureEnvFile() {
@@ -178,12 +170,22 @@ function runCommand(step, command, args = [], options = {}) {
   }
 
   return new Promise((resolve, reject) => {
-    const child = spawn(resolveExecutable(command), args, {
-      cwd: repoRoot,
-      stdio: 'inherit',
-      shell: false,
-      env: { ...process.env, ...options.env },
-    });
+    let child;
+
+    try {
+      child = spawn(resolveExecutable(command), args, {
+        cwd: repoRoot,
+        stdio: 'inherit',
+        shell: shouldUseShell(),
+        env: sanitizeEnv({ ...process.env, ...options.env }),
+        windowsHide: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      results.push({ step, ok: false, command: rendered, error: message });
+      reject(error);
+      return;
+    }
 
     child.on('exit', (code, signal) => {
       const ok = code === 0;
@@ -205,21 +207,25 @@ function runCommand(step, command, args = [], options = {}) {
 
 function spawnWebServer() {
   if (dryRun) {
-    results.push({
-      step: 'web-server',
-      ok: true,
-      dryRun: true,
-      command: 'pnpm --filter @drugdeal/web dev',
-    });
+    results.push({ step: 'web-server', ok: true, dryRun: true, command: 'pnpm --filter @drugdeal/web dev' });
     return null;
   }
 
-  const child = spawn(resolveExecutable('pnpm'), ['--filter', '@drugdeal/web', 'dev'], {
-    cwd: repoRoot,
-    stdio: ['ignore', 'inherit', 'inherit'],
-    shell: false,
-    env: process.env,
-  });
+  let child;
+
+  try {
+    child = spawn(resolveExecutable('pnpm'), ['--filter', '@drugdeal/web', 'dev'], {
+      cwd: repoRoot,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      shell: shouldUseShell(),
+      env: sanitizeEnv(process.env),
+      windowsHide: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    results.push({ step: 'web-server', ok: false, command: 'pnpm --filter @drugdeal/web dev', error: message });
+    throw error;
+  }
 
   child.on('exit', (code, signal) => {
     if (code !== null && code !== 0) {
@@ -304,16 +310,11 @@ async function main() {
 
     if (!skipMigrations) {
       if (!useCurrentDatabase) {
-        await runCommand(
-          'database-prepare-mvp-proof',
-          'pnpm',
-          ['--filter', '@drugdeal/db', 'db:prepare:mvp-proof'],
-          {
-            env: {
-              MVP_PROOF_DATABASE_URL: proofDatabaseUrl,
-            },
+        await runCommand('database-prepare-mvp-proof', 'pnpm', ['--filter', '@drugdeal/db', 'db:prepare:mvp-proof'], {
+          env: {
+            MVP_PROOF_DATABASE_URL: proofDatabaseUrl,
           },
-        );
+        });
       }
 
       for (const scriptName of migrationScripts) {
@@ -373,9 +374,7 @@ async function main() {
       ok: results.every((result) => result.ok),
       steps: results.length,
       skipped: results.filter((result) => result.skipped).length,
-      proofDatabase: useCurrentDatabase
-        ? 'current DATABASE_URL'
-        : new URL(proofDatabaseUrl).pathname.replace(/^\//, ''),
+      proofDatabase: useCurrentDatabase ? 'current DATABASE_URL' : new URL(proofDatabaseUrl).pathname.replace(/^\//, ''),
       restoreProofAttempted: Boolean(restoreDatabaseUrl) && !skipBackup,
     };
 

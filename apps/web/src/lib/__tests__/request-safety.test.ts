@@ -11,10 +11,42 @@ import {
   resetInMemoryRateLimits,
   resetRateLimitRedisStateForTests,
 } from '../rate-limit';
-import { buildIdempotencyRequestHash, parseIdempotencyKey, stableStringify } from '../idempotency';
+import {
+  buildIdempotencyRequestHash,
+  parseIdempotencyKey,
+  stableStringify,
+} from '../idempotency';
 
 function headers(values: Record<string, string>) {
   return new Headers(values);
+}
+
+async function withInMemoryRateLimiter<T>(run: () => Promise<T>) {
+  const previousRedisUrl = process.env.REDIS_URL;
+  const previousRateLimitRedisUrl = process.env.RATE_LIMIT_REDIS_URL;
+  const previousRedisRequired = process.env.RATE_LIMIT_REDIS_REQUIRED;
+
+  delete process.env.REDIS_URL;
+  delete process.env.RATE_LIMIT_REDIS_URL;
+  delete process.env.RATE_LIMIT_REDIS_REQUIRED;
+  resetInMemoryRateLimits();
+  resetRateLimitRedisStateForTests();
+
+  try {
+    return await run();
+  } finally {
+    if (previousRedisUrl === undefined) delete process.env.REDIS_URL;
+    else process.env.REDIS_URL = previousRedisUrl;
+
+    if (previousRateLimitRedisUrl === undefined) delete process.env.RATE_LIMIT_REDIS_URL;
+    else process.env.RATE_LIMIT_REDIS_URL = previousRateLimitRedisUrl;
+
+    if (previousRedisRequired === undefined) delete process.env.RATE_LIMIT_REDIS_REQUIRED;
+    else process.env.RATE_LIMIT_REDIS_REQUIRED = previousRedisRequired;
+
+    resetInMemoryRateLimits();
+    resetRateLimitRedisStateForTests();
+  }
 }
 
 test('public pagination defaults and caps use the player-safe window', () => {
@@ -63,46 +95,31 @@ test('rate-limit keys prefer actor ids and otherwise use forwarded client ip', (
 });
 
 test('in-memory rate limiter allows within-window traffic then rejects overflow', async () => {
-  resetInMemoryRateLimits();
+  await withInMemoryRateLimiter(async () => {
+    const first = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
+    const second = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
+    const third = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
 
-  const first = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
-  const second = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
-  const third = await assertRateLimit({ key: 'test:actor', windowSeconds: 60, maxRequests: 2 });
-
-  assert.equal(first.ok, true);
-  assert.equal(second.ok, true);
-  assert.equal(third.ok, false);
-  assert.equal(getInMemoryRateLimitBucketCount(), 1);
-  assert.equal(getRateLimitBackendStatus().backend, 'memory');
-
-  resetInMemoryRateLimits();
+    assert.equal(first.ok, true);
+    assert.equal(second.ok, true);
+    assert.equal(third.ok, false);
+    assert.equal(getInMemoryRateLimitBucketCount(), 1);
+    assert.equal(getRateLimitBackendStatus().backend, 'memory');
+  });
 });
 
 test('rate limiter exposes Redis configuration status while preserving memory fallback', async () => {
-  const previousUrl = process.env.REDIS_URL;
-  const previousRateLimitUrl = process.env.RATE_LIMIT_REDIS_URL;
+  await withInMemoryRateLimiter(async () => {
+    const result = await assertRateLimit({ key: 'test:fallback', windowSeconds: 60, maxRequests: 1 });
 
-  delete process.env.REDIS_URL;
-  delete process.env.RATE_LIMIT_REDIS_URL;
-  resetInMemoryRateLimits();
-  resetRateLimitRedisStateForTests();
-
-  const result = await assertRateLimit({ key: 'test:fallback', windowSeconds: 60, maxRequests: 1 });
-
-  assert.equal(result.ok, true);
-  assert.deepEqual(getRateLimitBackendStatus(), {
-    backend: 'memory',
-    redisConfigured: false,
-    redisDisabled: false,
-    memoryBucketCount: 1,
+    assert.equal(result.ok, true);
+    assert.deepEqual(getRateLimitBackendStatus(), {
+      backend: 'memory',
+      redisConfigured: false,
+      redisDisabled: false,
+      memoryBucketCount: 1,
+    });
   });
-
-  if (previousUrl === undefined) delete process.env.REDIS_URL;
-  else process.env.REDIS_URL = previousUrl;
-  if (previousRateLimitUrl === undefined) delete process.env.RATE_LIMIT_REDIS_URL;
-  else process.env.RATE_LIMIT_REDIS_URL = previousRateLimitUrl;
-  resetInMemoryRateLimits();
-  resetRateLimitRedisStateForTests();
 });
 
 test('idempotency fingerprints are stable across object key ordering', () => {
@@ -158,10 +175,10 @@ test('origin normalization accepts valid origins and rejects invalid values', ()
 });
 
 test('trusted origin parser de-duplicates and drops invalid origins', () => {
-  assert.deepEqual(
-    parseTrustedOrigins('https://a.test, invalid, https://a.test/path, https://b.test'),
-    ['https://a.test', 'https://b.test'],
-  );
+  assert.deepEqual(parseTrustedOrigins('https://a.test, invalid, https://a.test/path, https://b.test'), [
+    'https://a.test',
+    'https://b.test',
+  ]);
 });
 
 test('safe methods pass origin checks without requiring origin headers', () => {
@@ -172,18 +189,14 @@ test('safe methods pass origin checks without requiring origin headers', () => {
 });
 
 test('same-origin mutations pass origin checks', () => {
-  const decision = evaluateMutationOrigin(
-    requestFixture({ headers: { origin: 'https://game.example.test' } }),
-  );
+  const decision = evaluateMutationOrigin(requestFixture({ headers: { origin: 'https://game.example.test' } }));
 
   assert.equal(decision.allowed, true);
   assert.equal(decision.reason, 'same_origin');
 });
 
 test('untrusted cross-origin mutations are rejected', () => {
-  const decision = evaluateMutationOrigin(
-    requestFixture({ headers: { origin: 'https://evil.example.test' } }),
-  );
+  const decision = evaluateMutationOrigin(requestFixture({ headers: { origin: 'https://evil.example.test' } }));
 
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'untrusted_origin');
@@ -215,18 +228,10 @@ test('request id normalization accepts safe ids and rejects unsafe ids', () => {
 });
 
 test('request id lookup prefers x-request-id then x-correlation-id', () => {
+  assert.equal(getRequestIdFromHeaders(headers({ 'x-request-id': 'request-id-123' })), 'request-id-123');
+  assert.equal(getRequestIdFromHeaders(headers({ 'x-correlation-id': 'correlation-id-123' })), 'correlation-id-123');
   assert.equal(
-    getRequestIdFromHeaders(headers({ 'x-request-id': 'request-id-123' })),
-    'request-id-123',
-  );
-  assert.equal(
-    getRequestIdFromHeaders(headers({ 'x-correlation-id': 'correlation-id-123' })),
-    'correlation-id-123',
-  );
-  assert.equal(
-    getRequestIdFromHeaders(
-      headers({ 'x-request-id': 'request-id-123', 'x-correlation-id': 'correlation-id-123' }),
-    ),
+    getRequestIdFromHeaders(headers({ 'x-request-id': 'request-id-123', 'x-correlation-id': 'correlation-id-123' })),
     'request-id-123',
   );
 });

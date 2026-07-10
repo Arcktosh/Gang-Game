@@ -8,21 +8,21 @@ Text-based persistent browser MMO built with Next.js, PostgreSQL, Drizzle ORM, R
 
 Read these first during future implementation passes:
 
-1. `docs/README.md` - documentation map and retrieval rules.
-2. `docs/current-state.md` - compact project state and proof gaps.
-3. `docs/feature-checklist.md` - living production-readiness checklist.
-4. `docs/api-reference.md` - API route map when editing routes.
-5. `docs/migration-guide.md` - database setup and migration flow.
-6. `docs/validation-audit.md` - validation commands and known proof gaps.
-7. `docs/feature-history.md` - consolidated historical implementation audit trail.
+1. `AGENTS.md` - repository boundaries, dependency direction, and change protocol.
+2. `.agent-memory/README.md` - generated retrieval order for AI-assisted tasks.
+3. `.agent-memory/tasks.json` - machine-readable task queue and acceptance criteria.
+4. `docs/README.md` - human-maintained documentation map and retrieval rules.
+5. `docs/current-state.md` - compact project state and proof gaps.
+6. `docs/api-reference.md` - API route map when editing routes.
+7. `docs/migration-guide.md` - database setup and migration flow.
 
 Public launch references remain in `docs/privacy-policy.md`, `docs/terms-of-service.md`, `docs/community-rules.md`, and `docs/beta-test-plan.md`. Monetization planning remains in `docs/monetization.md`.
 
 ## Current state
 
-The repo is at **Feature Pass 89**. It is still an **MVP candidate**, not production-proven, because installed-environment proof remains outstanding. Feature Pass 56 added the monetization foundation and MVP acceptance gate; Feature Pass 59 added public launch polish and policy drafts; Feature Pass 60 added the site-quality baseline for accessibility, responsive design, PWA, and SEO; Feature Pass 88 consolidated package scripts/docs and added Redis-backed rate limiting with memory fallback; Feature Pass 89 adds idempotent achievement syncing plus worker retry/dead-letter handling. MVP acceptance is tracked in `docs/mvp-acceptance.md` and now runs through the consolidated `pnpm validate:static` chain.
+The repo is at **Feature Pass 97**. It is still an **MVP candidate**, not production-proven, because installed-environment proof remains outstanding. Feature Pass 56 added the monetization foundation and MVP acceptance gate; Feature Pass 59 added public launch polish and policy drafts; Feature Pass 60 added the site-quality baseline for accessibility, responsive design, PWA, and SEO; Feature Pass 88 consolidated package scripts/docs and added Redis-backed rate limiting with memory fallback; Feature Pass 89 adds idempotent achievement syncing plus worker retry/dead-letter handling; Feature Pass 90 adds admin message hiding plus configurable message-retention cleanup; Feature Pass 91 adds admin-operated feature flags for production kill switches; Feature Pass 92 adds automated operational anomaly detection with worker scans and admin review; Feature Pass 93 adds admin economy, inventory, and session audit workbench routes with CSV exports; Feature Pass 94 adds first-pass admin rollback tooling for cash/bank adjustment mistakes; Feature Pass 95 repairs audit-route typecheck failures and makes the MVP runtime proof runner Windows-safe; Feature Pass 96 aligns the Admin Console audit workbench prop types with nullable DB audit rows reported by local typecheck; Feature Pass 97 adds deterministic AI-agent memory indexes, a validated JSON task queue, and normalized shared-package barrel exports. MVP acceptance is tracked in `docs/mvp-acceptance.md` and now runs through the consolidated `pnpm validate:static` chain.
 
-Current breadth includes auth/account recovery, character creation, core actions, jobs, crimes, legal/hospital recovery, travel, market, banking/statements, money sinks, loans, finance charts, factions, PvP, shops, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baseline, monetization placeholders, static validation gates, and Redis-backed anti-spam/rate limiting, idempotent dashboard achievement sync, and worker retry/dead-letter handling.
+Current breadth includes auth/account recovery, character creation, core actions, jobs, crimes, legal/hospital recovery, travel, market, banking/statements, money sinks, loans, finance charts, factions, PvP, shops, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baseline, monetization placeholders, static validation gates, and Redis-backed anti-spam/rate limiting, idempotent dashboard achievement sync, worker retry/dead-letter handling, admin message hiding, message-retention cleanup, admin-operated feature flags for production kill switches, operational anomaly review, admin audit workbench filters/CSV exports, cash/bank rollback controls for admin adjustment mistakes, typed audit CSV mappers, nullable-safe Admin Console audit workbench rendering, and Windows-safe runtime proof process spawning.
 
 ## Architecture
 
@@ -69,6 +69,8 @@ pnpm test                        # Package test suites
 pnpm validate                    # Alias for pnpm validate:static
 pnpm validate:static             # Consolidated dependency-light static validation chain
 pnpm validate:docs               # Documentation/API drift audit
+pnpm agent:memory                # Regenerate AI retrieval indexes
+pnpm agent:memory:check          # Verify indexes and task queue are current
 pnpm validate:migrations         # Migration order and coverage audit
 # validate:runtime-proof is consolidated into pnpm validate:static
 pnpm smoke:runtime               # Runtime smoke checks against a running app
@@ -80,6 +82,7 @@ pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql  # Targeted repai
 pnpm db:backup                   # PostgreSQL custom-format backup using DATABASE_URL
 pnpm db:restore -- backup.dump   # Restore using DATABASE_URL
 ```
+
 
 ## Release proof docs
 

@@ -8,10 +8,8 @@ const MIGRATION_PATTERN = /^(\d{4})_.+\.sql$/;
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run') || parseBoolean(process.env.DB_MIGRATIONS_DRY_RUN, false);
 const allowChecksumMismatch =
-  args.includes('--allow-checksum-mismatch') ||
-  parseBoolean(process.env.DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH, false);
-const baselineThrough =
-  readOption('--baseline-through') ?? process.env.DB_MIGRATIONS_BASELINE_THROUGH ?? null;
+  args.includes('--allow-checksum-mismatch') || parseBoolean(process.env.DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH, false);
+const baselineThrough = readOption('--baseline-through') ?? process.env.DB_MIGRATIONS_BASELINE_THROUGH ?? null;
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
   if (value === undefined || value === '') {
@@ -55,9 +53,7 @@ function loadEnvFileIfPresent(filePath: string) {
       continue;
     }
 
-    const assignment = trimmed.startsWith('export ')
-      ? trimmed.slice('export '.length).trim()
-      : trimmed;
+    const assignment = trimmed.startsWith('export ') ? trimmed.slice('export '.length).trim() : trimmed;
     const equalsIndex = assignment.indexOf('=');
 
     if (equalsIndex <= 0) {
@@ -75,12 +71,7 @@ function loadEnvFileIfPresent(filePath: string) {
 
 function loadMonorepoRootEnv(monorepoRoot: string) {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
-  const envFiles = [
-    `.env.${nodeEnv}.local`,
-    nodeEnv === 'test' ? null : '.env.local',
-    `.env.${nodeEnv}`,
-    '.env',
-  ];
+  const envFiles = [`.env.${nodeEnv}.local`, nodeEnv === 'test' ? null : '.env.local', `.env.${nodeEnv}`, '.env'];
 
   for (const envFile of envFiles) {
     if (envFile) {
@@ -112,9 +103,7 @@ function parseBaselineThrough(value: string | null) {
   const match = normalized.match(/^(\d{1,4})(?:_.+\.sql)?$/);
 
   if (!match) {
-    throw new Error(
-      'DB_MIGRATIONS_BASELINE_THROUGH must be a migration number like 0039 or a migration file prefix.',
-    );
+    throw new Error('DB_MIGRATIONS_BASELINE_THROUGH must be a migration number like 0039 or a migration file prefix.');
   }
 
   return Number(match[1]);
@@ -140,12 +129,7 @@ async function loadAppliedMigrations(sql: Sql) {
   return new Map(rows.map((row) => [row.id, row.checksum]));
 }
 
-async function recordBaseline(
-  sql: Sql,
-  migrations: MigrationFile[],
-  throughNumber: number,
-  applied: Map<string, string>,
-) {
+async function recordBaseline(sql: Sql, migrations: MigrationFile[], throughNumber: number, applied: Map<string, string>) {
   const recorded: MigrationFile[] = [];
 
   for (const migration of migrations) {
@@ -187,8 +171,7 @@ async function main() {
   const migrationsDir = resolve(packageRoot, 'drizzle');
   loadMonorepoRootEnv(monorepoRoot);
 
-  const connectionString =
-    process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
+  const connectionString = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
   const migrations = readdirSync(migrationsDir)
     .filter((file) => MIGRATION_PATTERN.test(file))
     .sort()
@@ -206,11 +189,7 @@ async function main() {
 
   const sql = postgres(connectionString, { max: 1 });
   const startedAt = Date.now();
-  const results: {
-    file: string;
-    action: 'applied' | 'skipped' | 'baseline' | 'dry-run';
-    executionMs: number;
-  }[] = [];
+  const results: { file: string; action: 'applied' | 'skipped' | 'baseline' | 'dry-run'; executionMs: number }[] = [];
 
   try {
     await ensureTrackingTable(sql);
@@ -220,15 +199,9 @@ async function main() {
     if (baselineNumber !== null) {
       const recorded = await recordBaseline(sql, migrations, baselineNumber, applied);
       for (const migration of recorded) {
-        results.push({
-          file: migration.file,
-          action: dryRun ? 'dry-run' : 'baseline',
-          executionMs: 0,
-        });
+        results.push({ file: migration.file, action: dryRun ? 'dry-run' : 'baseline', executionMs: 0 });
       }
-      console.log(
-        `Baseline recorded ${recorded.length} migration(s) through ${String(baselineNumber).padStart(4, '0')}.`,
-      );
+      console.log(`Baseline recorded ${recorded.length} migration(s) through ${String(baselineNumber).padStart(4, '0')}.`);
     }
 
     for (const migration of migrations) {
@@ -239,9 +212,7 @@ async function main() {
           const message = `Migration checksum mismatch for ${migration.file}. Applied=${previousChecksum}, current=${migration.checksum}.`;
 
           if (!allowChecksumMismatch) {
-            throw new Error(
-              `${message} Set DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH=true only after manually verifying the drift.`,
-            );
+            throw new Error(`${message} Set DB_MIGRATIONS_ALLOW_CHECKSUM_MISMATCH=true only after manually verifying the drift.`);
           }
 
           console.warn(`[checksum-mismatch:allowed] ${message}`);

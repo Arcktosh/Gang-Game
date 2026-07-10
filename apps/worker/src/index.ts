@@ -16,6 +16,7 @@ import { startMaintenanceTick } from './ticks/maintenance-tick';
 import { startLoanTick } from './ticks/loan-tick';
 import { startTradeTick } from './ticks/trade-tick';
 import { startProgressionTick } from './ticks/progression-tick';
+import { startAnomalyTick } from './ticks/anomaly-tick';
 
 async function main() {
   console.log('worker starting');
@@ -37,6 +38,7 @@ async function main() {
   startLoanTick();
   startTradeTick();
   startProgressionTick();
+  startAnomalyTick();
 }
 
 main().catch((error) => {

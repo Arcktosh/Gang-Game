@@ -13,14 +13,7 @@ import {
   type LegalPaymentSource,
 } from '@drugdeal/game';
 import { db } from '../client';
-import {
-  characters,
-  financialTransactions,
-  hospitalStays,
-  jailSentences,
-  legalServiceLogs,
-  playerEvents,
-} from '../schema';
+import { characters, financialTransactions, hospitalStays, jailSentences, legalServiceLogs, playerEvents } from '../schema';
 
 export type Tx = any;
 
@@ -77,12 +70,7 @@ export async function getActiveHospitalStay(characterId: string) {
   });
 }
 
-export async function hireLawyer(input: {
-  tx: Tx;
-  character: CharacterRow;
-  userId: string;
-  tier: 'public' | 'street' | 'firm';
-}) {
+export async function hireLawyer(input: { tx: Tx; character: CharacterRow; userId: string; tier: 'public' | 'street' | 'firm' }) {
   const service = calculateLawyerService({
     heat: input.character.heat,
     intelligence: input.character.intelligence,
@@ -91,34 +79,18 @@ export async function hireLawyer(input: {
   });
 
   if (!service.canAfford) {
-    return {
-      ok: false as const,
-      code: 'insufficient_cash',
-      message: 'Not enough cash to hire that lawyer.',
-    };
+    return { ok: false as const, code: 'insufficient_cash', message: 'Not enough cash to hire that lawyer.' };
   }
 
   const nextHeat = Math.max(0, input.character.heat - service.heatReduction);
   const activeSentence = await input.tx.query.jailSentences.findFirst({
-    where: and(
-      eq(jailSentences.characterId, input.character.id),
-      eq(jailSentences.status, 'active'),
-    ),
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
   });
   const releaseRate = input.tier === 'firm' ? 0.55 : input.tier === 'street' ? 0.3 : 0.1;
   const reducedReleaseAt = activeSentence
-    ? new Date(
-        Math.max(
-          Date.now(),
-          activeSentence.releaseAt.getTime() -
-            Math.ceil((activeSentence.releaseAt.getTime() - Date.now()) * releaseRate),
-        ),
-      )
+    ? new Date(Math.max(Date.now(), activeSentence.releaseAt.getTime() - Math.ceil((activeSentence.releaseAt.getTime() - Date.now()) * releaseRate)))
     : null;
-  const nextStatus =
-    activeSentence && reducedReleaseAt && reducedReleaseAt.getTime() <= Date.now()
-      ? 'free'
-      : input.character.status;
+  const nextStatus = activeSentence && reducedReleaseAt && reducedReleaseAt.getTime() <= Date.now() ? 'free' : input.character.status;
 
   const [updatedCharacter] = await input.tx
     .update(characters)
@@ -127,8 +99,7 @@ export async function hireLawyer(input: {
       heat: nextHeat,
       legalReputation: input.character.legalReputation + (input.tier === 'firm' ? 2 : 1),
       status: nextStatus,
-      statusUntil:
-        activeSentence && nextStatus !== 'free' ? reducedReleaseAt : input.character.statusUntil,
+      statusUntil: activeSentence && nextStatus !== 'free' ? reducedReleaseAt : input.character.statusUntil,
       statusReason: nextStatus === 'free' ? null : input.character.statusReason,
       updatedAt: sql`now()`,
     })
@@ -172,13 +143,7 @@ export async function hireLawyer(input: {
     userId: input.userId,
     characterId: input.character.id,
     type: 'lawyer_hired',
-    payload: {
-      tier: input.tier,
-      heatBefore: input.character.heat,
-      heatAfter: nextHeat,
-      cost: service.cost,
-      reducedReleaseAt,
-    },
+    payload: { tier: input.tier, heatBefore: input.character.heat, heatAfter: nextHeat, cost: service.cost, reducedReleaseAt },
   });
 
   return { ok: true as const, character: updatedCharacter, log, service };
@@ -192,11 +157,7 @@ export async function attemptBribe(input: { tx: Tx; character: CharacterRow; use
   });
 
   if (!service.canAfford) {
-    return {
-      ok: false as const,
-      code: 'insufficient_cash',
-      message: 'Not enough cash to attempt this bribe.',
-    };
+    return { ok: false as const, code: 'insufficient_cash', message: 'Not enough cash to attempt this bribe.' };
   }
 
   const nextHeat = Math.max(0, input.character.heat - service.heatReduction + service.extraHeat);
@@ -236,52 +197,29 @@ export async function attemptBribe(input: { tx: Tx; character: CharacterRow; use
     userId: input.userId,
     characterId: input.character.id,
     type: service.success ? 'bribe_succeeded' : 'bribe_failed',
-    payload: {
-      heatBefore: input.character.heat,
-      heatAfter: nextHeat,
-      cost: service.cost,
-      successChance: service.successChance,
-    },
+    payload: { heatBefore: input.character.heat, heatAfter: nextHeat, cost: service.cost, successChance: service.successChance },
   });
 
   return { ok: true as const, character: updatedCharacter, log, service };
 }
 
-export async function buyHospitalCare(input: {
-  tx: Tx;
-  character: CharacterRow;
-  userId: string;
-  service: 'basic' | 'private' | 'specialist';
-}) {
+export async function buyHospitalCare(input: { tx: Tx; character: CharacterRow; userId: string; service: 'basic' | 'private' | 'specialist' }) {
   const care = calculateCareService({ cash: input.character.cash, service: input.service });
 
   if (!care.canAfford) {
-    return {
-      ok: false as const,
-      code: 'insufficient_cash',
-      message: 'Not enough cash for this care service.',
-    };
+    return { ok: false as const, code: 'insufficient_cash', message: 'Not enough cash for this care service.' };
   }
 
   const activeStay = await input.tx.query.hospitalStays.findFirst({
-    where: and(
-      eq(hospitalStays.characterId, input.character.id),
-      eq(hospitalStays.status, 'active'),
-    ),
+    where: and(eq(hospitalStays.characterId, input.character.id), eq(hospitalStays.status, 'active')),
   });
 
   if (!activeStay) {
-    return {
-      ok: false as const,
-      code: 'not_hospitalized',
-      message: 'No active hospital stay found.',
-    };
+    return { ok: false as const, code: 'not_hospitalized', message: 'No active hospital stay found.' };
   }
 
   const currentRelease = activeStay.releasedAt.getTime();
-  const newRelease = new Date(
-    Math.max(Date.now(), currentRelease - care.timeReductionSeconds * 1000),
-  );
+  const newRelease = new Date(Math.max(Date.now(), currentRelease - care.timeReductionSeconds * 1000));
   const nextHealth = Math.min(100, input.character.health + care.healthGain);
   const nextStatus = newRelease.getTime() <= Date.now() ? 'free' : input.character.status;
 
@@ -300,11 +238,7 @@ export async function buyHospitalCare(input: {
 
   await input.tx
     .update(hospitalStays)
-    .set({
-      releasedAt: newRelease,
-      status: nextStatus === 'free' ? 'completed' : 'active',
-      completedAt: nextStatus === 'free' ? sql`now()` : null,
-    })
+    .set({ releasedAt: newRelease, status: nextStatus === 'free' ? 'completed' : 'active', completedAt: nextStatus === 'free' ? sql`now()` : null })
     .where(eq(hospitalStays.id, activeStay.id));
 
   await input.tx.insert(financialTransactions).values({
@@ -319,12 +253,7 @@ export async function buyHospitalCare(input: {
     userId: input.userId,
     characterId: input.character.id,
     type: 'hospital_care_bought',
-    payload: {
-      service: input.service,
-      cost: care.cost,
-      healthGain: care.healthGain,
-      releasedAt: newRelease,
-    },
+    payload: { service: input.service, cost: care.cost, healthGain: care.healthGain, releasedAt: newRelease },
   });
 
   return { ok: true as const, character: updatedCharacter, care, releasedAt: newRelease };
@@ -334,11 +263,7 @@ function getRemainingSentenceSeconds(releaseAt: Date) {
   return Math.max(0, Math.ceil((releaseAt.getTime() - Date.now()) / 1000));
 }
 
-function debitSourcePatch(
-  character: CharacterRow,
-  paymentSource: LegalPaymentSource,
-  cost: number,
-) {
+function debitSourcePatch(character: CharacterRow, paymentSource: LegalPaymentSource, cost: number) {
   return paymentSource === 'bank'
     ? { bank: character.bank - cost }
     : { cash: character.cash - cost };
@@ -352,10 +277,7 @@ export async function settleJailPayment(input: {
   paymentSource: LegalPaymentSource;
 }) {
   const activeSentence = await input.tx.query.jailSentences.findFirst({
-    where: and(
-      eq(jailSentences.characterId, input.character.id),
-      eq(jailSentences.status, 'active'),
-    ),
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
   });
 
   if (!activeSentence) {
@@ -370,17 +292,10 @@ export async function settleJailPayment(input: {
     bank: input.character.bank,
     paymentSource: input.paymentSource,
   };
-  const settlement =
-    input.action === 'pay_fine'
-      ? calculateFineSettlement(settlementInput)
-      : calculateBailSettlement(settlementInput);
+  const settlement = input.action === 'pay_fine' ? calculateFineSettlement(settlementInput) : calculateBailSettlement(settlementInput);
 
   if (!settlement.canAfford) {
-    return {
-      ok: false as const,
-      code: 'insufficient_funds',
-      message: `Not enough ${input.paymentSource} to complete this settlement.`,
-    };
+    return { ok: false as const, code: 'insufficient_funds', message: `Not enough ${input.paymentSource} to complete this settlement.` };
   }
 
   const nextHeat = Math.max(0, input.character.heat - settlement.heatReduction);
@@ -435,35 +350,15 @@ export async function settleJailPayment(input: {
     userId: input.userId,
     characterId: input.character.id,
     type: input.action === 'pay_fine' ? 'jail_fine_paid' : 'bail_posted',
-    payload: {
-      jailSentenceId: activeSentence.id,
-      paymentSource: input.paymentSource,
-      cost: settlement.cost,
-      heatBefore: input.character.heat,
-      heatAfter: nextHeat,
-    },
+    payload: { jailSentenceId: activeSentence.id, paymentSource: input.paymentSource, cost: settlement.cost, heatBefore: input.character.heat, heatAfter: nextHeat },
   });
 
-  return {
-    ok: true as const,
-    character: updatedCharacter,
-    jailSentence: updatedSentence,
-    settlement,
-    log,
-  };
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, settlement, log };
 }
 
-export async function requestCourtHearing(input: {
-  tx: Tx;
-  character: CharacterRow;
-  userId: string;
-  plea: CourtPlea;
-}) {
+export async function requestCourtHearing(input: { tx: Tx; character: CharacterRow; userId: string; plea: CourtPlea }) {
   const activeSentence = await input.tx.query.jailSentences.findFirst({
-    where: and(
-      eq(jailSentences.characterId, input.character.id),
-      eq(jailSentences.status, 'active'),
-    ),
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
   });
 
   if (!activeSentence) {
@@ -483,18 +378,8 @@ export async function requestCourtHearing(input: {
   const currentReleaseMs = activeSentence.releaseAt.getTime();
   const adjustedReleaseAt = outcome.releaseNow
     ? new Date()
-    : new Date(
-        Math.max(
-          Date.now(),
-          currentReleaseMs -
-            outcome.sentenceReductionSeconds * 1000 +
-            outcome.sentenceExtensionSeconds * 1000,
-        ),
-      );
-  const nextStatus =
-    outcome.releaseNow || adjustedReleaseAt.getTime() <= Date.now()
-      ? 'free'
-      : input.character.status;
+    : new Date(Math.max(Date.now(), currentReleaseMs - outcome.sentenceReductionSeconds * 1000 + outcome.sentenceExtensionSeconds * 1000));
+  const nextStatus = outcome.releaseNow || adjustedReleaseAt.getTime() <= Date.now() ? 'free' : input.character.status;
   const nextHeat = Math.max(0, input.character.heat - outcome.heatReduction);
 
   const [updatedSentence] = await input.tx
@@ -531,13 +416,7 @@ export async function requestCourtHearing(input: {
       heatBefore: input.character.heat,
       heatAfter: nextHeat,
       success: outcome.outcome === 'dismissed' || outcome.outcome === 'reduced',
-      metadata: {
-        outcome,
-        jailSentenceId: activeSentence.id,
-        fineBefore: activeSentence.fine,
-        fineAfter: nextFine,
-        releaseAt: adjustedReleaseAt,
-      },
+      metadata: { outcome, jailSentenceId: activeSentence.id, fineBefore: activeSentence.fine, fineAfter: nextFine, releaseAt: adjustedReleaseAt },
     })
     .returning();
 
@@ -545,35 +424,15 @@ export async function requestCourtHearing(input: {
     userId: input.userId,
     characterId: input.character.id,
     type: 'court_hearing_resolved',
-    payload: {
-      jailSentenceId: activeSentence.id,
-      outcome,
-      releaseAt: adjustedReleaseAt,
-      fineBefore: activeSentence.fine,
-      fineAfter: nextFine,
-    },
+    payload: { jailSentenceId: activeSentence.id, outcome, releaseAt: adjustedReleaseAt, fineBefore: activeSentence.fine, fineAfter: nextFine },
   });
 
-  return {
-    ok: true as const,
-    character: updatedCharacter,
-    jailSentence: updatedSentence,
-    outcome,
-    log,
-  };
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, outcome, log };
 }
 
-export async function performJailActivity(input: {
-  tx: Tx;
-  character: CharacterRow;
-  userId: string;
-  activity: JailActivity;
-}) {
+export async function performJailActivity(input: { tx: Tx; character: CharacterRow; userId: string; activity: JailActivity }) {
   const activeSentence = await input.tx.query.jailSentences.findFirst({
-    where: and(
-      eq(jailSentences.characterId, input.character.id),
-      eq(jailSentences.status, 'active'),
-    ),
+    where: and(eq(jailSentences.characterId, input.character.id), eq(jailSentences.status, 'active')),
   });
 
   if (!activeSentence) {
@@ -589,18 +448,8 @@ export async function performJailActivity(input: {
     endurance: input.character.endurance,
     strength: input.character.strength,
   });
-  const adjustedReleaseAt = activity.releaseNow
-    ? new Date()
-    : new Date(
-        Math.max(
-          Date.now(),
-          activeSentence.releaseAt.getTime() - activity.releaseReductionSeconds * 1000,
-        ),
-      );
-  const nextStatus =
-    activity.releaseNow || adjustedReleaseAt.getTime() <= Date.now()
-      ? 'free'
-      : input.character.status;
+  const adjustedReleaseAt = activity.releaseNow ? new Date() : new Date(Math.max(Date.now(), activeSentence.releaseAt.getTime() - activity.releaseReductionSeconds * 1000));
+  const nextStatus = activity.releaseNow || adjustedReleaseAt.getTime() <= Date.now() ? 'free' : input.character.status;
 
   const [updatedSentence] = await input.tx
     .update(jailSentences)
@@ -649,11 +498,5 @@ export async function performJailActivity(input: {
     payload: { jailSentenceId: activeSentence.id, activity, releaseAt: adjustedReleaseAt },
   });
 
-  return {
-    ok: true as const,
-    character: updatedCharacter,
-    jailSentence: updatedSentence,
-    activity,
-    log,
-  };
+  return { ok: true as const, character: updatedCharacter, jailSentence: updatedSentence, activity, log };
 }

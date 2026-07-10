@@ -53,26 +53,32 @@ This is a compact map of remaining not-started or thin areas. Use it to pick a f
 - Add payment provider adapter only after support, refund, tax, privacy, and entitlement workflows are approved.
 - Run Lighthouse, keyboard-only, screen-reader, and mobile-device checks against a deployed build.
 
+
 ## Feature Pass 74 documentation consolidation
 
 - Historical implementation notes now live in `docs/feature-history.md` instead of many individual `feature-pass-XX.md` files.
 - Use current-state/planning docs for active work and search `docs/feature-history.md` only when historical context is needed.
 
+
 ## Feature Pass 75 banking statements
 
 - Richer bank statements/exports are now first-pass complete: filtered history, summary totals, and CSV export. Long-range paging/search can be expanded after runtime proof.
+
 
 ## Feature Pass 76 market event formula foundation
 
 - Market event generation is no longer starting from zero: shared game helpers now model supply/demand/volatility/risk impact, deterministic cadence scheduling, lifecycle status, and newspaper payloads. Remaining work is persistence, worker publishing, UI/API surfacing, and balance tuning.
 
+
 ## Feature Pass 77 market event scheduling/news helpers
 
 - Shared scheduling and article-payload helpers are now present. Next economy pass should persist active occurrences, expose active events through market routes, and publish the generated newspaper payloads from the worker.
 
+
 ## Feature Pass 78 market event persistence/API/UI worker wiring
 
 - First-pass market-event persistence, worker publishing, market API surfacing, and Market page alerts are now present. Next market-event pass should validate the migration/worker path locally, then tune impact application and add admin controls.
+
 
 ## Feature Pass 81 timed progression and course prerequisites
 
@@ -82,14 +88,21 @@ This is a compact map of remaining not-started or thin areas. Use it to pick a f
 
 - Inventory is no longer only passive storage: item rarity, stack value/risk summaries, consumable item use, and direct same-location transfer actions are wired through shared formulas, DB queries, API route, and `/inventory` UI. Runtime proof is still required for the migration/API path.
 
+
 ## Feature Pass 83 legal resolution and jail activities
 
 First-pass jail fine settlement, bail settlement, court hearings, and jail-only activities are wired through shared formulas, DB helpers, API routes, and the Legal page. Runtime proof remains required before public MVP testing.
+
 
 ## Feature Pass 85 faction armory
 
 Faction inventory/armory is now wired through schema migration `0040_faction_armory.sql`, shared permission/action helpers, `/api/factions/:factionId/inventory`, member contribution/ledger/event logging, and Factions page controls. Runtime proof remains required for migration execution and inventory-row movement.
 
+
 ## Feature Pass 89 achievement and worker hardening
 
 Achievement sync is now atomic on `(character_id, achievement_key)`, and worker ticks now share retry/backoff, overlap skipping, and DB-backed dead-letter recording. Runtime proof remains required for the new `0041_worker_dead_letters.sql` migration and failed-tick persistence path.
+
+## Feature Pass 90 message moderation and retention
+
+Message hide/delete and retention policy moved from not-started to first-pass production hardening. Open follow-up: prove the `0042_message_moderation_retention.sql` migration, admin hide flow, hidden-message inbox filtering, and retention cleanup in a real PostgreSQL/Redis environment.

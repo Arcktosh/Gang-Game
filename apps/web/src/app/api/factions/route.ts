@@ -4,6 +4,7 @@ import { createFactionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 export async function GET() {
@@ -19,14 +20,16 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:factions', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.factions');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const body = await parseJsonBody(request, createFactionSchema);
@@ -45,10 +48,7 @@ export async function POST(request: NextRequest) {
       }
 
       const existingMembership = await tx.query.factionMembers.findFirst({
-        where: and(
-          eq(factionMembers.characterId, character.id),
-          eq(factionMembers.status, 'active'),
-        ),
+        where: and(eq(factionMembers.characterId, character.id), eq(factionMembers.status, 'active')),
       });
 
       if (existingMembership) {

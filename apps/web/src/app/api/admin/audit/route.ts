@@ -21,9 +21,6 @@ export async function GET(request: NextRequest) {
     }
 
     const audit = await listAdminAudit(pagination.pagination.limit, pagination.pagination.offset);
-    return jsonOk({
-      ...audit,
-      pagination: paginationMeta({ ...pagination.pagination, count: audit.events.length }),
-    });
+    return jsonOk({ ...audit, pagination: paginationMeta({ ...pagination.pagination, count: audit.events.length }) });
   });
 }

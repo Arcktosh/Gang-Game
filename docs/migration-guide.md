@@ -38,7 +38,11 @@ The old one-script-per-migration aliases were removed. Use the targeted file run
 
 ```bash
 pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql
-pnpm db:apply:file -- drizzle/0041_worker_dead_letters.sql
+pnpm db:apply:file -- drizzle/0042_message_moderation_retention.sql
+pnpm db:apply:file -- drizzle/0044_operational_anomalies.sql
+pnpm db:apply:file -- drizzle/0045_admin_audit_workbench.sql
+pnpm db:apply:file -- drizzle/0046_admin_rollback_action_types.sql
+pnpm db:apply:file -- drizzle/0047_admin_rollback_tooling.sql
 ```
 
 Normal setup, staging, and production-like deployments should use `pnpm db:setup` or `pnpm db:apply:all` instead.
@@ -48,7 +52,8 @@ Normal setup, staging, and production-like deployments should use `pnpm db:setup
 - First migration: `0000_initial_schema.sql`.
 - Seed migration: `0001_seed_starter_content.sql`.
 - Monetization foundation: `0031_monetization_foundation.sql`.
-- Latest migration: `0041_worker_dead_letters.sql`.
+- Admin rollback action types: `0046_admin_rollback_action_types.sql`.
+- Latest migration: `0047_admin_rollback_tooling.sql`.
 
 Validate migration order and coverage with:
 

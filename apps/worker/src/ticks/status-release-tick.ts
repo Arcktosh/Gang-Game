@@ -23,9 +23,7 @@ export async function releaseDueHospitalStays() {
 
   for (const stay of dueStays) {
     await db.transaction(async (tx) => {
-      const character = await tx.query.characters.findFirst({
-        where: eq(characters.id, stay.characterId),
-      });
+      const character = await tx.query.characters.findFirst({ where: eq(characters.id, stay.characterId) });
 
       await tx
         .update(hospitalStays)
@@ -67,9 +65,7 @@ export async function releaseDueJailSentences() {
 
   for (const sentence of dueSentences) {
     await db.transaction(async (tx) => {
-      const character = await tx.query.characters.findFirst({
-        where: eq(characters.id, sentence.characterId),
-      });
+      const character = await tx.query.characters.findFirst({ where: eq(characters.id, sentence.characterId) });
 
       await tx
         .update(jailSentences)

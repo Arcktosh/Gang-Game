@@ -62,6 +62,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `MVP page validation passed: ${requiredPages.length} dedicated player pages are present and linked.`,
-);
+console.log(`MVP page validation passed: ${requiredPages.length} dedicated player pages are present and linked.`);

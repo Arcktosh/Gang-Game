@@ -1,11 +1,7 @@
 import { createEmailVerificationToken, createUser, findUserByEmail } from '@drugdeal/db';
 import { registerSchema } from '@drugdeal/validators';
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  createOneTimeAccountToken,
-  createSessionResponse,
-  hashOneTimeAccountToken,
-} from '@/lib/auth';
+import { createOneTimeAccountToken, createSessionResponse, hashOneTimeAccountToken } from '@/lib/auth';
 import { jsonError, jsonOk, parseJsonBody } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
 import { hashPassword } from '@/lib/password';
@@ -13,11 +9,7 @@ import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   return withApiObservability(request, async () => {
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'auth:register'),
-      windowSeconds: 300,
-      maxRequests: 5,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'auth:register'), windowSeconds: 300, maxRequests: 5 });
 
     if (!limit.ok) {
       return limit.response;
@@ -55,10 +47,7 @@ export async function POST(request: NextRequest) {
       {
         data: {
           user,
-          verificationUrl:
-            process.env.NODE_ENV === 'production'
-              ? null
-              : `/verify-email?token=${encodeURIComponent(verificationToken)}`,
+          verificationUrl: process.env.NODE_ENV === 'production' ? null : `/verify-email?token=${encodeURIComponent(verificationToken)}`,
         },
       },
       { status: 201 },

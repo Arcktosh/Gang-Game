@@ -11,11 +11,7 @@ import {
 } from '@drugdeal/game';
 import { characterLoans, characters, financialTransactions, playerEvents } from '../schema';
 import { refreshCharacterResources } from './action-state';
-import {
-  decrementCharacterBank,
-  decrementCharacterCash,
-  incrementCharacterBank,
-} from './transaction-safety';
+import { decrementCharacterBank, decrementCharacterCash, incrementCharacterBank } from './transaction-safety';
 import { db } from '../client';
 
 export function listMoneySinks() {
@@ -48,11 +44,7 @@ function enrichCharacterLoan(loan: typeof characterLoans.$inferSelect) {
   };
 }
 
-export async function listCharacterLoans(input: {
-  userId: string;
-  characterId: string;
-  limit?: number;
-}) {
+export async function listCharacterLoans(input: { userId: string; characterId: string; limit?: number }) {
   const character = await db.query.characters.findFirst({
     where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
   });
@@ -77,11 +69,7 @@ export async function listCharacterLoans(input: {
   };
 }
 
-export async function requestCharacterLoan(input: {
-  userId: string;
-  characterId: string;
-  offerKey: string;
-}) {
+export async function requestCharacterLoan(input: { userId: string; characterId: string; offerKey: string }) {
   return db.transaction(async (tx) => {
     const characterRow = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -94,18 +82,11 @@ export async function requestCharacterLoan(input: {
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character must be free to request a loan.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character must be free to request a loan.' };
     }
 
     const activeLoan = await tx.query.characterLoans.findFirst({
-      where: and(
-        eq(characterLoans.characterId, character.id),
-        inArray(characterLoans.status, ['active', 'defaulted']),
-      ),
+      where: and(eq(characterLoans.characterId, character.id), inArray(characterLoans.status, ['active', 'defaulted'])),
     });
 
     const request = calculateLoanRequest({
@@ -139,11 +120,7 @@ export async function requestCharacterLoan(input: {
     const credit = await incrementCharacterBank(tx, character.id, request.principal);
 
     if (!credit.ok || !credit.character) {
-      return {
-        ok: false as const,
-        code: 'conflict',
-        message: 'Bank balance changed before loan funding completed.',
-      };
+      return { ok: false as const, code: 'conflict', message: 'Bank balance changed before loan funding completed.' };
     }
 
     await tx.insert(financialTransactions).values({
@@ -194,12 +171,7 @@ export async function requestCharacterLoan(input: {
   });
 }
 
-export async function repayCharacterLoan(input: {
-  userId: string;
-  characterId: string;
-  loanId: string;
-  amount?: number;
-}) {
+export async function repayCharacterLoan(input: { userId: string; characterId: string; loanId: string; amount?: number }) {
   return db.transaction(async (tx) => {
     const characterRow = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -212,11 +184,7 @@ export async function repayCharacterLoan(input: {
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character must be free to repay a loan.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character must be free to repay a loan.' };
     }
 
     const loan = await tx.query.characterLoans.findFirst({
@@ -250,11 +218,7 @@ export async function repayCharacterLoan(input: {
     const debit = await decrementCharacterBank(tx, character.id, repayment.paymentAmount);
 
     if (!debit.ok || !debit.character) {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Not enough bank balance for this loan payment.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Not enough bank balance for this loan payment.' };
     }
 
     const [updatedLoan] = await tx
@@ -275,20 +239,14 @@ export async function repayCharacterLoan(input: {
       .returning();
 
     if (!updatedLoan) {
-      return {
-        ok: false as const,
-        code: 'conflict',
-        message: 'Loan status or balance changed before repayment completed.',
-      };
+      return { ok: false as const, code: 'conflict', message: 'Loan status or balance changed before repayment completed.' };
     }
 
     await tx.insert(financialTransactions).values({
       characterId: character.id,
       type: 'bank',
       amount: String(-repayment.paymentAmount),
-      description: repayment.isFullRepayment
-        ? `Loan repaid: ${loan.offerKey}.`
-        : `Loan payment: ${loan.offerKey}.`,
+      description: repayment.isFullRepayment ? `Loan repaid: ${loan.offerKey}.` : `Loan payment: ${loan.offerKey}.`,
       metadata: {
         action: repayment.isFullRepayment ? 'loan_repayment' : 'loan_partial_repayment',
         loanId: loan.id,
@@ -360,11 +318,7 @@ export async function purchaseMoneySink(input: {
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character must be free to buy services.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character must be free to buy services.' };
     }
 
     const purchase = calculateMoneySinkPurchase({
@@ -382,17 +336,12 @@ export async function purchaseMoneySink(input: {
       return { ok: false as const, code: 'forbidden', message: purchase.message };
     }
 
-    const debit =
-      input.paymentSource === 'bank'
-        ? await decrementCharacterBank(tx, character.id, purchase.cost)
-        : await decrementCharacterCash(tx, character.id, purchase.cost);
+    const debit = input.paymentSource === 'bank'
+      ? await decrementCharacterBank(tx, character.id, purchase.cost)
+      : await decrementCharacterCash(tx, character.id, purchase.cost);
 
     if (!debit.ok || !debit.character) {
-      return {
-        ok: false as const,
-        code: 'conflict',
-        message: 'Balance changed before the purchase completed.',
-      };
+      return { ok: false as const, code: 'conflict', message: 'Balance changed before the purchase completed.' };
     }
 
     const updatedCharacter = debit.character;
@@ -448,14 +397,10 @@ export async function purchaseMoneySink(input: {
   });
 }
 
-export async function processLoanDefaults(
-  input: { limit?: number; defaultGraceHours?: number } = {},
-) {
+
+export async function processLoanDefaults(input: { limit?: number; defaultGraceHours?: number } = {}) {
   const limit = Math.max(1, Math.min(200, Math.floor(input.limit ?? 50)));
-  const defaultGraceHours = Math.max(
-    1,
-    Math.floor(input.defaultGraceHours ?? DEFAULT_LOAN_DEFAULT_GRACE_HOURS),
-  );
+  const defaultGraceHours = Math.max(1, Math.floor(input.defaultGraceHours ?? DEFAULT_LOAN_DEFAULT_GRACE_HOURS));
   const cutoff = new Date(Date.now() - defaultGraceHours * 60 * 60 * 1000);
 
   const overdueLoans = await db.query.characterLoans.findMany({
@@ -469,20 +414,14 @@ export async function processLoanDefaults(
   for (const loan of overdueLoans) {
     const changed = await db.transaction(async (tx) => {
       const currentLoan = await tx.query.characterLoans.findFirst({
-        where: and(
-          eq(characterLoans.id, loan.id),
-          eq(characterLoans.status, 'active'),
-          lte(characterLoans.dueAt, cutoff),
-        ),
+        where: and(eq(characterLoans.id, loan.id), eq(characterLoans.status, 'active'), lte(characterLoans.dueAt, cutoff)),
       });
 
       if (!currentLoan) {
         return false;
       }
 
-      const character = await tx.query.characters.findFirst({
-        where: eq(characters.id, currentLoan.characterId),
-      });
+      const character = await tx.query.characters.findFirst({ where: eq(characters.id, currentLoan.characterId) });
 
       const outstanding = calculateLoanOutstanding({
         principal: currentLoan.principal,

@@ -41,17 +41,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const announcement = await createAnnouncement({
-        adminUserId: admin.session.user.id,
-        ...body.data,
-      });
+      const announcement = await createAnnouncement({ adminUserId: admin.session.user.id, ...body.data });
       return jsonOk({ announcement });
     } catch (caught) {
-      return jsonError(
-        'bad_request',
-        caught instanceof Error ? caught.message : 'Could not create announcement.',
-        400,
-      );
+      return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not create announcement.', 400);
     }
   });
 }

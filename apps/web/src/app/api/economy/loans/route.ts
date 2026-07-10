@@ -14,11 +14,7 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:economy:loans', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:economy:loans', auth.userId), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;
@@ -51,11 +47,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:economy:loans:action', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:economy:loans:action', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -73,19 +65,9 @@ export async function POST(request: NextRequest) {
       routeScope: 'economy:loan',
       fingerprint: body.data,
       handler: async () => {
-        const result =
-          body.data.action === 'request'
-            ? await requestCharacterLoan({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                offerKey: body.data.offerKey,
-              })
-            : await repayCharacterLoan({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                loanId: body.data.loanId,
-                amount: body.data.amount,
-              });
+        const result = body.data.action === 'request'
+          ? await requestCharacterLoan({ userId: auth.userId, characterId: body.data.characterId, offerKey: body.data.offerKey })
+          : await repayCharacterLoan({ userId: auth.userId, characterId: body.data.characterId, loanId: body.data.loanId, amount: body.data.amount });
 
         if (!result.ok) {
           const status = result.code === 'not_found' ? 404 : result.code === 'conflict' ? 409 : 403;

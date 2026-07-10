@@ -1,6 +1,6 @@
 # Feature and Function Checklist
 
-This is the cleaned living checklist after Feature Pass 89. Historical implementation details are consolidated in `docs/feature-history.md`; current project status and remaining work live in `docs/project-status.md` and `docs/remaining-work.md`.
+This is the cleaned living checklist after Feature Pass 96. Historical implementation details are consolidated in `docs/feature-history.md`; current project status and remaining work live in `docs/project-status.md` and `docs/remaining-work.md`.
 
 ## Legend
 
@@ -11,7 +11,7 @@ This is the cleaned living checklist after Feature Pass 89. Historical implement
 
 ## Current MVP readiness summary
 
-- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, richer banking statements/CSV export, deterministic market-event formula/scheduling/news helpers plus first-pass persistence/API/UI/worker wiring, faction armory, scoped contracts, script/docs consolidation, and Redis-backed rate limiting, idempotent achievement syncing, and worker retry/dead-letter handling are in place after Feature Pass 89.
+- [x] Static MVP acceptance gate, runtime proof orchestrator, playable MVP actions, monetization foundation, admin operations UI validation, public launch polish, site-quality baseline, and completed Messages, Shops, Newspaper, Profile, Admin visibility controls, account recovery, email verification, documentation retrieval controls, player banking, bank history, finance price-history retrieval, finance chart UI, and first-pass money sinks and loans plus partial repayment, overdue/default handling, admin loan exposure visibility, richer banking statements/CSV export, deterministic market-event formula/scheduling/news helpers plus first-pass persistence/API/UI/worker wiring, faction armory, scoped contracts, script/docs consolidation, and Redis-backed rate limiting, idempotent achievement syncing, worker retry/dead-letter handling, admin message hiding, configurable message-retention cleanup, admin-operated feature-flag kill switches, first-pass operational anomaly detection, the admin economy/inventory/session audit workbench, first-pass admin rollback tooling, audit-route typecheck repairs, nullable-safe Admin Console audit workbench typing, and Windows-safe runtime-proof spawning are in place after Feature Pass 96.
 
 - [x] Monorepo, web app, worker app, shared packages, database package.
 - [x] Auth/session foundation.
@@ -308,7 +308,7 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [ ] Arrest reports, faction war reports, top player mentions.
 - [x] Full messages page with in-place thread refresh, live inbox status, thread controls, reporting, and block/unblock controls.
 - [ ] Production push fan-out via Redis/Postgres.
-- [ ] Message retention policy.
+- [x] Message retention policy. `MESSAGE_RETENTION_DAYS` controls expiry, defaults to 365 days, can be set to `0` to disable automatic message expiry, and maintenance cleanup skips open reports.
 - [ ] Faction-wide notification routing.
 - [ ] Email/push delivery adapter.
 - [ ] Per-device browser notification preferences.
@@ -365,14 +365,14 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Moderation transparency summary.
 - [x] Role-based admin permissions beyond `isAdmin`.
 - [ ] Historical moderation archive page.
-- [ ] Message hide/delete workflow.
-- [ ] Economy audit tools.
-- [ ] Inventory audit tools.
-- [ ] IP/session audit tools.
-- [ ] Rollback tooling.
-- [ ] Feature flags.
+- [x] Message hide/delete workflow. Admin report resolution can hide offending messages from player inboxes while preserving report and audit records; expired message deletion is handled by retention cleanup.
+- [x] Economy audit tools. Feature Pass 93 adds filtered economy transaction audit routes, Admin Console panels, summaries, and CSV export.
+- [x] Inventory audit tools. Feature Pass 93 adds filtered inventory stack audit routes, Admin Console panels, summaries, and CSV export.
+- [x] IP/session audit tools. Feature Pass 93 adds filtered session/IP audit routes, Admin Console panels, summaries, and CSV export.
+- [x] Rollback tooling. Feature Pass 94 adds first-pass rollback for cash/bank admin adjustment mistakes from the audit trail, with duplicate-rollback prevention and a new `rollback_apply` admin audit entry. Deeper rollback coverage remains future work.
+- [x] Feature flags. Admin-operated feature flags now gate high-risk mutation routes for messages, newspaper actions, shops, trades, gambling, finance, market, contracts, factions, and PvP attacks.
 - [ ] Game balance config editor wired into all formulas/ticks.
-- [ ] Automated anomaly detection.
+- [x] Automated anomaly detection. Feature Pass 92 adds worker/admin scans for high net worth, transaction spikes, large inventory stacks, and recent session IP spread, with review/dismiss/resolve workflow.
 
 ## Phase 13 - Technical hardening
 
@@ -389,8 +389,8 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [~] Error reporting.
 - [~] Automated tests for formulas, validators, request-safety helpers, hardening helpers, and runtime smoke behavior.
 - [~] Security review.
-- [ ] Abuse prevention.
-- [ ] Bot detection.
+- [~] Abuse prevention. Feature flags provide first-pass operational kill switches, and anomaly scans provide first-pass review signals; deeper abuse analytics and bot detection remain.
+- [~] Bot detection. Session IP-spread anomaly signals provide first-pass review input; deeper device fingerprinting and abuse analytics remain future work.
 - [~] Backups.
 - [x] Restore runbook.
 - [ ] Load testing.
@@ -421,6 +421,7 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Feature Pass 37: hardened contract, finance, admin adjustment, and enforcement cash-penalty mutation paths with conditional database writes and idempotency coverage for finance/admin money routes.
 - [x] Feature Pass 38: completed the focused hardening cycle with database invariant checks, operational indexes, and worker maintenance cleanup.
 
+
 ## Feature Pass 57 - Runtime proof orchestration
 
 - [x] Add `scripts/prove-mvp-runtime.mjs` to run install, Docker startup, migrations, static validation, typecheck, tests, strict smoke, backup, and optional restore proof.
@@ -431,12 +432,14 @@ Keep implementation fictional and abstract. Avoid real-world operational detail.
 - [x] Document disposable restore proof: `MVP_RESTORE_DATABASE_URL=... pnpm prove:mvp-runtime`.
 - [ ] Execute runtime proof in a real installed environment.
 
+
 ### Integration testing
 
 - [x] Add opt-in database-backed integration test scaffolding.
 - [x] Add disposable DB safety checks and test helpers.
 - [x] Add integration proof command.
 - [ ] Run integration proof in a real environment.
+
 
 ### Monetization foundation
 
@@ -463,6 +466,7 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Add `scripts/validate-public-launch.mjs`; Feature Pass 88 consolidated `pnpm validate:public-launch` into `pnpm validate:static`.
 - [x] Wire public-launch validation into `pnpm validate:static`.
 - [ ] Replace draft legal documents with jurisdiction-reviewed final legal documents before commercial launch.
+
 
 ## Feature Pass 60 quality baseline
 
@@ -504,10 +508,13 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Shorten `README.md` and update stale pass/status references.
 - [ ] Execute full dependency-backed typecheck/build and runtime proof in an installed PostgreSQL/Redis environment.
 
+
+
 ## Feature Pass 74 documentation consolidation
 
 - Historical implementation notes now live in `docs/feature-history.md` instead of many individual `feature-pass-XX.md` files.
 - Use current-state/planning docs for active work and search `docs/feature-history.md` only when historical context is needed.
+
 
 ## Feature Pass 75 banking statements
 
@@ -515,12 +522,14 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Bank statement summary totals for inflow, outflow, and net movement.
 - [x] CSV export for recent bank statements.
 
+
 ## Feature Pass 76 - Market event formula foundation
 
 - [x] Add market pressure snapshot helper for normalized supply/demand/volatility pricing.
 - [x] Add deterministic market event catalog and impact calculator.
 - [x] Cover market event helper behavior with package-game formula tests.
 - [x] First-pass market-event persistence, API/UI surfacing, and worker newspaper publishing wiring.
+
 
 ## Feature Pass 77 market event scheduling/news helpers
 
@@ -530,6 +539,7 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Persist active market events in the database.
 - [x] Surface active market events through API/UI and worker-published newspaper articles.
 - [ ] Validate market-event migration, worker publishing, and API/UI behavior in installed runtime proof.
+
 
 ## Feature Pass 78 market event persistence/API/UI worker wiring
 
@@ -546,6 +556,8 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Surface trade exposure summary data through trade-center queries and the `/trades` page.
 - [ ] Installed-environment proof of migration, worker expiry, API routes, UI rendering, and package builds.
 
+
+
 ## Feature Pass 81 timed progression and course prerequisites
 
 - [x] Add progression timer migration/schema fields for due training and course completions.
@@ -555,11 +567,13 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Surface active training/course queue and locked-course reasons on the dashboard.
 - [ ] Installed-environment proof of migration, worker tick, API routes, and dashboard rendering.
 
+
 ## Feature Pass 84 faction operations and migration runner
 
 - [x] Added `pnpm db:apply:all` with migration tracking and checksum validation.
 - [x] Runtime proof now uses the all-migration runner so newly added SQL files are picked up automatically.
 - [x] Faction bank, member rank, permission, and territory action controls are browser-accessible from `/factions`.
+
 
 ## Feature Pass 89 - Achievement idempotency and worker dead letters
 
@@ -569,3 +583,85 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Convert existing worker ticks to the shared scheduler.
 - [x] Add worker retry environment validation and `.env.example` defaults.
 - [ ] Installed-environment proof of worker retry/dead-letter writes and dashboard achievement rendering.
+
+## Feature Pass 90 - Message moderation and retention
+
+- [x] Add `0042_message_moderation_retention.sql` with message hidden-state, moderator, reason, retention-expiry columns, and visibility/retention indexes.
+- [x] Filter hidden messages out of player inbox summaries, unread counts, and live stream snapshots.
+- [x] Add admin report-resolution support for hiding reported messages while preserving moderation reports and admin audit logs.
+- [x] Add configurable `MESSAGE_RETENTION_DAYS` environment validation and `.env.example` defaults.
+- [x] Add maintenance cleanup for expired messages while skipping messages tied to open reports.
+- [x] Add `scripts/validate-message-moderation.mjs` and include it in `pnpm validate:static`.
+- [ ] Installed-environment proof of `0042_message_moderation_retention.sql`, admin message hiding, player inbox filtering, and retention cleanup.
+
+
+## Feature Pass 91 - Operational feature flags
+
+- [x] Add typed feature flag definitions and safe config value normalization in `@drugdeal/game`.
+- [x] Seed default enabled feature flags through `0043_feature_flags.sql`.
+- [x] Add DB feature flag state helpers backed by `game_config_entries`.
+- [x] Add API helper for consistent `feature_disabled` responses.
+- [x] Gate high-risk mutation routes for messages, newspaper actions, shops, trades, gambling, finance, market, contracts, factions, and PvP attacks.
+- [x] Add Admin Console feature flag controls with disabled-message and internal-reason fields.
+- [x] Add `scripts/validate-feature-flags.mjs` and include it in `pnpm validate:static`.
+- [ ] Installed-environment proof of `0043_feature_flags.sql`, admin toggle behavior, blocked mutation responses, and re-enable recovery.
+
+
+## Feature Pass 92 - Operational anomaly detection
+
+- [x] Add `0044_operational_anomalies.sql` with deduplicated open/review/resolved/dismissed anomaly records.
+- [x] Add shared anomaly threshold normalization, severity scoring, signal key, and summary helpers.
+- [x] Add DB helpers to scan for high net worth, transaction spikes, oversized inventory stacks, and recent session IP spread.
+- [x] Add an anomaly worker tick with environment-tunable thresholds and dead-letter payload context.
+- [x] Add Admin Console anomaly review with manual scan, reviewing, resolve, and dismiss actions.
+- [x] Add `scripts/validate-operational-anomalies.mjs` and include it in `pnpm validate:static`.
+- [ ] Installed-environment proof of `0044_operational_anomalies.sql`, worker scan inserts/upserts, admin manual scan, and review/dismiss/resolve actions.
+
+## Feature Pass 93 - Admin audit workbench
+
+- [x] Add `0045_admin_audit_workbench.sql` with indexes for financial transaction, inventory stack, session/IP, and admin-action audit access paths.
+- [x] Add DB helpers for filtered economy, inventory, and session audit investigations.
+- [x] Add admin API routes for JSON investigation results and CSV export: `/api/admin/audit/economy`, `/api/admin/audit/inventory`, and `/api/admin/audit/sessions`.
+- [x] Add Admin Console audit workbench panels with filters, summaries, latest rows, and export links.
+- [x] Add `scripts/validate-admin-audit-workbench.mjs` and include it in `pnpm validate:static`.
+- [ ] Installed-environment proof of `0045_admin_audit_workbench.sql`, filtered audit queries, Admin Console refresh, and CSV downloads.
+
+
+
+## Feature Pass 94 - Admin rollback tooling
+
+- [x] Add `0046_admin_rollback_action_types.sql` for `rollback_review` and `rollback_apply` admin action types.
+- [x] Add `0047_admin_rollback_tooling.sql` with rollback lookup indexes.
+- [x] Add `listAdminRollbackCandidates` and `applyAdminActionRollback` DB helpers.
+- [x] Add `/api/admin/rollback` for candidate listing and idempotent rollback application.
+- [x] Add Admin Console rollback workbench with before/after snapshots, status, and rollback action forms.
+- [x] Add `scripts/validate-admin-rollback-tooling.mjs` and include it in `pnpm validate:static`.
+- [ ] Installed-environment proof of `0046_admin_rollback_action_types.sql`, `0047_admin_rollback_tooling.sql`, rollback candidate listing, duplicate rollback prevention, and cash/bank rollback application.
+
+
+## Feature Pass 95 - Typecheck and runtime-proof repair
+
+- [x] Export explicit admin audit row types from `@drugdeal/db` for economy, inventory, and session audit records.
+- [x] Type admin audit CSV mapper parameters so `apps/web typecheck` does not fail with implicit `any` errors.
+- [x] Make `scripts/prove-mvp-runtime.mjs` use Windows-safe shell spawning and sanitized environment values to avoid the reported `spawn EINVAL` failure.
+- [x] Extend static validators to cover typed audit CSV mappers and Windows-safe runtime-proof spawning.
+- [x] Installed proof rerun exposed a follow-up Admin Console audit workbench nullable prop mismatch.
+
+
+## Feature Pass 96 - Admin audit workbench nullable type repair
+
+- [x] Import shared audit row types into `apps/web/src/features/admin/admin-panel.tsx`.
+- [x] Replace locally narrowed audit row shapes with `AdminEconomyAuditTransaction[]`, `AdminInventoryAuditItem[]`, and `AdminSessionAuditSession[]`.
+- [x] Render safe fallbacks for nullable transaction descriptions, inventory character names, and session emails.
+- [x] Extend `scripts/validate-admin-audit-workbench.mjs` to check nullable-safe Admin Console audit workbench typing.
+- [ ] Installed-environment proof rerun after Feature Pass 96: `pnpm typecheck`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
+
+
+## Feature Pass 97 - Agent memory and repository retrieval
+
+- [x] Add a root `AGENTS.md` with workspace and dependency rules.
+- [x] Generate file, import, manifest, public API, route/page, and symbol indexes.
+- [x] Add a JSON task queue with stable ids, dependencies, acceptance criteria, commands, and schema.
+- [x] Add stale-memory validation to `pnpm validate:static`.
+- [x] Normalize shared package barrel exports without changing their public names.
+- [ ] Complete `VAL-001` installed-environment proof before starting dependent refactor tasks.

@@ -45,11 +45,7 @@ export async function PATCH(request: NextRequest) {
       const entry = await upsertGameConfig({ adminUserId: admin.session.user.id, ...body.data });
       return jsonOk({ entry });
     } catch (caught) {
-      return jsonError(
-        'bad_request',
-        caught instanceof Error ? caught.message : 'Could not update config.',
-        400,
-      );
+      return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not update config.', 400);
     }
   });
 }

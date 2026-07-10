@@ -13,11 +13,7 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:finance:history', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:finance:history', auth.userId), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;
@@ -29,12 +25,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!query.success) {
-      return jsonError(
-        'invalid_query',
-        'Invalid finance history query.',
-        400,
-        query.error.flatten(),
-      );
+      return jsonError('invalid_query', 'Invalid finance history query.', 400, query.error.flatten());
     }
 
     const history = await listAssetPriceHistory(query.data);

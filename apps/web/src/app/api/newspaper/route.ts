@@ -1,20 +1,9 @@
-import {
-  commentOnNewspaperArticle,
-  listNewspaperCenter,
-  reactToNewspaperArticle,
-  reportNewspaperArticle,
-  submitNewspaperArticle,
-} from '@drugdeal/db';
+import { commentOnNewspaperArticle, listNewspaperCenter, reactToNewspaperArticle, reportNewspaperArticle, submitNewspaperArticle } from '@drugdeal/db';
 import { newspaperActionSchema, submitNewspaperArticleSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
-import {
-  jsonError,
-  jsonOk,
-  paginationMeta,
-  parsePagination,
-  requireRequestUserId,
-} from '@/lib/api';
+import { jsonError, jsonOk, paginationMeta, parsePagination, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
@@ -27,16 +16,8 @@ export async function GET(request: NextRequest) {
 
     const location = request.nextUrl.searchParams.get('location');
     const characterId = request.nextUrl.searchParams.get('characterId') ?? undefined;
-    const articles = await listNewspaperCenter({
-      location,
-      characterId,
-      limit: pagination.pagination.limit,
-      offset: pagination.pagination.offset,
-    });
-    return jsonOk({
-      articles,
-      pagination: paginationMeta({ ...pagination.pagination, count: articles.length }),
-    });
+    const articles = await listNewspaperCenter({ location, characterId, limit: pagination.pagination.limit, offset: pagination.pagination.offset });
+    return jsonOk({ articles, pagination: paginationMeta({ ...pagination.pagination, count: articles.length }) });
   });
 }
 
@@ -48,32 +29,28 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'newspaper:mutate', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 20,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'newspaper:mutate', auth.userId), windowSeconds: 60, maxRequests: 20 });
 
     if (!limit.ok) {
       return limit.response;
     }
 
-    const rawBody = await request.json().catch(() => null);
-    const parsed =
-      rawBody && typeof rawBody === 'object' && 'action' in rawBody
-        ? newspaperActionSchema.safeParse(rawBody)
-        : submitNewspaperArticleSchema.safeParse(rawBody);
+    const feature = await requireFeatureEnabled('feature.newspaper');
 
-    if (!parsed.success) {
-      return jsonError(
-        'bad_request',
-        parsed.error.issues[0]?.message ?? 'Invalid request body.',
-        400,
-      );
+    if (!feature.ok) {
+      return feature.response;
     }
 
-    const body =
-      'action' in parsed.data ? parsed.data : { action: 'submit_article' as const, ...parsed.data };
+    const rawBody = await request.json().catch(() => null);
+    const parsed = rawBody && typeof rawBody === 'object' && 'action' in rawBody
+      ? newspaperActionSchema.safeParse(rawBody)
+      : submitNewspaperArticleSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return jsonError('bad_request', parsed.error.issues[0]?.message ?? 'Invalid request body.', 400);
+    }
+
+    const body = 'action' in parsed.data ? parsed.data : { action: 'submit_article' as const, ...parsed.data };
     const result = await dispatchNewspaperAction(auth.userId, body);
 
     if (!result.ok) {
@@ -81,9 +58,7 @@ export async function POST(request: NextRequest) {
       return jsonError(result.code, result.message, status);
     }
 
-    return jsonOk(result, {
-      status: body.action === 'submit_article' || body.action === 'comment' ? 201 : 200,
-    });
+    return jsonOk(result, { status: body.action === 'submit_article' || body.action === 'comment' ? 201 : 200 });
   });
 }
 

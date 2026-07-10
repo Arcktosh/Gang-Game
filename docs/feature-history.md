@@ -3165,13 +3165,13 @@ The runtime script probes:
 
 Environment variables:
 
-| Variable                 | Default                 | Purpose                                                     |
-| ------------------------ | ----------------------- | ----------------------------------------------------------- |
-| `SMOKE_BASE_URL`         | `http://localhost:3000` | Running web app base URL.                                   |
-| `SMOKE_TIMEOUT_MS`       | `5000`                  | Per-request timeout.                                        |
-| `SMOKE_RETRIES`          | `0`                     | Retries for each smoke step.                                |
-| `SMOKE_RETRY_DELAY_MS`   | `500`                   | Delay between retries.                                      |
-| `SMOKE_STRICT_HEALTH_OK` | `false`                 | Treat degraded `/api/health` as failure instead of warning. |
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SMOKE_BASE_URL` | `http://localhost:3000` | Running web app base URL. |
+| `SMOKE_TIMEOUT_MS` | `5000` | Per-request timeout. |
+| `SMOKE_RETRIES` | `0` | Retries for each smoke step. |
+| `SMOKE_RETRY_DELAY_MS` | `500` | Delay between retries. |
+| `SMOKE_STRICT_HEALTH_OK` | `false` | Treat degraded `/api/health` as failure instead of warning. |
 
 Example:
 
@@ -5207,6 +5207,8 @@ Validation performed:
 
 ---
 
+
+
 ---
 
 ## Pass 75: Richer Banking Statements and CSV Export
@@ -5259,6 +5261,8 @@ node scripts/validate-runtime-proof.mjs
 
 Full `pnpm typecheck`, `pnpm test`, and runtime proof still require the installed local workspace.
 
+
+
 ---
 
 ## Pass 76: Market Event Formula Foundation
@@ -5274,6 +5278,7 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
 
 ---
 
@@ -5315,6 +5320,7 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 A dependency-backed TypeScript check over the changed DB/worker/web files was attempted but blocked because the uploaded workspace has no installed `drizzle-orm`, Next/React, workspace package type links, or `@types/node`. Full migration, worker, API, UI, typecheck, tests, and runtime proof still require the installed local workspace.
+
 
 ---
 
@@ -5359,6 +5365,8 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+
 
 ---
 
@@ -5442,6 +5450,7 @@ Full dependency-backed workspace typecheck/tests/runtime proof still require the
 - Expanded the Factions page with faction bank forms, boss-only member role updates, member permission summaries, and territory scout/claim/reinforce/attack controls with cooldown feedback.
 - Restored `.github/workflows/ci.yml` with Node 22, Corepack, pnpm install, and `pnpm validate:ci`.
 
+
 ## Feature Pass 85 - Faction armory
 
 - Added `faction_inventory_items` with idempotent SQL migration `0040_faction_armory.sql`, schema mappings, and dedicated apply scripts while preserving the all-migration runner path.
@@ -5469,6 +5478,8 @@ tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution
 ```
 
 Full dependency-backed workspace typecheck/tests/runtime proof still require the installed local workspace.
+
+
 
 ## Feature Pass 87 - TypeScript 7 build and database bootstrap cleanup
 
@@ -5510,6 +5521,7 @@ node scripts/validate-docs.mjs
 
 Full dependency-backed `pnpm validate:ci`, runtime smoke, Redis connectivity proof, PostgreSQL migration proof, backup/restore proof, and DB integration proof still require the local installed workspace.
 
+
 ## Pass 89: Achievement idempotency and worker dead-letter handling
 
 - Fixed dashboard/progression achievement sync by replacing the read-then-insert path with an atomic `onConflictDoUpdate` upsert on `(character_id, achievement_key)`.
@@ -5518,3 +5530,143 @@ Full dependency-backed `pnpm validate:ci`, runtime smoke, Redis connectivity pro
 - Migrated worker ticks to the shared scheduler.
 - Added worker retry/dead-letter environment defaults and validation.
 - Pinned `tsx` to the v4 line to avoid stale deprecated `@esbuild-kit/*` subdependency resolution from older installs.
+
+## Pass 90: Message moderation and retention
+
+- Added `0042_message_moderation_retention.sql` with `messages.hidden_at`, `hidden_by_user_id`, `hidden_reason`, and `retention_expires_at` plus visibility/retention indexes.
+- Player message center queries now exclude hidden messages from inbox previews and unread counts.
+- Admin moderation report resolution can hide reported messages while preserving report resolution, moderation notes, and admin action logs.
+- Added configurable `MESSAGE_RETENTION_DAYS` support, defaulting to 365 days and allowing `0` to disable automatic expiry.
+- Maintenance cleanup now removes expired messages only when they are not tied to open message reports.
+- Added static validation for the message moderation/retention path.
+
+
+## Feature Pass 91 - Operational feature flags
+
+Added a first-pass production kill-switch system for high-risk gameplay surfaces.
+
+- Added `packages/game/src/feature-flags.ts` with typed feature flag definitions and safe value normalization.
+- Added `packages/db/src/queries/feature-flags.ts` to read feature flag state from `game_config_entries`.
+- Added `0043_feature_flags.sql` to seed default enabled config entries for messages, newspaper actions, shops, trades, gambling, finance trading, market actions, contracts, factions, and PvP attacks.
+- Added `apps/web/src/lib/feature-flags.ts` to return consistent `feature_disabled` API responses.
+- Gated high-risk mutation routes with `requireFeatureEnabled(...)` while leaving read-only pages and support visibility available.
+- Added an Admin Console feature flag panel so operators can toggle features without redeploying.
+- Added `scripts/validate-feature-flags.mjs` and included it in `pnpm validate:static`.
+
+
+## Feature Pass 92 - Operational anomaly detection
+
+Added first-pass automated operations anomaly detection for production readiness.
+
+- Added `packages/game/src/anomaly-detection.ts` with threshold normalization, severity scoring, stable signal keys, and summaries.
+- Added `0044_operational_anomalies.sql` plus Drizzle schema/query helpers for deduplicated anomaly records.
+- Added worker-driven and admin-triggered scans for high net worth, transaction spikes, large inventory stacks, and recent session IP spread.
+- Added Admin Console review controls for marking anomalies as reviewing, resolved, or dismissed.
+- Added `scripts/validate-operational-anomalies.mjs` and wired it into `pnpm validate:static`.
+
+
+## Feature Pass 93 - Admin audit workbench
+
+- Added `0045_admin_audit_workbench.sql` with production investigation indexes for financial transactions, inventory stacks, user sessions/IPs, and admin-action timestamps.
+- Added `listAdminEconomyAudit`, `listAdminInventoryAudit`, and `listAdminSessionAudit` DB helpers with bounded filters, summaries, pagination metadata, and row normalization.
+- Added admin audit endpoints for economy, inventory, and session investigations with JSON responses and CSV export support.
+- Added Admin Console audit workbench panels for quick filtering, summary review, recent-row inspection, and CSV download links.
+- Added `scripts/validate-admin-audit-workbench.mjs` and wired it into `pnpm validate:static`.
+
+Validation run in the sandbox after the pass:
+
+```bash
+node --check scripts/*.mjs
+node scripts/validate-admin-audit-workbench.mjs
+npm run validate:static --silent
+```
+
+Full dependency-backed typecheck/build/test/runtime proof still needs to run in an installed PostgreSQL/Redis environment.
+
+## Feature Pass 94 - Admin rollback tooling
+
+Added first-pass operational rollback tooling for economy-impacting admin mistakes.
+
+- Added `0046_admin_rollback_action_types.sql` to extend `admin_action_type` with `rollback_review` and `rollback_apply`.
+- Added `0047_admin_rollback_tooling.sql` with indexes for detecting whether an original admin adjustment has already been rolled back.
+- Added `listAdminRollbackCandidates` for recent cash/bank admin adjustments and `applyAdminActionRollback` for restoring a character cash/bank value to the original before-snapshot.
+- Added `/api/admin/rollback` with `GET` candidate listing and idempotent `POST` rollback application, requiring `manage_economy` and rate limiting.
+- Added an Admin Console rollback workbench with before/after snapshots, rollback availability state, and reason capture.
+- Added `scripts/validate-admin-rollback-tooling.mjs` and wired it into `pnpm validate:static`.
+
+Sandbox validation after this pass:
+
+```bash
+node --check scripts/*.mjs
+node scripts/validate-admin-rollback-tooling.mjs
+npm run validate:static --silent
+```
+
+Full installed-environment proof of migrations, route behavior, duplicate rollback prevention, and balance restoration still needs to run locally.
+
+
+## Feature Pass 95 - Typecheck and runtime-proof repair
+
+Repaired issues reported from local installed proof after Feature Pass 94.
+
+- Exported explicit admin audit row types for economy transactions, inventory items, and session rows from `packages/db/src/queries/admin.ts`.
+- Typed CSV mapper callback parameters in `/api/admin/audit/economy`, `/api/admin/audit/inventory`, and `/api/admin/audit/sessions` to resolve `TS7006` implicit `any` errors during `apps/web typecheck`.
+- Hardened `scripts/prove-mvp-runtime.mjs` for Windows by enabling shell resolution on Windows, sanitizing environment values, adding `windowsHide`, and recording synchronous spawn failures in the proof result payload.
+- Strengthened static validators so these fixes are checked by `pnpm validate:static`.
+
+Sandbox validation after this pass:
+
+```bash
+node --check scripts/*.mjs
+node scripts/validate-admin-audit-workbench.mjs
+node scripts/validate-runtime-proof.mjs
+node scripts/prove-mvp-runtime.mjs --dry-run
+npm run validate:static --silent
+```
+
+Full local proof should rerun `pnpm typecheck`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
+
+
+## Feature Pass 96 - Admin audit workbench nullable type repair
+
+Repaired the follow-up local `apps/web` typecheck failure reported after Feature Pass 95.
+
+- Updated `apps/web/src/features/admin/admin-panel.tsx` to import shared audit row types from `@drugdeal/db`.
+- Replaced locally narrowed audit workbench transaction/item/session row shapes with `AdminEconomyAuditTransaction[]`, `AdminInventoryAuditItem[]`, and `AdminSessionAuditSession[]`.
+- Added UI fallbacks for nullable transaction descriptions, inventory character names, and session emails.
+- Extended `scripts/validate-admin-audit-workbench.mjs` so `pnpm validate:static` checks the Admin Console nullable audit row typing and fallbacks.
+
+Sandbox validation after this pass:
+
+```bash
+node --check scripts/*.mjs
+node scripts/validate-admin-audit-workbench.mjs
+node scripts/validate-runtime-proof.mjs
+node scripts/prove-mvp-runtime.mjs --dry-run
+npm run validate:static --silent
+```
+
+Full installed-environment proof should rerun `pnpm typecheck`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
+
+
+## Feature Pass 97 - Agent memory and public-barrel refactor
+
+Added a deterministic repository retrieval layer for AI-assisted implementation passes without changing runtime behavior.
+
+- Added root `AGENTS.md` with workspace boundaries, dependency direction, change protocol, refactor rules, and safety constraints.
+- Added generated `.agent-memory` indexes for files, imports, manifests, public package APIs, Next.js routes/pages, and top-level symbols.
+- Added `.agent-memory/tasks.json` plus JSON Schema and dependency/status validation for a machine-readable work queue.
+- Added `scripts/generate-agent-memory.mjs` with write and stale-check modes, source fingerprinting, unresolved-import reporting, public-export traversal, and task validation.
+- Added `agent:memory`, `agent:memory:check`, and `validate:agent-memory` scripts; wired stale-memory checks into `pnpm validate:static`.
+- Normalized `@drugdeal/game` and `@drugdeal/db` barrel exports and removed redundant root database re-exports while preserving the public symbol surface.
+
+Dependency-light validation for this pass:
+
+```bash
+node --check scripts/generate-agent-memory.mjs
+node scripts/generate-agent-memory.mjs
+node scripts/generate-agent-memory.mjs --check
+node scripts/validate-docs.mjs
+```
+
+Full dependency-backed typecheck, build, tests, and runtime proof remain part of `VAL-001` in `.agent-memory/tasks.json`.

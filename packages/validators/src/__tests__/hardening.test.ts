@@ -38,18 +38,9 @@ test('public pagination is stricter than admin pagination', () => {
 });
 
 test('rate-limit options reject impossible windows and oversized limits', () => {
-  assert.equal(
-    rateLimitOptionsSchema.safeParse({ windowSeconds: 0, maxRequests: 10 }).success,
-    false,
-  );
-  assert.equal(
-    rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 10001 }).success,
-    false,
-  );
-  assert.equal(
-    rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 100 }).success,
-    true,
-  );
+  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 0, maxRequests: 10 }).success, false);
+  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 10001 }).success, false);
+  assert.equal(rateLimitOptionsSchema.safeParse({ windowSeconds: 60, maxRequests: 100 }).success, true);
 });
 
 test('server environment validation accepts worker retry settings', () => {
@@ -62,6 +53,7 @@ test('server environment validation accepts worker retry settings', () => {
     WORKER_TICK_RETRY_BASE_MS: '1000',
     WORKER_TICK_RETRY_MAX_MS: '30000',
     WORKER_DEAD_LETTER_DISABLED: 'false',
+    MESSAGE_RETENTION_DAYS: '365',
   });
 
   assert.equal(parsed.success, true);
@@ -92,6 +84,7 @@ test('server environment validation rejects malformed canonical origins', () => 
 
   assert.equal(parsed.success, false);
 });
+
 
 test('bank statement query validation normalizes filters and rejects inverted date ranges', () => {
   const parsed = bankHistoryQuerySchema.safeParse({

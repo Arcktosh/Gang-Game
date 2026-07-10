@@ -3,15 +3,7 @@ import { jsonError } from './api';
 import { attachRequestId, requestContext, requestMetadata } from './edge-observability';
 import type { RequestContext } from './edge-observability';
 
-export {
-  attachRequestId,
-  createRequestId,
-  getOrCreateRequestId,
-  getRequestIdFromHeaders,
-  normalizeRequestId,
-  requestContext,
-  requestMetadata,
-} from './edge-observability';
+export { attachRequestId, createRequestId, getOrCreateRequestId, getRequestIdFromHeaders, normalizeRequestId, requestContext, requestMetadata } from './edge-observability';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -61,15 +53,7 @@ export async function withApiObservability(
   const context = requestContext(request);
 
   try {
-    const response =
-      (await handler(context)) ??
-      jsonError(
-        'server_error',
-        'API route completed without a response.',
-        500,
-        undefined,
-        requestMetadata(context),
-      );
+    const response = await handler(context) ?? jsonError('server_error', 'API route completed without a response.', 500, undefined, requestMetadata(context));
     attachRequestId(response, context.requestId);
     response.headers.set('x-response-time-ms', String(Math.max(0, Date.now() - context.startedAt)));
     return response;
@@ -84,13 +68,7 @@ export async function withApiObservability(
       error: safeError,
     });
 
-    const response = jsonError(
-      'server_error',
-      'Unexpected server error.',
-      500,
-      undefined,
-      requestMetadata(context),
-    );
+    const response = jsonError('server_error', 'Unexpected server error.', 500, undefined, requestMetadata(context));
     attachRequestId(response, context.requestId);
     response.headers.set('x-response-time-ms', String(Math.max(0, Date.now() - context.startedAt)));
     return response;

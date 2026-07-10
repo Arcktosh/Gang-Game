@@ -4,16 +4,11 @@ import { spawnSync } from 'node:child_process';
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
 if (!testDatabaseUrl) {
-  console.error(
-    'TEST_DATABASE_URL is required. It must point at a disposable PostgreSQL database.',
-  );
+  console.error('TEST_DATABASE_URL is required. It must point at a disposable PostgreSQL database.');
   process.exit(1);
 }
 
-if (
-  /prod|production/i.test(testDatabaseUrl) ||
-  !/test|localhost|127\.0\.0\.1/i.test(testDatabaseUrl)
-) {
+if (/prod|production/i.test(testDatabaseUrl) || !/test|localhost|127\.0\.0\.1/i.test(testDatabaseUrl)) {
   console.error('Refusing to run integration proof against an unsafe TEST_DATABASE_URL.');
   process.exit(1);
 }

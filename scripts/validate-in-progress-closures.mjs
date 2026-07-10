@@ -38,14 +38,7 @@ for (const snippet of requiredMessageSnippets) {
   }
 }
 
-for (const snippet of [
-  'use client',
-  'EventSource',
-  '/api/messages/stream',
-  'message.snapshot',
-  'message.heartbeat',
-  'aria-live',
-]) {
+for (const snippet of ['use client', 'EventSource', '/api/messages/stream', 'message.snapshot', 'message.heartbeat', 'aria-live']) {
   if (!livePanel.includes(snippet)) {
     errors.push(`Message live panel is missing snippet: ${snippet}`);
   }
@@ -56,11 +49,7 @@ if (!globals.includes('.action-grid')) {
 }
 
 const packageJson = JSON.parse(read('package.json'));
-if (
-  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-in-progress-closures.mjs',
-  )
-) {
+if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-in-progress-closures.mjs')) {
   errors.push('validate:static does not include scripts/validate-in-progress-closures.mjs.');
 }
 
@@ -78,6 +67,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  'In-progress closure validation passed: Messages page live updates and social safety controls are wired.',
-);
+console.log('In-progress closure validation passed: Messages page live updates and social safety controls are wired.');

@@ -1,10 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import {
-  createUserSession,
-  deleteUserSession,
-  findActiveUserBySessionTokenHash,
-  touchUserSession,
-} from '@drugdeal/db';
+import { createUserSession, deleteUserSession, findActiveUserBySessionTokenHash, touchUserSession } from '@drugdeal/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const SESSION_COOKIE_NAME = 'dd_session';

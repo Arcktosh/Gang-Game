@@ -5,10 +5,7 @@ import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/ap
 import { withApiObservability } from '@/lib/observability';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ objectiveId: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ objectiveId: string }> }) {
   return withApiObservability(request, async () => {
     const { objectiveId } = await params;
     const auth = await requireRequestUserId(request);
@@ -17,11 +14,7 @@ export async function POST(
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:profile:objectives:id:claim', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:profile:objectives:id:claim', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -33,11 +26,7 @@ export async function POST(
       return body.response;
     }
 
-    const result = await claimObjective({
-      userId: auth.userId,
-      characterId: body.data.characterId,
-      objectiveId,
-    });
+    const result = await claimObjective({ userId: auth.userId, characterId: body.data.characterId, objectiveId });
 
     if (!result.ok) {
       const status = result.code === 'not_found' ? 404 : result.code === 'conflict' ? 409 : 403;

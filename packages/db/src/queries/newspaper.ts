@@ -21,9 +21,7 @@ function slugify(value: string) {
 }
 
 async function requireOwnedCharacter(tx: any, input: { userId: string; characterId: string }) {
-  const character = await tx.query.characters.findFirst({
-    where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
-  });
+  const character = await tx.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
 
   if (!character) {
     return { ok: false as const, code: 'not_found', message: 'Character not found.' };
@@ -32,25 +30,11 @@ async function requireOwnedCharacter(tx: any, input: { userId: string; character
   return { ok: true as const, character };
 }
 
-export async function listNewspaperArticles(input?: {
-  location?: string | null;
-  limit?: number;
-  offset?: number;
-}) {
-  return listNewspaperCenter({
-    location: input?.location,
-    limit: input?.limit,
-    offset: input?.offset,
-  });
+export async function listNewspaperArticles(input?: { location?: string | null; limit?: number; offset?: number }) {
+  return listNewspaperCenter({ location: input?.location, limit: input?.limit, offset: input?.offset });
 }
 
-export async function listNewspaperCenter(input?: {
-  userId?: string;
-  characterId?: string;
-  location?: string | null;
-  limit?: number;
-  offset?: number;
-}) {
+export async function listNewspaperCenter(input?: { userId?: string; characterId?: string; location?: string | null; limit?: number; offset?: number }) {
   const limit = Math.min(Math.max(input?.limit ?? 20, 1), 50);
   const offset = Math.min(Math.max(input?.offset ?? 0, 0), 5_000);
   const location = input?.location ?? null;
@@ -73,10 +57,7 @@ export async function listNewspaperCenter(input?: {
 
   const [comments, reactionRows, ownReactions, ownReports] = await Promise.all([
     db.query.newspaperArticleComments.findMany({
-      where: and(
-        inArray(newspaperArticleComments.articleId, articleIds),
-        eq(newspaperArticleComments.isHidden, false),
-      ),
+      where: and(inArray(newspaperArticleComments.articleId, articleIds), eq(newspaperArticleComments.isHidden, false)),
       with: { author: true },
       orderBy: desc(newspaperArticleComments.createdAt),
       limit: 100,
@@ -92,18 +73,12 @@ export async function listNewspaperCenter(input?: {
       .groupBy(newspaperArticleReactions.articleId, newspaperArticleReactions.reactionType),
     input?.characterId
       ? db.query.newspaperArticleReactions.findMany({
-          where: and(
-            inArray(newspaperArticleReactions.articleId, articleIds),
-            eq(newspaperArticleReactions.characterId, input.characterId),
-          ),
+          where: and(inArray(newspaperArticleReactions.articleId, articleIds), eq(newspaperArticleReactions.characterId, input.characterId)),
         })
       : Promise.resolve([]),
     input?.characterId
       ? db.query.newspaperArticleReports.findMany({
-          where: and(
-            inArray(newspaperArticleReports.articleId, articleIds),
-            eq(newspaperArticleReports.reporterCharacterId, input.characterId),
-          ),
+          where: and(inArray(newspaperArticleReports.articleId, articleIds), eq(newspaperArticleReports.reporterCharacterId, input.characterId)),
           orderBy: desc(newspaperArticleReports.createdAt),
           limit: 50,
         })
@@ -111,10 +86,7 @@ export async function listNewspaperCenter(input?: {
   ]);
 
   return articles.map((article) => {
-    const articleComments = comments
-      .filter((comment) => comment.articleId === article.id)
-      .slice(0, 5)
-      .reverse();
+    const articleComments = comments.filter((comment) => comment.articleId === article.id).slice(0, 5).reverse();
     const reactionCounts = reactionRows
       .filter((reaction) => reaction.articleId === article.id)
       .reduce<Record<string, number>>((acc, reaction) => {
@@ -126,22 +98,13 @@ export async function listNewspaperCenter(input?: {
       ...article,
       comments: articleComments,
       reactionCounts,
-      myReactions: ownReactions
-        .filter((reaction) => reaction.articleId === article.id)
-        .map((reaction) => reaction.reactionType),
+      myReactions: ownReactions.filter((reaction) => reaction.articleId === article.id).map((reaction) => reaction.reactionType),
       myReports: ownReports.filter((report) => report.articleId === article.id),
     };
   });
 }
 
-export async function submitNewspaperArticle(input: {
-  userId: string;
-  characterId: string;
-  title: string;
-  excerpt?: string;
-  body: string;
-  category?: string;
-}) {
+export async function submitNewspaperArticle(input: { userId: string; characterId: string; title: string; excerpt?: string; body: string; category?: string }) {
   return db.transaction(async (tx) => {
     const owned = await requireOwnedCharacter(tx, input);
 
@@ -152,11 +115,7 @@ export async function submitNewspaperArticle(input: {
     const { character } = owned;
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character is not available to submit newspaper articles.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character is not available to submit newspaper articles.' };
     }
 
     const [article] = await tx
@@ -187,12 +146,7 @@ export async function submitNewspaperArticle(input: {
   });
 }
 
-export async function commentOnNewspaperArticle(input: {
-  userId: string;
-  characterId: string;
-  articleId: string;
-  body: string;
-}) {
+export async function commentOnNewspaperArticle(input: { userId: string; characterId: string; articleId: string; body: string }) {
   return db.transaction(async (tx) => {
     const owned = await requireOwnedCharacter(tx, input);
 
@@ -203,19 +157,10 @@ export async function commentOnNewspaperArticle(input: {
     const { character } = owned;
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character is not available to comment on articles.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character is not available to comment on articles.' };
     }
 
-    const article = await tx.query.newspaperArticles.findFirst({
-      where: and(
-        eq(newspaperArticles.id, input.articleId),
-        eq(newspaperArticles.isPublished, true),
-      ),
-    });
+    const article = await tx.query.newspaperArticles.findFirst({ where: and(eq(newspaperArticles.id, input.articleId), eq(newspaperArticles.isPublished, true)) });
 
     if (!article) {
       return { ok: false as const, code: 'not_found', message: 'Article not found.' };
@@ -227,9 +172,7 @@ export async function commentOnNewspaperArticle(input: {
       .returning();
 
     if (article.authorCharacterId && article.authorCharacterId !== character.id) {
-      const author = await tx.query.characters.findFirst({
-        where: eq(characters.id, article.authorCharacterId),
-      });
+      const author = await tx.query.characters.findFirst({ where: eq(characters.id, article.authorCharacterId) });
 
       if (author) {
         await tx.insert(notifications).values({
@@ -259,12 +202,7 @@ export async function commentOnNewspaperArticle(input: {
   });
 }
 
-export async function reactToNewspaperArticle(input: {
-  userId: string;
-  characterId: string;
-  articleId: string;
-  reactionType: string;
-}) {
+export async function reactToNewspaperArticle(input: { userId: string; characterId: string; articleId: string; reactionType: string }) {
   return db.transaction(async (tx) => {
     const owned = await requireOwnedCharacter(tx, input);
 
@@ -272,12 +210,7 @@ export async function reactToNewspaperArticle(input: {
       return owned;
     }
 
-    const article = await tx.query.newspaperArticles.findFirst({
-      where: and(
-        eq(newspaperArticles.id, input.articleId),
-        eq(newspaperArticles.isPublished, true),
-      ),
-    });
+    const article = await tx.query.newspaperArticles.findFirst({ where: and(eq(newspaperArticles.id, input.articleId), eq(newspaperArticles.isPublished, true)) });
 
     if (!article) {
       return { ok: false as const, code: 'not_found', message: 'Article not found.' };
@@ -292,31 +225,20 @@ export async function reactToNewspaperArticle(input: {
     });
 
     if (existing) {
-      await tx
-        .delete(newspaperArticleReactions)
-        .where(eq(newspaperArticleReactions.id, existing.id));
+      await tx.delete(newspaperArticleReactions).where(eq(newspaperArticleReactions.id, existing.id));
       return { ok: true as const, toggled: 'removed' as const };
     }
 
     const [reaction] = await tx
       .insert(newspaperArticleReactions)
-      .values({
-        articleId: input.articleId,
-        characterId: input.characterId,
-        reactionType: input.reactionType,
-      })
+      .values({ articleId: input.articleId, characterId: input.characterId, reactionType: input.reactionType })
       .returning();
 
     return { ok: true as const, toggled: 'added' as const, reaction };
   });
 }
 
-export async function reportNewspaperArticle(input: {
-  userId: string;
-  characterId: string;
-  articleId: string;
-  reason?: string;
-}) {
+export async function reportNewspaperArticle(input: { userId: string; characterId: string; articleId: string; reason?: string }) {
   return db.transaction(async (tx) => {
     const owned = await requireOwnedCharacter(tx, input);
 
@@ -324,9 +246,7 @@ export async function reportNewspaperArticle(input: {
       return owned;
     }
 
-    const article = await tx.query.newspaperArticles.findFirst({
-      where: eq(newspaperArticles.id, input.articleId),
-    });
+    const article = await tx.query.newspaperArticles.findFirst({ where: eq(newspaperArticles.id, input.articleId) });
 
     if (!article) {
       return { ok: false as const, code: 'not_found', message: 'Article not found.' };
@@ -334,11 +254,7 @@ export async function reportNewspaperArticle(input: {
 
     const [report] = await tx
       .insert(newspaperArticleReports)
-      .values({
-        articleId: article.id,
-        reporterCharacterId: input.characterId,
-        reason: input.reason || 'Needs moderation review.',
-      })
+      .values({ articleId: article.id, reporterCharacterId: input.characterId, reason: input.reason || 'Needs moderation review.' })
       .returning();
 
     await tx.insert(playerEvents).values({
@@ -353,14 +269,7 @@ export async function reportNewspaperArticle(input: {
   });
 }
 
-export async function publishSystemArticle(input: {
-  title: string;
-  body: string;
-  excerpt?: string;
-  category?: string;
-  location?: string | null;
-  metadata?: Record<string, unknown>;
-}) {
+export async function publishSystemArticle(input: { title: string; body: string; excerpt?: string; category?: string; location?: string | null; metadata?: Record<string, unknown> }) {
   const [article] = await db
     .insert(newspaperArticles)
     .values({

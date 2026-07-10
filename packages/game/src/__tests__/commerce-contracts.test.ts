@@ -47,11 +47,7 @@ test('contract economics normalize fees, escrow, cooldown, and risk', () => {
 
 test('contract completion gates location and required delivery inventory', () => {
   assert.deepEqual(
-    canCompleteContract({
-      contractType: 'delivery',
-      characterLocation: 'downtown',
-      targetLocation: 'harbor',
-    }),
+    canCompleteContract({ contractType: 'delivery', characterLocation: 'downtown', targetLocation: 'harbor' }),
     { ok: false, message: 'Travel to harbor to complete this contract.' },
   );
 
@@ -85,52 +81,20 @@ test('faction armory actions normalize quantity and gate withdrawals by rank', a
 
   assert.equal(canManageFactionArmory('runner'), false);
   assert.equal(canManageFactionArmory('lieutenant'), true);
-  assert.deepEqual(
-    calculateFactionInventoryAction({
-      action: 'deposit',
-      role: 'recruit',
-      quantity: 2.8,
-      availableQuantity: 5,
-    }),
-    {
-      quantity: 2,
-      cooldownSeconds: 20,
-      contributionPoints: 2,
-      hasPermission: true,
-      canAttempt: true,
-    },
-  );
-  assert.deepEqual(
-    calculateFactionInventoryAction({
-      action: 'withdraw',
-      role: 'soldier',
-      quantity: 2,
-      availableQuantity: 5,
-    }),
-    {
-      quantity: 2,
-      cooldownSeconds: 45,
-      contributionPoints: 0,
-      hasPermission: false,
-      canAttempt: false,
-    },
-  );
-  assert.equal(
-    calculateFactionInventoryAction({
-      action: 'withdraw',
-      role: 'captain',
-      quantity: 6,
-      availableQuantity: 5,
-    }).canAttempt,
-    false,
-  );
-  assert.equal(
-    calculateFactionInventoryAction({
-      action: 'withdraw',
-      role: 'captain',
-      quantity: 5,
-      availableQuantity: 5,
-    }).canAttempt,
-    true,
-  );
+  assert.deepEqual(calculateFactionInventoryAction({ action: 'deposit', role: 'recruit', quantity: 2.8, availableQuantity: 5 }), {
+    quantity: 2,
+    cooldownSeconds: 20,
+    contributionPoints: 2,
+    hasPermission: true,
+    canAttempt: true,
+  });
+  assert.deepEqual(calculateFactionInventoryAction({ action: 'withdraw', role: 'soldier', quantity: 2, availableQuantity: 5 }), {
+    quantity: 2,
+    cooldownSeconds: 45,
+    contributionPoints: 0,
+    hasPermission: false,
+    canAttempt: false,
+  });
+  assert.equal(calculateFactionInventoryAction({ action: 'withdraw', role: 'captain', quantity: 6, availableQuantity: 5 }).canAttempt, false);
+  assert.equal(calculateFactionInventoryAction({ action: 'withdraw', role: 'captain', quantity: 5, availableQuantity: 5 }).canAttempt, true);
 });

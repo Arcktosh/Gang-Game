@@ -31,26 +31,10 @@ function requireIncludes(relativePath, terms) {
 }
 
 const publicPages = [
-  [
-    'privacy page',
-    'apps/web/src/app/(public)/privacy/page.tsx',
-    ['Privacy Policy', 'Live payment processing is intentionally disabled', '/terms', '/rules'],
-  ],
-  [
-    'terms page',
-    'apps/web/src/app/(public)/terms/page.tsx',
-    ['Terms of Service', 'fictional browser MMO', 'Fair play', '/privacy'],
-  ],
-  [
-    'rules page',
-    'apps/web/src/app/(public)/rules/page.tsx',
-    ['Community Rules', 'Moderation workflow', 'report', '/privacy'],
-  ],
-  [
-    'onboarding page',
-    'apps/web/src/app/(public)/onboarding/page.tsx',
-    ['First Session Checklist', 'Create an account', 'Apply for a starter job', '/register'],
-  ],
+  ['privacy page', 'apps/web/src/app/(public)/privacy/page.tsx', ['Privacy Policy', 'Live payment processing is intentionally disabled', '/terms', '/rules']],
+  ['terms page', 'apps/web/src/app/(public)/terms/page.tsx', ['Terms of Service', 'fictional browser MMO', 'Fair play', '/privacy']],
+  ['rules page', 'apps/web/src/app/(public)/rules/page.tsx', ['Community Rules', 'Moderation workflow', 'report', '/privacy']],
+  ['onboarding page', 'apps/web/src/app/(public)/onboarding/page.tsx', ['First Session Checklist', 'Create an account', 'Apply for a starter job', '/register']],
 ];
 
 for (const [label, relativePath, terms] of publicPages) {
@@ -60,25 +44,10 @@ for (const [label, relativePath, terms] of publicPages) {
 requireIncludes('apps/web/src/app/page.tsx', ['/privacy', '/terms', '/rules', '/onboarding']);
 
 const policyDocs = [
-  [
-    'docs/privacy-policy.md',
-    ['Privacy Policy Draft', 'Data categories', 'Payments', 'Pre-launch action'],
-  ],
-  [
-    'docs/terms-of-service.md',
-    ['Terms of Service Draft', 'Fictional gameplay', 'Beta state', 'Pre-launch action'],
-  ],
+  ['docs/privacy-policy.md', ['Privacy Policy Draft', 'Data categories', 'Payments', 'Pre-launch action']],
+  ['docs/terms-of-service.md', ['Terms of Service Draft', 'Fictional gameplay', 'Beta state', 'Pre-launch action']],
   ['docs/community-rules.md', ['Community Rules', 'Enforcement ladder', 'Operator workflow']],
-  [
-    'docs/beta-test-plan.md',
-    [
-      'Public Beta Test Plan',
-      'pnpm prove:mvp-runtime',
-      'prove:integration',
-      'First-session script',
-      'Exit criteria',
-    ],
-  ],
+  ['docs/beta-test-plan.md', ['Public Beta Test Plan', 'pnpm prove:mvp-runtime', 'prove:integration', 'First-session script', 'Exit criteria']],
 ];
 
 for (const [relativePath, terms] of policyDocs) {
@@ -86,34 +55,13 @@ for (const [relativePath, terms] of policyDocs) {
 }
 
 const packageJson = JSON.parse(requireFile('package.json'));
-if (
-  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-public-launch.mjs',
-  )
-) {
+if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-public-launch.mjs')) {
   errors.push('package.json validate:static must include scripts/validate-public-launch.mjs.');
 }
 
-requireIncludes('README.md', [
-  'docs/privacy-policy.md',
-  'docs/terms-of-service.md',
-  'docs/community-rules.md',
-  'docs/beta-test-plan.md',
-  'Feature Pass 59',
-]);
-requireIncludes('docs/mvp-release-runbook.md', [
-  'docs/privacy-policy.md',
-  'docs/terms-of-service.md',
-  'docs/community-rules.md',
-  'docs/beta-test-plan.md',
-]);
-requireIncludes('docs/mvp-acceptance.md', [
-  'Public launch polish',
-  'privacy',
-  'terms',
-  'community rules',
-  'beta test plan',
-]);
+requireIncludes('README.md', ['docs/privacy-policy.md', 'docs/terms-of-service.md', 'docs/community-rules.md', 'docs/beta-test-plan.md', 'Feature Pass 59']);
+requireIncludes('docs/mvp-release-runbook.md', ['docs/privacy-policy.md', 'docs/terms-of-service.md', 'docs/community-rules.md', 'docs/beta-test-plan.md']);
+requireIncludes('docs/mvp-acceptance.md', ['Public launch polish', 'privacy', 'terms', 'community rules', 'beta test plan']);
 requireIncludes('docs/project-status.md', ['Feature Pass 59', 'public launch polish']);
 requireIncludes('docs/remaining-work.md', ['Feature Pass 59', 'Production legal review']);
 requireIncludes('docs/feature-checklist.md', ['Feature Pass 59', 'Public launch polish']);

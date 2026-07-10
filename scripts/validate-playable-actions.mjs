@@ -16,50 +16,20 @@ function read(relativePath) {
 }
 
 const actionForm = read('apps/web/src/features/game/action-form.tsx');
-for (const snippet of [
-  'use client',
-  'fetch(endpoint',
-  'idempotency-key',
-  'router.refresh()',
-  'omitWhenEmpty',
-]) {
+for (const snippet of ['use client', 'fetch(endpoint', 'idempotency-key', 'router.refresh()', 'omitWhenEmpty']) {
   if (!actionForm.includes(snippet)) {
     errors.push(`Playable action form is missing ${snippet}.`);
   }
 }
 
 const requiredPageActions = [
-  [
-    'jobs',
-    'apps/web/src/app/(game)/jobs/page.tsx',
-    ['/api/jobs', "action: 'apply'", "action: 'work'", "action: 'resign'"],
-  ],
+  ['jobs', 'apps/web/src/app/(game)/jobs/page.tsx', ['/api/jobs', "action: 'apply'", "action: 'work'", "action: 'resign'"]],
   ['crimes', 'apps/web/src/app/(game)/crimes/page.tsx', ['/api/crimes', 'Attempt crime']],
-  [
-    'legal',
-    'apps/web/src/app/(game)/legal/page.tsx',
-    ['/api/legal/lawyer', '/api/legal/bribe', '/api/legal/hospital'],
-  ],
-  [
-    'market',
-    'apps/web/src/app/(game)/market/page.tsx',
-    ['/api/market', "action: 'buy'", "action: 'sell'"],
-  ],
-  [
-    'shops',
-    'apps/web/src/app/(game)/shops/page.tsx',
-    ['/api/shops/purchase', '/api/shops/actions', '/api/shops/listings'],
-  ],
-  [
-    'contracts',
-    'apps/web/src/app/(game)/contracts/page.tsx',
-    ['/api/contracts', '/accept', '/complete', '/cancel'],
-  ],
-  [
-    'messages',
-    'apps/web/src/app/(game)/messages/page.tsx',
-    ['/api/messages', "action: 'send'", 'recipientCharacterId'],
-  ],
+  ['legal', 'apps/web/src/app/(game)/legal/page.tsx', ['/api/legal/lawyer', '/api/legal/bribe', '/api/legal/hospital']],
+  ['market', 'apps/web/src/app/(game)/market/page.tsx', ['/api/market', "action: 'buy'", "action: 'sell'"]],
+  ['shops', 'apps/web/src/app/(game)/shops/page.tsx', ['/api/shops/purchase', '/api/shops/actions', '/api/shops/listings']],
+  ['contracts', 'apps/web/src/app/(game)/contracts/page.tsx', ['/api/contracts', '/accept', '/complete', '/cancel']],
+  ['messages', 'apps/web/src/app/(game)/messages/page.tsx', ['/api/messages', "action: 'send'", 'recipientCharacterId']],
   ['factions', 'apps/web/src/app/(game)/factions/page.tsx', ['/api/factions', '/join', '/leave']],
 ];
 
@@ -78,11 +48,7 @@ for (const [slug, relativePath, snippets] of requiredPageActions) {
 }
 
 const packageJson = JSON.parse(read('package.json'));
-if (
-  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-playable-actions.mjs',
-  )
-) {
+if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-playable-actions.mjs')) {
   errors.push('validate:static does not include scripts/validate-playable-actions.mjs.');
 }
 
@@ -92,6 +58,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `Playable action validation passed: ${requiredPageActions.length} MVP pages expose authenticated POST action forms.`,
-);
+console.log(`Playable action validation passed: ${requiredPageActions.length} MVP pages expose authenticated POST action forms.`);

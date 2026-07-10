@@ -38,12 +38,7 @@ export async function getCharacterForUser(characterId: string, userId: string) {
   });
 }
 
-export async function listCharacterEvents(
-  characterId: string,
-  userId: string,
-  limit = 50,
-  offset = 0,
-) {
+export async function listCharacterEvents(characterId: string, userId: string, limit = 50, offset = 0) {
   const character = await getCharacterForUser(characterId, userId);
 
   if (!character) {

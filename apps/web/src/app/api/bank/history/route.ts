@@ -10,15 +10,11 @@ function csvCell(value: unknown) {
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function bankStatementCsv(
-  statement: NonNullable<Awaited<ReturnType<typeof listCharacterBankStatement>>>,
-) {
+function bankStatementCsv(statement: NonNullable<Awaited<ReturnType<typeof listCharacterBankStatement>>>) {
   const rows = [
     ['createdAt', 'action', 'amount', 'description', 'cashAfter', 'bankAfter'],
     ...statement.transactions.map((transaction) => [
-      transaction.createdAt instanceof Date
-        ? transaction.createdAt.toISOString()
-        : transaction.createdAt,
+      transaction.createdAt instanceof Date ? transaction.createdAt.toISOString() : transaction.createdAt,
       transaction.metadata?.action ?? '',
       transaction.amount,
       transaction.description,
@@ -38,11 +34,7 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:bank:history', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:bank:history', auth.userId), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;

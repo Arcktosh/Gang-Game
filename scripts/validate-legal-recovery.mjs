@@ -43,7 +43,7 @@ expectIncludes('packages/db/src/queries/action-state.ts', [
   'hospitalStays',
   'jailSentences',
   "status: statusExpired ? 'free' : character.status",
-  'statusReason: statusExpired ? null : character.statusReason',
+  "statusReason: statusExpired ? null : character.statusReason",
 ]);
 
 expectIncludes('apps/web/src/app/api/legal/status/route.ts', [
@@ -60,10 +60,7 @@ expectIncludes('packages/db/src/queries/legal.ts', [
 ]);
 
 expectIncludes('packages/validators/src/index.ts', ['hospitalCareSchema']);
-expectIncludes('apps/web/src/app/(game)/legal/page.tsx', [
-  'POST /api/legal/hospital',
-  'Recovery actions',
-]);
+expectIncludes('apps/web/src/app/(game)/legal/page.tsx', ['POST /api/legal/hospital', 'Recovery actions']);
 expectIncludes('docs/api-reference.md', ['`/api/legal/hospital`']);
 
 const result = {

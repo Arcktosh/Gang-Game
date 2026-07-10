@@ -17,9 +17,7 @@ export const API_ERROR_CODES = [
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
 
 export function normalizeApiErrorCode(code: ApiErrorCode | string): ApiErrorCode {
-  return (API_ERROR_CODES as readonly string[]).includes(code)
-    ? (code as ApiErrorCode)
-    : 'server_error';
+  return (API_ERROR_CODES as readonly string[]).includes(code) ? (code as ApiErrorCode) : 'server_error';
 }
 
 export type Pagination = {
@@ -53,27 +51,18 @@ export function jsonError(
   );
 }
 
-export async function parseJsonBody<TSchema extends z.ZodTypeAny>(
-  request: NextRequest,
-  schema: TSchema,
-) {
+export async function parseJsonBody<TSchema extends z.ZodTypeAny>(request: NextRequest, schema: TSchema) {
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      response: jsonError('bad_request', 'Invalid request body.', 400, parsed.error.flatten()),
-    };
+    return { ok: false as const, response: jsonError('bad_request', 'Invalid request body.', 400, parsed.error.flatten()) };
   }
 
   return { ok: true as const, data: parsed.data as z.infer<TSchema> };
 }
 
-export function parsePaginationSearchParams(
-  searchParams: URLSearchParams,
-  mode: 'public' | 'admin' = 'public',
-) {
+export function parsePaginationSearchParams(searchParams: URLSearchParams, mode: 'public' | 'admin' = 'public') {
   const schema = mode === 'admin' ? paginationQuerySchema : publicPaginationQuerySchema;
   return schema.safeParse({
     limit: searchParams.get('limit') ?? undefined,
@@ -85,10 +74,7 @@ export function parsePagination(request: NextRequest, mode: 'public' | 'admin' =
   const parsed = parsePaginationSearchParams(request.nextUrl.searchParams, mode);
 
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      response: jsonError('bad_request', 'Invalid pagination query.', 400, parsed.error.flatten()),
-    };
+    return { ok: false as const, response: jsonError('bad_request', 'Invalid pagination query.', 400, parsed.error.flatten()) };
   }
 
   return { ok: true as const, pagination: parsed.data };

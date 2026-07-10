@@ -35,9 +35,7 @@ function loadEnvFileIfPresent(filePath: string) {
       continue;
     }
 
-    const assignment = trimmed.startsWith('export ')
-      ? trimmed.slice('export '.length).trim()
-      : trimmed;
+    const assignment = trimmed.startsWith('export ') ? trimmed.slice('export '.length).trim() : trimmed;
     const equalsIndex = assignment.indexOf('=');
 
     if (equalsIndex <= 0) {
@@ -57,12 +55,7 @@ function loadMonorepoRootEnv() {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const scriptDir = dirname(fileURLToPath(import.meta.url));
   const monorepoRoot = resolve(scriptDir, '../../..');
-  const envFiles = [
-    `.env.${nodeEnv}.local`,
-    nodeEnv === 'test' ? null : '.env.local',
-    `.env.${nodeEnv}`,
-    '.env',
-  ];
+  const envFiles = [`.env.${nodeEnv}.local`, nodeEnv === 'test' ? null : '.env.local', `.env.${nodeEnv}`, '.env'];
 
   for (const envFile of envFiles) {
     if (envFile) {
@@ -73,8 +66,7 @@ function loadMonorepoRootEnv() {
 
 loadMonorepoRootEnv();
 
-const connectionString =
-  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
+const connectionString = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
 const sql = postgres(connectionString, { max: 1 });
 
 try {

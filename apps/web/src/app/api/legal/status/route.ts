@@ -1,13 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import {
-  characters,
-  db,
-  getActiveHospitalStay,
-  getActiveJailSentence,
-  listLegalServiceLogs,
-  refreshCharacterHeat,
-  refreshCharacterResources,
-} from '@drugdeal/db';
+import { characters, db, getActiveHospitalStay, getActiveJailSentence, listLegalServiceLogs, refreshCharacterHeat, refreshCharacterResources } from '@drugdeal/db';
 import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
@@ -61,10 +53,7 @@ export async function GET(request: NextRequest) {
           { tier: 'street', cost: 300, label: 'Street lawyer' },
           { tier: 'firm', cost: 1000, label: 'Private firm' },
         ],
-        bribe: {
-          available: result.data.character.heat > 0,
-          estimatedMinimumCost: 100 + result.data.character.heat * 35,
-        },
+        bribe: { available: result.data.character.heat > 0, estimatedMinimumCost: 100 + result.data.character.heat * 35 },
         hospitalCare: [
           { service: 'basic', cost: 100, label: 'Basic treatment' },
           { service: 'private', cost: 350, label: 'Private room' },

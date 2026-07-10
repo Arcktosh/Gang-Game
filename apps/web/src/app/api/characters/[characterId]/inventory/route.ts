@@ -23,9 +23,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return jsonError('not_found', 'Character not found.', 404);
     }
 
-    const inventory = await db.query.inventoryItems.findMany({
-      where: eq(inventoryItems.characterId, character.id),
-    });
+    const inventory = await db.query.inventoryItems.findMany({ where: eq(inventoryItems.characterId, character.id) });
 
     return jsonOk({ inventory });
   });

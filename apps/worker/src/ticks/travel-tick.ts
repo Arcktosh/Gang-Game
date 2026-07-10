@@ -1,13 +1,5 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import {
-  characters,
-  db,
-  inventoryItems,
-  playerEvents,
-  travelCargo,
-  travelPlans,
-  travelRoutes,
-} from '@drugdeal/db';
+import { characters, db, inventoryItems, playerEvents, travelCargo, travelPlans, travelRoutes } from '@drugdeal/db';
 import { scheduleWorkerTick } from '../tick-runner';
 
 const TRAVEL_TICK_MS = 30_000;
@@ -28,18 +20,11 @@ export async function completeDueTravelPlans() {
 
   for (const plan of duePlans) {
     await db.transaction(async (tx) => {
-      const route = await tx.query.travelRoutes.findFirst({
-        where: eq(travelRoutes.id, plan.routeId),
-      });
-      const character = await tx.query.characters.findFirst({
-        where: eq(characters.id, plan.characterId),
-      });
+      const route = await tx.query.travelRoutes.findFirst({ where: eq(travelRoutes.id, plan.routeId) });
+      const character = await tx.query.characters.findFirst({ where: eq(characters.id, plan.characterId) });
 
       if (!route || !character) {
-        await tx
-          .update(travelPlans)
-          .set({ status: 'cancelled', completedAt: sql`now()` })
-          .where(eq(travelPlans.id, plan.id));
+        await tx.update(travelPlans).set({ status: 'cancelled', completedAt: sql`now()` }).where(eq(travelPlans.id, plan.id));
         return;
       }
 
@@ -48,24 +33,16 @@ export async function completeDueTravelPlans() {
         .set({ status: 'completed', completedAt: sql`now()` })
         .where(eq(travelPlans.id, plan.id));
 
-      const cargoRows = await tx.query.travelCargo.findMany({
-        where: and(eq(travelCargo.travelPlanId, plan.id), eq(travelCargo.status, 'loaded')),
-      });
+      const cargoRows = await tx.query.travelCargo.findMany({ where: and(eq(travelCargo.travelPlanId, plan.id), eq(travelCargo.status, 'loaded')) });
       for (const cargo of cargoRows) {
         await tx
           .insert(inventoryItems)
           .values({ characterId: character.id, itemKey: cargo.itemKey, quantity: cargo.quantity })
           .onConflictDoUpdate({
             target: [inventoryItems.characterId, inventoryItems.itemKey],
-            set: {
-              quantity: sql`${inventoryItems.quantity} + ${cargo.quantity}`,
-              updatedAt: sql`now()`,
-            },
+            set: { quantity: sql`${inventoryItems.quantity} + ${cargo.quantity}`, updatedAt: sql`now()` },
           });
-        await tx
-          .update(travelCargo)
-          .set({ status: 'delivered', resolvedAt: sql`now()` })
-          .where(eq(travelCargo.id, cargo.id));
+        await tx.update(travelCargo).set({ status: 'delivered', resolvedAt: sql`now()` }).where(eq(travelCargo.id, cargo.id));
       }
 
       await tx
@@ -77,13 +54,7 @@ export async function completeDueTravelPlans() {
         userId: character.userId,
         characterId: character.id,
         type: 'travel_completed',
-        payload: {
-          fromLocation: route.fromLocation,
-          toLocation: route.toLocation,
-          travelPlanId: plan.id,
-          cargoValue: plan.cargoValue,
-          riskScore: plan.riskScore,
-        },
+        payload: { fromLocation: route.fromLocation, toLocation: route.toLocation, travelPlanId: plan.id, cargoValue: plan.cargoValue, riskScore: plan.riskScore },
       });
     });
   }

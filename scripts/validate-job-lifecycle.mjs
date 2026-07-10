@@ -12,7 +12,7 @@ function read(relativePath) {
 const schema = read('packages/db/src/schema/index.ts');
 for (const snippet of [
   "export const jobStatus = pgEnum('job_status'",
-  'export const characterJobs = pgTable(',
+  "export const characterJobs = pgTable(",
   "shiftsCompleted: integer('shifts_completed')",
   "totalEarned: integer('total_earned')",
 ]) {
@@ -39,8 +39,8 @@ if (!validators.includes("action: z.enum(['apply', 'work', 'resign'])")) {
 
 const route = read('apps/web/src/app/api/jobs/route.ts');
 for (const snippet of [
-  "body.data.action === 'apply'",
-  "body.data.action === 'resign'",
+  'body.data.action === \'apply\'',
+  'body.data.action === \'resign\'',
   "type: 'job_applied'",
   "type: 'job_resigned'",
   "type: promoted ? 'job_promoted' : 'job_completed'",
@@ -52,13 +52,7 @@ for (const snippet of [
 }
 
 const page = read('apps/web/src/app/(game)/jobs/page.tsx');
-for (const snippet of [
-  'Current employment',
-  'Apply for a job before working shifts',
-  '<code>apply</code>',
-  '<code>work</code>',
-  '<code>resign</code>',
-]) {
+for (const snippet of ['Current employment', 'Apply for a job before working shifts', '<code>apply</code>', '<code>work</code>', '<code>resign</code>']) {
   if (!page.includes(snippet)) {
     errors.push(`Jobs page missing lifecycle UI snippet: ${snippet}`);
   }
@@ -70,6 +64,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  'Job lifecycle validation passed: employment state, apply/work/resign route handling, promotion events, and jobs page visibility are wired.',
-);
+console.log('Job lifecycle validation passed: employment state, apply/work/resign route handling, promotion events, and jobs page visibility are wired.');

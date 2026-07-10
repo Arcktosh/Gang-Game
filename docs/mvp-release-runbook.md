@@ -39,6 +39,7 @@ Apply migrations in the canonical order from `docs/migration-guide.md`. The quic
 
 The final migration in the current MVP chain is `0030_job_lifecycle.sql`.
 
+
 ## One-command runtime proof
 
 Feature Pass 54 adds the preferred proof command for a real installed environment:
@@ -135,15 +136,18 @@ These are accepted for MVP testing but should remain visible:
 - Admin audit pages need more UX depth even though admin route RBAC is enforced.
 - Password reset and email verification remain post-MVP unless public registration is opened.
 
+
 ## Historical note
 
 Feature Pass 52 introduced the first MVP release runbook and backup/restore readiness gate. Feature Pass 54 adds the executable runtime proof orchestrator on top of that release process.
+
 
 ## Feature Pass 57 update
 
 Feature Pass 57 keeps `pnpm prove:mvp-runtime` as the release proof command and extends the migration chain with `0031_monetization_foundation.sql`, now applied through `pnpm db:apply:all`.
 
 Feature Pass 56 remains documented as the monetization foundation baseline; Feature Pass 57 adds playable MVP action forms on top of the same runtime proof sequence.
+
 
 ## Feature Pass 59 admin operations proof
 
@@ -159,6 +163,7 @@ Before inviting public beta testers, review and publish the following docs and p
 - `docs/beta-test-plan.md` and `/onboarding`
 
 These documents are MVP drafts. Production legal review remains required before commercial launch.
+
 
 ## Site-quality release checks
 

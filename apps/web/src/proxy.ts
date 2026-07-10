@@ -9,10 +9,7 @@ function jsonSecurityError(message: string, status = 403) {
 export function proxy(request: NextRequest) {
   const requestId = getOrCreateRequestId(request);
 
-  if (
-    request.nextUrl.pathname.startsWith('/api/') &&
-    !SAFE_HTTP_METHODS.has(request.method.toUpperCase())
-  ) {
+  if (request.nextUrl.pathname.startsWith('/api/') && !SAFE_HTTP_METHODS.has(request.method.toUpperCase())) {
     const decision = evaluateMutationOrigin(request);
 
     if (!decision.allowed) {

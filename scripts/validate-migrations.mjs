@@ -30,8 +30,7 @@ function main() {
       name: match[2],
       hasCreateOrAlter: /\b(CREATE|ALTER)\b/i.test(contents),
       hasDropTable: /\bDROP\s+TABLE\b/i.test(contents),
-      hasDestructiveDelete:
-        /\bDELETE\s+FROM\b/i.test(contents) && !/cleanup|maintenance|expired|stale/i.test(file),
+      hasDestructiveDelete: /\bDELETE\s+FROM\b/i.test(contents) && !/cleanup|maintenance|expired|stale/i.test(file),
     };
   });
 
@@ -58,8 +57,7 @@ function main() {
     .map(([name, command]) => ({ name, command: String(command) }));
 
   const hasApplyAllRunner =
-    Boolean(scripts['db:apply:all']) &&
-    String(scripts['db:apply:all']).includes('apply-migrations.ts');
+    Boolean(scripts['db:apply:all']) && String(scripts['db:apply:all']).includes('apply-migrations.ts');
 
   const uncoveredMigrations = migrations.filter((migration) => {
     if (OPTIONAL_SEED_MIGRATIONS.has(migration.file)) {

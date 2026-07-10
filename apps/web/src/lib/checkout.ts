@@ -19,8 +19,7 @@ export async function createCheckoutIntent(input: CheckoutIntent): Promise<Check
       status: 'configuration_required',
       checkoutUrl: null,
       productKey: input.productKey,
-      message:
-        'Checkout provider is not configured. The MVP entitlement catalog is ready, but live payments are disabled.',
+      message: 'Checkout provider is not configured. The MVP entitlement catalog is ready, but live payments are disabled.',
     };
   }
 
@@ -29,7 +28,6 @@ export async function createCheckoutIntent(input: CheckoutIntent): Promise<Check
     status: 'configuration_required',
     checkoutUrl: null,
     productKey: input.productKey,
-    message:
-      'Stripe adapter placeholder reached. Implement hosted checkout session creation before enabling live payments.',
+    message: 'Stripe adapter placeholder reached. Implement hosted checkout session creation before enabling live payments.',
   };
 }

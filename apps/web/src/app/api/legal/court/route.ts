@@ -1,12 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import {
-  assertActionUnlocked,
-  characters,
-  db,
-  refreshCharacterResources,
-  requestCourtHearing,
-  setActionCooldown,
-} from '@drugdeal/db';
+import { assertActionUnlocked, characters, db, refreshCharacterResources, requestCourtHearing, setActionCooldown } from '@drugdeal/db';
 import { courtHearingSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { withIdempotency } from '@/lib/idempotency';
@@ -22,11 +15,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:legal:court', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 20,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:legal:court', auth.userId), windowSeconds: 60, maxRequests: 20 });
 
     if (!limit.ok) {
       return limit.response;
@@ -46,10 +35,7 @@ export async function POST(request: NextRequest) {
       handler: async () => {
         const result = await db.transaction(async (tx) => {
           const character = await tx.query.characters.findFirst({
-            where: and(
-              eq(characters.id, body.data.characterId),
-              eq(characters.userId, auth.userId),
-            ),
+            where: and(eq(characters.id, body.data.characterId), eq(characters.userId, auth.userId)),
           });
 
           if (!character) {
@@ -63,12 +49,7 @@ export async function POST(request: NextRequest) {
           }
 
           const refreshedCharacter = await refreshCharacterResources(tx, character);
-          const courtResult = await requestCourtHearing({
-            tx,
-            character: refreshedCharacter,
-            userId: auth.userId,
-            plea: body.data.plea,
-          });
+          const courtResult = await requestCourtHearing({ tx, character: refreshedCharacter, userId: auth.userId, plea: body.data.plea });
 
           if (!courtResult.ok) {
             return { error: jsonError('forbidden', courtResult.message, 403) };

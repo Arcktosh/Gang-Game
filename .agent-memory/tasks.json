@@ -1,0 +1,341 @@
+{
+  "$schema": "./tasks.schema.json",
+  "version": 1,
+  "project": "drugdeal-game",
+  "workflow": {
+    "statuses": [
+      "backlog",
+      "ready",
+      "in_progress",
+      "blocked",
+      "done",
+      "cancelled"
+    ],
+    "priorities": [
+      "critical",
+      "high",
+      "medium",
+      "low"
+    ],
+    "selectionRules": [
+      "Choose the highest-priority ready task whose dependencies are done.",
+      "Change one bounded concern per pass and preserve observable behavior unless the task says otherwise.",
+      "Run the narrowest relevant checks first, then the workspace validation commands listed by the task.",
+      "Update task status, notes, and source references in the same change as the implementation.",
+      "Regenerate agent memory after structural, import, export, route, manifest, or symbol changes."
+    ]
+  },
+  "tasks": [
+    {
+      "id": "MEM-001",
+      "title": "Introduce deterministic agent memory indexes",
+      "status": "done",
+      "priority": "high",
+      "type": "developer-experience",
+      "scope": [
+        "workspace",
+        "scripts",
+        ".agent-memory"
+      ],
+      "dependsOn": [],
+      "sourceRefs": [
+        "AGENTS.md",
+        "scripts/generate-agent-memory.mjs",
+        ".agent-memory/README.md"
+      ],
+      "acceptanceCriteria": [
+        "Files, imports, manifests, public APIs, and symbols are indexed in Markdown.",
+        "The task queue is valid JSON with a checked schema and stable identifiers.",
+        "A stale-memory check is available through pnpm scripts and static validation."
+      ],
+      "commands": [
+        "pnpm agent:memory",
+        "pnpm agent:memory:check"
+      ]
+    },
+    {
+      "id": "VAL-001",
+      "title": "Run the full installed-environment MVP proof",
+      "status": "ready",
+      "priority": "critical",
+      "type": "validation",
+      "scope": [
+        "workspace",
+        "apps/web",
+        "apps/worker",
+        "packages/db"
+      ],
+      "dependsOn": [
+        "MEM-001"
+      ],
+      "sourceRefs": [
+        "docs/next-task-brief.md",
+        "docs/mvp-release-runbook.md",
+        "scripts/prove-mvp-runtime.mjs"
+      ],
+      "acceptanceCriteria": [
+        "Dependencies install with the pinned pnpm and supported Node versions.",
+        "All migrations apply to a clean PostgreSQL database.",
+        "Static validation, typecheck, build, tests, runtime smoke, backup, and restore pass.",
+        "Every discovered failure is fixed or recorded as a new task with reproduction details."
+      ],
+      "commands": [
+        "pnpm install",
+        "docker compose up -d",
+        "pnpm db:setup",
+        "pnpm validate:ci",
+        "pnpm prove:mvp-runtime"
+      ]
+    },
+    {
+      "id": "VAL-002",
+      "title": "Prove database-backed integration flows",
+      "status": "blocked",
+      "priority": "critical",
+      "type": "integration-testing",
+      "scope": [
+        "apps/web",
+        "packages/db"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "docs/integration-testing.md",
+        "scripts/prove-integration.mjs",
+        "apps/web/src/lib/__tests__/mvp-flow.integration.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Integration tests run against a disposable TEST_DATABASE_URL.",
+        "The test database is prepared and cleaned deterministically.",
+        "Failures include actionable route, query, and migration diagnostics."
+      ],
+      "commands": [
+        "pnpm prove:integration"
+      ]
+    },
+    {
+      "id": "REF-001",
+      "title": "Decompose the character dashboard panel by bounded feature",
+      "status": "blocked",
+      "priority": "high",
+      "type": "refactor",
+      "scope": [
+        "apps/web"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "apps/web/src/features/dashboard/character-panel.tsx"
+      ],
+      "acceptanceCriteria": [
+        "CharacterPanel remains the orchestration boundary and no extracted module exceeds 500 lines without justification.",
+        "Data fetching, mutations, derived view models, and presentation sections are separated.",
+        "No API contract, route behavior, visible copy, or game rule changes.",
+        "Relevant web tests, typecheck, and build pass."
+      ],
+      "commands": [
+        "pnpm --filter @drugdeal/web typecheck",
+        "pnpm --filter @drugdeal/web test",
+        "pnpm --filter @drugdeal/web build"
+      ]
+    },
+    {
+      "id": "REF-002",
+      "title": "Split the database schema into domain modules",
+      "status": "backlog",
+      "priority": "high",
+      "type": "refactor",
+      "scope": [
+        "packages/db"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "packages/db/src/schema/index.ts",
+        "packages/db/drizzle/0000_initial_schema.sql"
+      ],
+      "acceptanceCriteria": [
+        "Schema tables and relations are grouped into domain modules with a stable barrel entrypoint.",
+        "Generated SQL identity, table names, columns, indexes, and relations remain unchanged.",
+        "Database package typecheck and migration validation pass."
+      ],
+      "commands": [
+        "pnpm --filter @drugdeal/db typecheck",
+        "pnpm validate:migrations"
+      ]
+    },
+    {
+      "id": "REF-003",
+      "title": "Split admin database queries into focused services",
+      "status": "backlog",
+      "priority": "high",
+      "type": "refactor",
+      "scope": [
+        "packages/db",
+        "apps/web"
+      ],
+      "dependsOn": [
+        "REF-002"
+      ],
+      "sourceRefs": [
+        "packages/db/src/queries/admin.ts",
+        "apps/web/src/features/admin/admin-panel.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Admin search, moderation, audit, enforcement, and rollback queries have separate modules.",
+        "The @drugdeal/db public API remains source-compatible or changes are migrated atomically.",
+        "Admin route-contract and RBAC validation pass."
+      ],
+      "commands": [
+        "pnpm --filter @drugdeal/db typecheck",
+        "pnpm validate:static"
+      ]
+    },
+    {
+      "id": "REF-004",
+      "title": "Organize validators by API domain",
+      "status": "blocked",
+      "priority": "medium",
+      "type": "refactor",
+      "scope": [
+        "packages/validators",
+        "apps/web"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "packages/validators/src/index.ts",
+        "packages/validators/src/__tests__/hardening.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Schemas are grouped into domain files with one stable public barrel.",
+        "Existing import names and validation behavior remain unchanged.",
+        "Validator tests and all route typechecks pass."
+      ],
+      "commands": [
+        "pnpm --filter @drugdeal/validators test",
+        "pnpm --filter @drugdeal/validators typecheck",
+        "pnpm --filter @drugdeal/web typecheck"
+      ]
+    },
+    {
+      "id": "TST-001",
+      "title": "Replace placeholder package tests with executable baselines",
+      "status": "backlog",
+      "priority": "medium",
+      "type": "testing",
+      "scope": [
+        "apps/worker",
+        "packages/db",
+        "packages/ui"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "apps/worker/package.json",
+        "packages/db/package.json",
+        "packages/ui/package.json"
+      ],
+      "acceptanceCriteria": [
+        "Worker scheduling and retry behavior have deterministic unit tests.",
+        "Database pure helpers and query mapping logic have unit tests without requiring a live database where possible.",
+        "Shared UI components have render and contract tests.",
+        "No package test command is a placeholder echo."
+      ],
+      "commands": [
+        "pnpm test"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "title": "Add production observability and abuse telemetry",
+      "status": "backlog",
+      "priority": "high",
+      "type": "operations",
+      "scope": [
+        "apps/web",
+        "apps/worker",
+        "packages/db"
+      ],
+      "dependsOn": [
+        "VAL-002"
+      ],
+      "sourceRefs": [
+        "docs/remaining-work.md",
+        "apps/web/src/lib/observability.ts",
+        "apps/web/src/lib/edge-observability.ts"
+      ],
+      "acceptanceCriteria": [
+        "Structured logs are shipped to an external sink with correlation identifiers.",
+        "Critical worker, API, auth, moderation, and economy anomalies create actionable alerts.",
+        "Sensitive values and message contents are redacted by default.",
+        "Operational runbooks document alert ownership and rollback steps."
+      ],
+      "commands": [
+        "pnpm validate:ci"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "title": "Establish load, bot-resistance, and rate-limit proof",
+      "status": "backlog",
+      "priority": "high",
+      "type": "performance-security",
+      "scope": [
+        "apps/web",
+        "apps/worker"
+      ],
+      "dependsOn": [
+        "OPS-001"
+      ],
+      "sourceRefs": [
+        "docs/remaining-work.md",
+        "apps/web/src/lib/rate-limit.ts",
+        "scripts/audit-hardening.mjs"
+      ],
+      "acceptanceCriteria": [
+        "Representative read and mutation routes have documented load profiles and budgets.",
+        "Rate-limit behavior is tested with Redis required and fallback modes.",
+        "Automated abuse scenarios cover login, messaging, market, trade, gambling, and PvP surfaces.",
+        "Capacity and degradation findings are recorded with remediation tasks."
+      ],
+      "commands": [
+        "pnpm validate:ci"
+      ]
+    },
+    {
+      "id": "REL-001",
+      "title": "Complete jurisdictional legal and payment review",
+      "status": "blocked",
+      "priority": "high",
+      "type": "release-governance",
+      "scope": [
+        "docs",
+        "apps/web"
+      ],
+      "dependsOn": [
+        "VAL-001"
+      ],
+      "sourceRefs": [
+        "docs/privacy-policy.md",
+        "docs/terms-of-service.md",
+        "docs/monetization.md"
+      ],
+      "acceptanceCriteria": [
+        "Privacy, terms, community rules, age requirements, and payment language receive qualified jurisdictional review.",
+        "Required consent, retention, deletion, refund, and support workflows are implemented.",
+        "Draft labels are removed only after approval evidence is recorded."
+      ],
+      "commands": [
+        "pnpm validate:docs",
+        "pnpm --filter @drugdeal/web build"
+      ],
+      "notes": "Blocked on external legal review; implementation work may proceed only from reviewed requirements."
+    }
+  ]
+}

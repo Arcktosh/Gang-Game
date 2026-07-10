@@ -79,6 +79,7 @@ For MVP testing, use this minimum policy:
 5. Run `SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime`.
 6. If smoke passes, promote the restored database or redeploy the last known-good app package.
 
+
 ## Runtime proof integration
 
 Feature Pass 54 wires backup and disposable restore checks into the MVP runtime proof command. Set `MVP_RESTORE_DATABASE_URL` to a disposable PostgreSQL database before running:

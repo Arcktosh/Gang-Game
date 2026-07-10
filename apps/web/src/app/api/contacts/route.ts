@@ -13,28 +13,19 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:contacts', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:contacts', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
     }
 
-    const query = contactsProfileQuerySchema.safeParse({
-      characterId: request.nextUrl.searchParams.get('characterId'),
-    });
+    const query = contactsProfileQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') });
 
     if (!query.success) {
       return jsonError('invalid_query', 'Invalid contacts query.', 400, query.error.flatten());
     }
 
-    const profile = await listContactsProfile({
-      userId: auth.userId,
-      characterId: query.data.characterId,
-    });
+    const profile = await listContactsProfile({ userId: auth.userId, characterId: query.data.characterId });
 
     if (!profile) {
       return jsonError('not_found', 'Character not found.', 404);
@@ -52,11 +43,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:contacts', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:contacts', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -71,8 +58,7 @@ export async function POST(request: NextRequest) {
     const result = await runContactAction({ userId: auth.userId, ...body.data });
 
     if (!result.ok) {
-      const status =
-        result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
+      const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : 403;
       return jsonError(result.code, result.message, status);
     }
 

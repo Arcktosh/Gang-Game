@@ -1,14 +1,9 @@
-import {
-  buyShopAdvertisement,
-  cancelShopListing,
-  hasActiveCharacterRestriction,
-  reviewShop,
-  updateShopStatus,
-} from '@drugdeal/db';
+import { buyShopAdvertisement, cancelShopListing, hasActiveCharacterRestriction, reviewShop, updateShopStatus } from '@drugdeal/db';
 import { shopActionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 function errorStatus(code: string) {
@@ -23,14 +18,16 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'shops:actions', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'shops:actions', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.shops');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const body = await parseJsonBody(request, shopActionSchema);
@@ -40,17 +37,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.data.action !== 'review') {
-      const restriction = await hasActiveCharacterRestriction({
-        characterId: body.data.characterId,
-        actionType: 'shop_restriction',
-      });
+      const restriction = await hasActiveCharacterRestriction({ characterId: body.data.characterId, actionType: 'shop_restriction' });
 
       if (restriction) {
-        return jsonError(
-          'forbidden',
-          'This character is temporarily restricted from shop operations.',
-          403,
-        );
+        return jsonError('forbidden', 'This character is temporarily restricted from shop operations.', 403);
       }
     }
 

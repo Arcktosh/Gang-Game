@@ -1,10 +1,5 @@
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
-import {
-  calculateAverageCost,
-  calculateBankTransfer,
-  calculateNextAssetPrice,
-  calculateTradeFee,
-} from '@drugdeal/game';
+import { calculateAverageCost, calculateBankTransfer, calculateNextAssetPrice, calculateTradeFee } from '@drugdeal/game';
 import { db } from '../client';
 import {
   assetOrders,
@@ -17,12 +12,7 @@ import {
   playerEvents,
 } from '../schema';
 import { assertActionUnlocked, refreshCharacterResources, setActionCooldown } from './action-state';
-import {
-  addAssetPositionQuantity,
-  decrementCharacterCash,
-  incrementCharacterCash,
-  reserveAssetPositionQuantity,
-} from './transaction-safety';
+import { addAssetPositionQuantity, decrementCharacterCash, incrementCharacterCash, reserveAssetPositionQuantity } from './transaction-safety';
 
 const FINANCE_COOLDOWN_SECONDS = 8;
 
@@ -74,9 +64,7 @@ async function getLatestAssetPrice(tx: any, assetKey: string) {
 }
 
 export async function listFinanceMarket() {
-  const assets = await db.query.financialAssets.findMany({
-    where: eq(financialAssets.isActive, true),
-  });
+  const assets = await db.query.financialAssets.findMany({ where: eq(financialAssets.isActive, true) });
 
   const rows = await Promise.all(
     assets.map(async (asset) => {
@@ -95,25 +83,17 @@ export async function listFinanceMarket() {
     }),
   );
 
-  return rows.sort(
-    (a, b) =>
-      a.asset.assetType.localeCompare(b.asset.assetType) ||
-      a.asset.symbol.localeCompare(b.asset.symbol),
-  );
+  return rows.sort((a, b) => a.asset.assetType.localeCompare(b.asset.assetType) || a.asset.symbol.localeCompare(b.asset.symbol));
 }
 
 export async function listCharacterPortfolio(characterId: string, userId: string) {
-  const character = await db.query.characters.findFirst({
-    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
-  });
+  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, characterId), eq(characters.userId, userId)) });
 
   if (!character) {
     return null;
   }
 
-  const positions = await db.query.characterAssetPositions.findMany({
-    where: eq(characterAssetPositions.characterId, characterId),
-  });
+  const positions = await db.query.characterAssetPositions.findMany({ where: eq(characterAssetPositions.characterId, characterId) });
 
   const enriched = await Promise.all(
     positions
@@ -121,10 +101,7 @@ export async function listCharacterPortfolio(characterId: string, userId: string
       .map(async (position) => {
         const [asset, latestPrice] = await Promise.all([
           db.query.financialAssets.findFirst({ where: eq(financialAssets.key, position.assetKey) }),
-          db.query.assetPrices.findFirst({
-            where: eq(assetPrices.assetKey, position.assetKey),
-            orderBy: desc(assetPrices.createdAt),
-          }),
+          db.query.assetPrices.findFirst({ where: eq(assetPrices.assetKey, position.assetKey), orderBy: desc(assetPrices.createdAt) }),
         ]);
 
         return {
@@ -132,9 +109,7 @@ export async function listCharacterPortfolio(characterId: string, userId: string
           asset,
           currentPrice: latestPrice?.price ?? asset?.basePrice ?? 0,
           marketValue: (latestPrice?.price ?? asset?.basePrice ?? 0) * position.quantity,
-          unrealizedProfit:
-            ((latestPrice?.price ?? asset?.basePrice ?? 0) - position.averageCost) *
-            position.quantity,
+          unrealizedProfit: ((latestPrice?.price ?? asset?.basePrice ?? 0) - position.averageCost) * position.quantity,
         };
       }),
   );
@@ -143,23 +118,16 @@ export async function listCharacterPortfolio(characterId: string, userId: string
 }
 
 export async function listAssetOrders(characterId: string, userId: string, limit = 20) {
-  const character = await db.query.characters.findFirst({
-    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
-  });
+  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, characterId), eq(characters.userId, userId)) });
 
   if (!character) {
     return null;
   }
 
-  return db.query.assetOrders.findMany({
-    where: eq(assetOrders.characterId, characterId),
-    orderBy: desc(assetOrders.createdAt),
-    limit,
-  });
+  return db.query.assetOrders.findMany({ where: eq(assetOrders.characterId, characterId), orderBy: desc(assetOrders.createdAt), limit });
 }
 
-export type BankStatementAction =
-  'all' | 'deposit' | 'withdraw' | 'loan_request' | 'loan_repayment' | 'loan_partial_repayment';
+export type BankStatementAction = 'all' | 'deposit' | 'withdraw' | 'loan_request' | 'loan_repayment' | 'loan_partial_repayment';
 
 export type BankStatementInput = {
   characterId: string;
@@ -177,9 +145,7 @@ function normalizeStatementAmount(value: string | number) {
 }
 
 export async function listCharacterBankStatement(input: BankStatementInput) {
-  const character = await db.query.characters.findFirst({
-    where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
-  });
+  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
 
   if (!character) {
     return null;
@@ -188,10 +154,7 @@ export async function listCharacterBankStatement(input: BankStatementInput) {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 25)));
   const offset = Math.max(0, Math.min(10_000, Math.floor(input.offset ?? 0)));
   const action = input.action ?? 'all';
-  const conditions = [
-    eq(financialTransactions.characterId, character.id),
-    eq(financialTransactions.type, 'bank'),
-  ];
+  const conditions = [eq(financialTransactions.characterId, character.id), eq(financialTransactions.type, 'bank')];
 
   if (action !== 'all') {
     conditions.push(sql`${financialTransactions.metadata}->>'action' = ${action}`);
@@ -217,12 +180,8 @@ export async function listCharacterBankStatement(input: BankStatementInput) {
     metadata: normalizeBankTransactionMetadata(row.metadata),
   }));
   const amounts = transactions.map((transaction) => normalizeStatementAmount(transaction.amount));
-  const inflow = amounts
-    .filter((amount) => amount > 0)
-    .reduce((total, amount) => total + amount, 0);
-  const outflow = amounts
-    .filter((amount) => amount < 0)
-    .reduce((total, amount) => total + Math.abs(amount), 0);
+  const inflow = amounts.filter((amount) => amount > 0).reduce((total, amount) => total + amount, 0);
+  const outflow = amounts.filter((amount) => amount < 0).reduce((total, amount) => total + Math.abs(amount), 0);
   const chronological = [...transactions].reverse();
   const first = chronological[0];
   const last = chronological.at(-1);
@@ -245,19 +204,13 @@ export async function listCharacterBankStatement(input: BankStatementInput) {
   };
 }
 
-export async function listCharacterBankTransactions(input: {
-  characterId: string;
-  userId: string;
-  limit?: number;
-}) {
+export async function listCharacterBankTransactions(input: { characterId: string; userId: string; limit?: number }) {
   const statement = await listCharacterBankStatement(input);
   return statement?.transactions ?? null;
 }
 
 export async function listAssetPriceHistory(input: { assetKey: string; limit?: number }) {
-  const asset = await db.query.financialAssets.findFirst({
-    where: eq(financialAssets.key, input.assetKey),
-  });
+  const asset = await db.query.financialAssets.findFirst({ where: eq(financialAssets.key, input.assetKey) });
 
   if (!asset || !asset.isActive) {
     return null;
@@ -276,12 +229,7 @@ export async function listAssetPriceHistory(input: { assetKey: string; limit?: n
   };
 }
 
-export async function transferBankFunds(input: {
-  userId: string;
-  characterId: string;
-  action: 'deposit' | 'withdraw';
-  amount: number;
-}) {
+export async function transferBankFunds(input: { userId: string; characterId: string; action: 'deposit' | 'withdraw'; amount: number }) {
   return db.transaction(async (tx) => {
     const characterRow = await tx.query.characters.findFirst({
       where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
@@ -294,11 +242,7 @@ export async function transferBankFunds(input: {
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character must be free to use the bank.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character must be free to use the bank.' };
     }
 
     const transfer = calculateBankTransfer({
@@ -312,10 +256,7 @@ export async function transferBankFunds(input: {
       return {
         ok: false as const,
         code: 'forbidden',
-        message:
-          input.action === 'deposit'
-            ? 'Not enough cash to deposit.'
-            : 'Not enough bank balance to withdraw.',
+        message: input.action === 'deposit' ? 'Not enough cash to deposit.' : 'Not enough bank balance to withdraw.',
       };
     }
 
@@ -346,10 +287,7 @@ export async function transferBankFunds(input: {
       return {
         ok: false as const,
         code: 'conflict',
-        message:
-          input.action === 'deposit'
-            ? 'Cash balance changed before deposit completed.'
-            : 'Bank balance changed before withdrawal completed.',
+        message: input.action === 'deposit' ? 'Cash balance changed before deposit completed.' : 'Bank balance changed before withdrawal completed.',
       };
     }
 
@@ -357,10 +295,7 @@ export async function transferBankFunds(input: {
       characterId: character.id,
       type: 'bank',
       amount: String(input.action === 'deposit' ? amount : -amount),
-      description:
-        input.action === 'deposit'
-          ? `Deposited $${amount} into the bank.`
-          : `Withdrew $${amount} from the bank.`,
+      description: input.action === 'deposit' ? `Deposited $${amount} into the bank.` : `Withdrew $${amount} from the bank.`,
       metadata: {
         action: input.action,
         amount,
@@ -378,20 +313,11 @@ export async function transferBankFunds(input: {
       payload: { amount, cashAfter: updatedCharacter.cash, bankAfter: updatedCharacter.bank },
     });
 
-    return {
-      ok: true as const,
-      data: { character: updatedCharacter, transfer: { ...transfer, appliedAmount: amount } },
-    };
+    return { ok: true as const, data: { character: updatedCharacter, transfer: { ...transfer, appliedAmount: amount } } };
   });
 }
 
-export async function tradeAsset(input: {
-  userId: string;
-  characterId: string;
-  assetKey: string;
-  side: 'buy' | 'sell';
-  quantity: number;
-}) {
+export async function tradeAsset(input: { userId: string; characterId: string; assetKey: string; side: 'buy' | 'sell'; quantity: number }) {
   return db.transaction(async (tx) => {
     const quantity = Math.max(1, Math.floor(input.quantity));
     const characterRow = await tx.query.characters.findFirst({
@@ -405,11 +331,7 @@ export async function tradeAsset(input: {
     const character = await refreshCharacterResources(tx, characterRow);
 
     if (character.status !== 'free') {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Character is not available for trading.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Character is not available for trading.' };
     }
 
     const cooldown = await assertActionUnlocked(tx, character.id, `finance_${input.side}`);
@@ -422,10 +344,7 @@ export async function tradeAsset(input: {
       tx.query.financialAssets.findFirst({ where: eq(financialAssets.key, input.assetKey) }),
       getLatestAssetPrice(tx, input.assetKey),
       tx.query.characterAssetPositions.findFirst({
-        where: and(
-          eq(characterAssetPositions.characterId, character.id),
-          eq(characterAssetPositions.assetKey, input.assetKey),
-        ),
+        where: and(eq(characterAssetPositions.characterId, character.id), eq(characterAssetPositions.assetKey, input.assetKey)),
       }),
     ]);
 
@@ -445,12 +364,7 @@ export async function tradeAsset(input: {
 
       const previousQuantity = existingPosition?.quantity ?? 0;
       const previousAverageCost = existingPosition?.averageCost ?? 0;
-      const averageCost = calculateAverageCost({
-        previousQuantity,
-        previousAverageCost,
-        buyQuantity: quantity,
-        buyPriceEach: priceRow.price,
-      });
+      const averageCost = calculateAverageCost({ previousQuantity, previousAverageCost, buyQuantity: quantity, buyPriceEach: priceRow.price });
 
       const debit = await decrementCharacterCash(tx, character.id, totalCost);
 
@@ -458,12 +372,7 @@ export async function tradeAsset(input: {
         return { ok: false as const, code: 'conflict', message: 'Not enough cash.' };
       }
 
-      const positionUpdate = await addAssetPositionQuantity(tx, {
-        characterId: character.id,
-        assetKey: asset.key,
-        quantity,
-        averageCost,
-      });
+      const positionUpdate = await addAssetPositionQuantity(tx, { characterId: character.id, assetKey: asset.key, quantity, averageCost });
 
       if (!positionUpdate.ok) {
         throw new Error('Could not reserve asset position.');
@@ -491,26 +400,14 @@ export async function tradeAsset(input: {
         type: asset.assetType === 'crypto' ? 'crypto' : 'stock',
         amount: String(-totalCost),
         description: `Bought ${quantity} ${asset.symbol}.`,
-        metadata: {
-          assetKey: asset.key,
-          symbol: asset.symbol,
-          quantity,
-          priceEach: priceRow.price,
-          fee,
-        },
+        metadata: { assetKey: asset.key, symbol: asset.symbol, quantity, priceEach: priceRow.price, fee },
       });
 
       await tx.insert(playerEvents).values({
         userId: input.userId,
         characterId: character.id,
         type: 'asset_bought',
-        payload: {
-          assetKey: asset.key,
-          symbol: asset.symbol,
-          quantity,
-          priceEach: priceRow.price,
-          fee,
-        },
+        payload: { assetKey: asset.key, symbol: asset.symbol, quantity, priceEach: priceRow.price, fee },
       });
 
       const lock = await setActionCooldown({
@@ -525,11 +422,7 @@ export async function tradeAsset(input: {
     }
 
     if (!existingPosition || existingPosition.quantity < quantity) {
-      return {
-        ok: false as const,
-        code: 'forbidden',
-        message: 'Not enough shares/tokens to sell.',
-      };
+      return { ok: false as const, code: 'forbidden', message: 'Not enough shares/tokens to sell.' };
     }
 
     const netPayout = grossAmount - fee;
@@ -576,28 +469,14 @@ export async function tradeAsset(input: {
       type: asset.assetType === 'crypto' ? 'crypto' : 'stock',
       amount: String(netPayout),
       description: `Sold ${quantity} ${asset.symbol}.`,
-      metadata: {
-        assetKey: asset.key,
-        symbol: asset.symbol,
-        quantity,
-        priceEach: priceRow.price,
-        fee,
-        realizedProfit,
-      },
+      metadata: { assetKey: asset.key, symbol: asset.symbol, quantity, priceEach: priceRow.price, fee, realizedProfit },
     });
 
     await tx.insert(playerEvents).values({
       userId: input.userId,
       characterId: character.id,
       type: 'asset_sold',
-      payload: {
-        assetKey: asset.key,
-        symbol: asset.symbol,
-        quantity,
-        priceEach: priceRow.price,
-        fee,
-        realizedProfit,
-      },
+      payload: { assetKey: asset.key, symbol: asset.symbol, quantity, priceEach: priceRow.price, fee, realizedProfit },
     });
 
     const lock = await setActionCooldown({
@@ -613,17 +492,11 @@ export async function tradeAsset(input: {
 }
 
 export async function tickAssetPrices(limit = 100) {
-  const assets = await db.query.financialAssets.findMany({
-    where: eq(financialAssets.isActive, true),
-    limit,
-  });
+  const assets = await db.query.financialAssets.findMany({ where: eq(financialAssets.isActive, true), limit });
   let updated = 0;
 
   for (const asset of assets) {
-    const latest = await db.query.assetPrices.findFirst({
-      where: eq(assetPrices.assetKey, asset.key),
-      orderBy: desc(assetPrices.createdAt),
-    });
+    const latest = await db.query.assetPrices.findFirst({ where: eq(assetPrices.assetKey, asset.key), orderBy: desc(assetPrices.createdAt) });
 
     const next = calculateNextAssetPrice({
       currentPrice: latest?.price ?? asset.basePrice,
@@ -633,19 +506,10 @@ export async function tickAssetPrices(limit = 100) {
       volume: latest?.volume ?? 100,
     });
 
-    await db
-      .insert(assetPrices)
-      .values({
-        assetKey: asset.key,
-        price: next.price,
-        volume: next.volume,
-        sentiment: next.sentiment,
-      });
+    await db.insert(assetPrices).values({ assetKey: asset.key, price: next.price, volume: next.volume, sentiment: next.sentiment });
     updated += 1;
   }
 
-  await db
-    .delete(characterActionLocks)
-    .where(sql`${characterActionLocks.lockedUntil} < now() - interval '10 minutes'`);
+  await db.delete(characterActionLocks).where(sql`${characterActionLocks.lockedUntil} < now() - interval '10 minutes'`);
   return updated;
 }

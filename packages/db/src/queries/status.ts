@@ -15,10 +15,7 @@ async function getActiveJailSentence(characterId: string) {
 }
 
 export async function getCharacterStatusDetail(characterId: string) {
-  const [hospitalStay, jailSentence] = await Promise.all([
-    getActiveHospitalStay(characterId),
-    getActiveJailSentence(characterId),
-  ]);
+  const [hospitalStay, jailSentence] = await Promise.all([getActiveHospitalStay(characterId), getActiveJailSentence(characterId)]);
 
   return {
     hospitalStay,

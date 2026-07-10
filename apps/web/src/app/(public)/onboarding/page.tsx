@@ -18,9 +18,7 @@ export default function OnboardingPage() {
       <section className="site-panel">
         <p className="eyebrow">MVP onboarding</p>
         <h1 id="onboarding-title">First Session Checklist</h1>
-        <p className="lead">
-          A safe path through the current MVP gameplay loop for new beta testers.
-        </p>
+        <p className="lead">A safe path through the current MVP gameplay loop for new beta testers.</p>
         <ol className="site-feature-list">
           {checklist.map((item) => (
             <li key={item}>{item}</li>
@@ -29,21 +27,14 @@ export default function OnboardingPage() {
         <section>
           <h2>Recommended first loop</h2>
           <p>
-            Start with a job, review your profile progression, then try one low-risk action and
-            recover through Legal if needed. Avoid high-risk actions until the runtime proof and
-            balancing passes are complete.
+            Start with a job, review your profile progression, then try one low-risk action and recover through Legal if needed. Avoid high-risk actions until
+            the runtime proof and balancing passes are complete.
           </p>
         </section>
         <p className="link-list">
-          <Link className="button-link button-link--primary" href="/register">
-            Create account
-          </Link>
-          <Link className="button-link" href="/login">
-            Login
-          </Link>
-          <Link className="button-link" href="/rules">
-            Community rules
-          </Link>
+          <Link className="button-link button-link--primary" href="/register">Create account</Link>
+          <Link className="button-link" href="/login">Login</Link>
+          <Link className="button-link" href="/rules">Community rules</Link>
         </p>
       </section>
     </main>

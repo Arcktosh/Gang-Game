@@ -47,11 +47,7 @@ if (fs.existsSync(path.join(root, 'package.json'))) {
     }
   }
 
-  if (
-    !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-      'scripts/validate-integration-tests.mjs',
-    )
-  ) {
+  if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-integration-tests.mjs')) {
     errors.push('validate:static does not include scripts/validate-integration-tests.mjs.');
   }
 }
@@ -74,9 +70,7 @@ if (fs.existsSync(path.join(root, 'apps/web/src/lib/__tests__/mvp-flow.integrati
   }
 
   if (!testSource.includes('skip: !integrationEnabled')) {
-    errors.push(
-      'mvp-flow.integration.test.ts must remain opt-in unless RUN_DB_INTEGRATION_TESTS=true.',
-    );
+    errors.push('mvp-flow.integration.test.ts must remain opt-in unless RUN_DB_INTEGRATION_TESTS=true.');
   }
 }
 

@@ -17,18 +17,9 @@ test('job payouts scale with labour and floor to whole cash units', () => {
 });
 
 test('crime success chance is clamped to the configured risk bounds', () => {
-  assert.equal(
-    calculateCrimeSuccessChance({ intelligence: 0, dexterity: 0, heat: 100, difficulty: 100 }),
-    0.05,
-  );
-  assert.equal(
-    calculateCrimeSuccessChance({ intelligence: 100, dexterity: 100, heat: 0, difficulty: 0 }),
-    0.95,
-  );
-  assert.equal(
-    calculateCrimeSuccessChance({ intelligence: 5, dexterity: 5, heat: 5, difficulty: 5 }),
-    0.375,
-  );
+  assert.equal(calculateCrimeSuccessChance({ intelligence: 0, dexterity: 0, heat: 100, difficulty: 100 }), 0.05);
+  assert.equal(calculateCrimeSuccessChance({ intelligence: 100, dexterity: 100, heat: 0, difficulty: 0 }), 0.95);
+  assert.equal(calculateCrimeSuccessChance({ intelligence: 5, dexterity: 5, heat: 5, difficulty: 5 }), 0.375);
 });
 
 test('failed crime consequences are deterministic with supplied rolls', () => {

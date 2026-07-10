@@ -3,12 +3,10 @@ import { NextRequest } from 'next/server';
 import { setFactionMemberRole } from '@drugdeal/db';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ factionId: string }> },
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ factionId: string }> }) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -16,14 +14,16 @@ export async function PATCH(
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:factions:id:members', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions:id:members', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.factions');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const body = await parseJsonBody(request, factionMemberRoleSchema);

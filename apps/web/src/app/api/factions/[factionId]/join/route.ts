@@ -5,16 +5,14 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 const joinFactionSchema = z.object({
   characterId: uuidSchema,
 });
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ factionId: string }> },
-) {
+export async function POST(request: NextRequest, context: { params: Promise<{ factionId: string }> }) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -22,14 +20,16 @@ export async function POST(
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:factions:id:join', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:factions:id:join', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.factions');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const body = await parseJsonBody(request, joinFactionSchema);
@@ -55,10 +55,7 @@ export async function POST(
       }
 
       const existingMembership = await tx.query.factionMembers.findFirst({
-        where: and(
-          eq(factionMembers.characterId, character.id),
-          eq(factionMembers.status, 'active'),
-        ),
+        where: and(eq(factionMembers.characterId, character.id), eq(factionMembers.status, 'active')),
       });
 
       if (existingMembership) {

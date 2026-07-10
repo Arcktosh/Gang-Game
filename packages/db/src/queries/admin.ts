@@ -29,11 +29,7 @@ import {
   summarizeConfigChange,
   validateModerationReason,
 } from '@drugdeal/game';
-import {
-  adjustCharacterBank as adjustCharacterBankSafely,
-  adjustCharacterCash as adjustCharacterCashSafely,
-  decrementCharacterCash,
-} from './transaction-safety';
+import { adjustCharacterBank as adjustCharacterBankSafely, adjustCharacterCash as adjustCharacterCashSafely, decrementCharacterCash } from './transaction-safety';
 
 export type ModerationReportKind = 'message' | 'article';
 export type ModerationReportStatus = 'reviewed' | 'dismissed' | 'actioned';
@@ -51,7 +47,9 @@ export type AdminActionType =
   | 'moderation_note'
   | 'enforcement_action'
   | 'enforcement_lift'
-  | 'appeal_review';
+  | 'appeal_review'
+  | 'rollback_review'
+  | 'rollback_apply';
 
 export type CharacterFlagType =
   | 'watchlist'
@@ -61,6 +59,7 @@ export type CharacterFlagType =
   | 'botting'
   | 'exploit_review'
   | 'suspended';
+
 
 export type AdminLoanExposureStatus = 'all' | 'active' | 'overdue' | 'defaulted' | 'repaid';
 
@@ -74,14 +73,12 @@ function normalizeAdminLoanStatus(status?: string): AdminLoanExposureStatus {
     : 'all';
 }
 
-export async function listAdminLoanExposure(
-  input: {
-    status?: AdminLoanExposureStatus;
-    query?: string;
-    limit?: number;
-    offset?: number;
-  } = {},
-) {
+export async function listAdminLoanExposure(input: {
+  status?: AdminLoanExposureStatus;
+  query?: string;
+  limit?: number;
+  offset?: number;
+} = {}) {
   const status = normalizeAdminLoanStatus(input.status);
   const query = input.query?.trim().toLowerCase() ?? '';
   const likeQuery = `%${query}%`;
@@ -217,40 +214,397 @@ export async function listAdminLoanExposure(
   };
 }
 
+
+
+export type AdminTransactionType = 'all' | 'cash' | 'bank' | 'stock' | 'crypto' | 'shop' | 'system';
+
+export type AdminEconomyAuditTransaction = {
+  id: string;
+  characterId: string | null;
+  characterName: string | null;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  type: string;
+  amount: number;
+  description: string | null;
+  metadata: unknown;
+  createdAt: Date | string | null;
+};
+
+export type AdminInventoryAuditItem = {
+  id: string;
+  characterId: string;
+  characterName: string | null;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  itemKey: string;
+  itemName: string | null;
+  itemCategory: string | null;
+  itemRarity: string | null;
+  basePrice: number;
+  quantity: number;
+  estimatedValue: number;
+  metadata: unknown;
+  updatedAt: Date | string | null;
+  createdAt: Date | string | null;
+};
+
+export type AdminSessionAuditSession = {
+  id: string;
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date | string | null;
+  lastSeenAt: Date | string | null;
+  expiresAt: Date | string | null;
+  characterCount: number;
+};
+
+export async function listAdminEconomyAudit(input: {
+  q?: string;
+  type?: AdminTransactionType;
+  minAmount?: number;
+  maxAmount?: number;
+  days?: number;
+  limit?: number;
+  offset?: number;
+} = {}) {
+  const q = input.q?.trim().toLowerCase() ?? '';
+  const likeQuery = `%${q}%`;
+  const type = (['cash', 'bank', 'stock', 'crypto', 'shop', 'system'].includes(input.type ?? '') ? input.type : 'all') as AdminTransactionType;
+  const minAmount = input.minAmount ?? null;
+  const maxAmount = input.maxAmount ?? null;
+  const days = Math.max(1, Math.min(3650, Math.floor(input.days ?? 30)));
+  const safeLimit = Math.max(1, Math.min(500, Math.floor(input.limit ?? 50)));
+  const safeOffset = Math.max(0, Math.min(50_000, Math.floor(input.offset ?? 0)));
+
+  const whereSql = sql`
+    ft.created_at >= now() - (${days} * interval '1 day')
+    and (${type} = 'all' or ft.type::text = ${type})
+    and (${minAmount}::numeric is null or abs(ft.amount::numeric) >= ${minAmount}::numeric)
+    and (${maxAmount}::numeric is null or abs(ft.amount::numeric) <= ${maxAmount}::numeric)
+    and (
+      ${q} = ''
+      or lower(coalesce(c.name, '')) like ${likeQuery}
+      or lower(coalesce(u.email, '')) like ${likeQuery}
+      or lower(coalesce(u.display_name, '')) like ${likeQuery}
+      or lower(ft.description) like ${likeQuery}
+      or ft.character_id::text like ${likeQuery}
+      or ft.id::text like ${likeQuery}
+    )
+  `;
+
+  const [rowResult, summaryResult, typeSummaryResult] = await Promise.all([
+    db.execute(sql`
+      select
+        ft.id,
+        ft.character_id as "characterId",
+        c.name as "characterName",
+        u.email as "userEmail",
+        u.display_name as "userDisplayName",
+        ft.type,
+        ft.amount::text as "amount",
+        ft.description,
+        ft.metadata,
+        ft.created_at as "createdAt"
+      from financial_transactions ft
+      left join characters c on c.id = ft.character_id
+      left join users u on u.id = c.user_id
+      where ${whereSql}
+      order by ft.created_at desc, ft.id desc
+      limit ${safeLimit}
+      offset ${safeOffset}
+    `),
+    db.execute(sql`
+      select
+        count(*)::int as "transactionCount",
+        count(distinct ft.character_id)::int as "uniqueCharacters",
+        coalesce(sum(abs(ft.amount::numeric)), 0)::text as "grossVolume",
+        coalesce(sum(case when ft.amount::numeric > 0 then ft.amount::numeric else 0 end), 0)::text as "positiveTotal",
+        coalesce(sum(case when ft.amount::numeric < 0 then abs(ft.amount::numeric) else 0 end), 0)::text as "negativeTotal",
+        coalesce(max(abs(ft.amount::numeric)), 0)::text as "largestAbsoluteAmount"
+      from financial_transactions ft
+      left join characters c on c.id = ft.character_id
+      left join users u on u.id = c.user_id
+      where ${whereSql}
+    `),
+    db.execute(sql`
+      select ft.type, count(*)::int as count, coalesce(sum(abs(ft.amount::numeric)), 0)::text as "grossVolume"
+      from financial_transactions ft
+      left join characters c on c.id = ft.character_id
+      left join users u on u.id = c.user_id
+      where ${whereSql}
+      group by ft.type
+      order by "grossVolume"::numeric desc, count desc
+    `),
+  ]);
+
+  const transactions: AdminEconomyAuditTransaction[] = rowsFromExecuteResult(rowResult).map((row: any) => ({
+    ...row,
+    amount: Number(row.amount ?? 0),
+  }));
+  const summaryRow = rowsFromExecuteResult(summaryResult)[0] ?? {};
+  const summary = {
+    transactionCount: Number(summaryRow.transactionCount ?? 0),
+    uniqueCharacters: Number(summaryRow.uniqueCharacters ?? 0),
+    grossVolume: Number(summaryRow.grossVolume ?? 0),
+    positiveTotal: Number(summaryRow.positiveTotal ?? 0),
+    negativeTotal: Number(summaryRow.negativeTotal ?? 0),
+    largestAbsoluteAmount: Number(summaryRow.largestAbsoluteAmount ?? 0),
+    byType: rowsFromExecuteResult(typeSummaryResult).map((row: any) => ({ type: String(row.type), count: Number(row.count ?? 0), grossVolume: Number(row.grossVolume ?? 0) })),
+  };
+
+  return {
+    q,
+    type,
+    minAmount,
+    maxAmount,
+    days,
+    summary,
+    transactions,
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      count: transactions.length,
+      nextOffset: transactions.length === safeLimit ? safeOffset + safeLimit : null,
+      previousOffset: safeOffset > 0 ? Math.max(0, safeOffset - safeLimit) : null,
+    },
+  };
+}
+
+export async function listAdminInventoryAudit(input: {
+  q?: string;
+  itemKey?: string;
+  minQuantity?: number;
+  maxQuantity?: number;
+  limit?: number;
+  offset?: number;
+} = {}) {
+  const q = input.q?.trim().toLowerCase() ?? '';
+  const itemKey = input.itemKey?.trim().toLowerCase() ?? '';
+  const likeQuery = `%${q}%`;
+  const likeItem = `%${itemKey}%`;
+  const minQuantity = input.minQuantity ?? null;
+  const maxQuantity = input.maxQuantity ?? null;
+  const safeLimit = Math.max(1, Math.min(500, Math.floor(input.limit ?? 50)));
+  const safeOffset = Math.max(0, Math.min(50_000, Math.floor(input.offset ?? 0)));
+
+  const whereSql = sql`
+    ii.quantity > 0
+    and (${itemKey} = '' or lower(ii.item_key) like ${likeItem})
+    and (${minQuantity}::int is null or ii.quantity >= ${minQuantity}::int)
+    and (${maxQuantity}::int is null or ii.quantity <= ${maxQuantity}::int)
+    and (
+      ${q} = ''
+      or lower(c.name) like ${likeQuery}
+      or lower(u.email) like ${likeQuery}
+      or lower(coalesce(u.display_name, '')) like ${likeQuery}
+      or lower(ii.item_key) like ${likeQuery}
+      or c.id::text like ${likeQuery}
+      or ii.id::text like ${likeQuery}
+    )
+  `;
+
+  const [rowResult, summaryResult, itemSummaryResult] = await Promise.all([
+    db.execute(sql`
+      select
+        ii.id,
+        ii.character_id as "characterId",
+        c.name as "characterName",
+        u.email as "userEmail",
+        u.display_name as "userDisplayName",
+        ii.item_key as "itemKey",
+        idf.name as "itemName",
+        idf.category as "itemCategory",
+        idf.rarity as "itemRarity",
+        idf.base_price as "basePrice",
+        ii.quantity,
+        (ii.quantity * idf.base_price)::int as "estimatedValue",
+        ii.metadata,
+        ii.updated_at as "updatedAt",
+        ii.created_at as "createdAt"
+      from inventory_items ii
+      join characters c on c.id = ii.character_id
+      join users u on u.id = c.user_id
+      left join item_definitions idf on idf.key = ii.item_key
+      where ${whereSql}
+      order by ii.quantity desc, ii.updated_at desc, ii.id desc
+      limit ${safeLimit}
+      offset ${safeOffset}
+    `),
+    db.execute(sql`
+      select
+        count(*)::int as "rowCount",
+        count(distinct ii.character_id)::int as "uniqueCharacters",
+        count(distinct ii.item_key)::int as "uniqueItems",
+        coalesce(sum(ii.quantity), 0)::int as "totalQuantity",
+        coalesce(sum(ii.quantity * coalesce(idf.base_price, 0)), 0)::int as "estimatedValue",
+        coalesce(max(ii.quantity), 0)::int as "largestStack"
+      from inventory_items ii
+      join characters c on c.id = ii.character_id
+      join users u on u.id = c.user_id
+      left join item_definitions idf on idf.key = ii.item_key
+      where ${whereSql}
+    `),
+    db.execute(sql`
+      select ii.item_key as "itemKey", count(*)::int as "holderCount", coalesce(sum(ii.quantity), 0)::int as "totalQuantity"
+      from inventory_items ii
+      join characters c on c.id = ii.character_id
+      join users u on u.id = c.user_id
+      left join item_definitions idf on idf.key = ii.item_key
+      where ${whereSql}
+      group by ii.item_key
+      order by "totalQuantity" desc, "holderCount" desc
+      limit 12
+    `),
+  ]);
+
+  const items: AdminInventoryAuditItem[] = rowsFromExecuteResult(rowResult).map((row: any) => ({
+    ...row,
+    quantity: Number(row.quantity ?? 0),
+    basePrice: Number(row.basePrice ?? 0),
+    estimatedValue: Number(row.estimatedValue ?? 0),
+  }));
+  const summaryRow = rowsFromExecuteResult(summaryResult)[0] ?? {};
+  const summary = {
+    rowCount: Number(summaryRow.rowCount ?? 0),
+    uniqueCharacters: Number(summaryRow.uniqueCharacters ?? 0),
+    uniqueItems: Number(summaryRow.uniqueItems ?? 0),
+    totalQuantity: Number(summaryRow.totalQuantity ?? 0),
+    estimatedValue: Number(summaryRow.estimatedValue ?? 0),
+    largestStack: Number(summaryRow.largestStack ?? 0),
+    topItems: rowsFromExecuteResult(itemSummaryResult).map((row: any) => ({ itemKey: String(row.itemKey), holderCount: Number(row.holderCount ?? 0), totalQuantity: Number(row.totalQuantity ?? 0) })),
+  };
+
+  return {
+    q,
+    itemKey,
+    minQuantity,
+    maxQuantity,
+    summary,
+    items,
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      count: items.length,
+      nextOffset: items.length === safeLimit ? safeOffset + safeLimit : null,
+      previousOffset: safeOffset > 0 ? Math.max(0, safeOffset - safeLimit) : null,
+    },
+  };
+}
+
+export async function listAdminSessionAudit(input: {
+  q?: string;
+  ipAddress?: string;
+  days?: number;
+  limit?: number;
+  offset?: number;
+} = {}) {
+  const q = input.q?.trim().toLowerCase() ?? '';
+  const ipAddress = input.ipAddress?.trim().toLowerCase() ?? '';
+  const likeQuery = `%${q}%`;
+  const likeIp = `%${ipAddress}%`;
+  const days = Math.max(1, Math.min(3650, Math.floor(input.days ?? 30)));
+  const safeLimit = Math.max(1, Math.min(500, Math.floor(input.limit ?? 50)));
+  const safeOffset = Math.max(0, Math.min(50_000, Math.floor(input.offset ?? 0)));
+
+  const whereSql = sql`
+    us.last_seen_at >= now() - (${days} * interval '1 day')
+    and (${ipAddress} = '' or lower(coalesce(us.ip_address, '')) like ${likeIp})
+    and (
+      ${q} = ''
+      or lower(u.email) like ${likeQuery}
+      or lower(coalesce(u.display_name, '')) like ${likeQuery}
+      or lower(coalesce(us.ip_address, '')) like ${likeQuery}
+      or lower(coalesce(us.user_agent, '')) like ${likeQuery}
+      or u.id::text like ${likeQuery}
+      or us.id::text like ${likeQuery}
+    )
+  `;
+
+  const [rowResult, summaryResult, ipSummaryResult] = await Promise.all([
+    db.execute(sql`
+      select
+        us.id,
+        us.user_id as "userId",
+        u.email,
+        u.display_name as "displayName",
+        us.ip_address as "ipAddress",
+        us.user_agent as "userAgent",
+        us.created_at as "createdAt",
+        us.last_seen_at as "lastSeenAt",
+        us.expires_at as "expiresAt",
+        count(c.id)::int as "characterCount"
+      from user_sessions us
+      join users u on u.id = us.user_id
+      left join characters c on c.user_id = u.id
+      where ${whereSql}
+      group by us.id, u.id, u.email, u.display_name
+      order by us.last_seen_at desc, us.id desc
+      limit ${safeLimit}
+      offset ${safeOffset}
+    `),
+    db.execute(sql`
+      select
+        count(*)::int as "sessionCount",
+        count(distinct us.user_id)::int as "uniqueUsers",
+        count(distinct us.ip_address)::int as "uniqueIps",
+        count(*) filter (where us.expires_at > now())::int as "activeSessions"
+      from user_sessions us
+      join users u on u.id = us.user_id
+      where ${whereSql}
+    `),
+    db.execute(sql`
+      select coalesce(us.ip_address, 'unknown') as "ipAddress", count(*)::int as "sessionCount", count(distinct us.user_id)::int as "uniqueUsers"
+      from user_sessions us
+      join users u on u.id = us.user_id
+      where ${whereSql}
+      group by coalesce(us.ip_address, 'unknown')
+      order by "uniqueUsers" desc, "sessionCount" desc
+      limit 12
+    `),
+  ]);
+
+  const sessions: AdminSessionAuditSession[] = rowsFromExecuteResult(rowResult).map((row: any) => ({
+    ...row,
+    characterCount: Number(row.characterCount ?? 0),
+  }));
+  const summaryRow = rowsFromExecuteResult(summaryResult)[0] ?? {};
+  const summary = {
+    sessionCount: Number(summaryRow.sessionCount ?? 0),
+    uniqueUsers: Number(summaryRow.uniqueUsers ?? 0),
+    uniqueIps: Number(summaryRow.uniqueIps ?? 0),
+    activeSessions: Number(summaryRow.activeSessions ?? 0),
+    topIps: rowsFromExecuteResult(ipSummaryResult).map((row: any) => ({ ipAddress: String(row.ipAddress), sessionCount: Number(row.sessionCount ?? 0), uniqueUsers: Number(row.uniqueUsers ?? 0) })),
+  };
+
+  return {
+    q,
+    ipAddress,
+    days,
+    summary,
+    sessions,
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      count: sessions.length,
+      nextOffset: sessions.length === safeLimit ? safeOffset + safeLimit : null,
+      previousOffset: safeOffset > 0 ? Math.max(0, safeOffset - safeLimit) : null,
+    },
+  };
+}
+
+
 export async function listAdminAudit(limit = 100, offset = 0) {
   const safeLimit = Math.max(1, Math.min(200, limit));
   const safeOffset = Math.max(0, Math.min(10_000, offset));
-  const [
-    events,
-    notes,
-    adminLogs,
-    activeFlags,
-    enforcementRows,
-    appealRows,
-    sessionRows,
-    inventoryRows,
-  ] = await Promise.all([
-    db.query.playerEvents.findMany({
-      orderBy: desc(playerEvents.createdAt),
-      limit: safeLimit,
-      offset: safeOffset,
-    }),
-    db.query.moderationNotes.findMany({
-      orderBy: desc(moderationNotes.createdAt),
-      limit: safeLimit,
-      offset: safeOffset,
-    }),
-    db.query.adminActionLogs.findMany({
-      orderBy: desc(adminActionLogs.createdAt),
-      limit: safeLimit,
-      offset: safeOffset,
-    }),
-    db.query.characterFlags.findMany({
-      where: eq(characterFlags.isActive, true),
-      orderBy: desc(characterFlags.createdAt),
-      limit: safeLimit,
-      offset: safeOffset,
-    }),
+  const [events, notes, adminLogs, activeFlags, enforcementRows, appealRows, sessionRows, inventoryRows] = await Promise.all([
+    db.query.playerEvents.findMany({ orderBy: desc(playerEvents.createdAt), limit: safeLimit, offset: safeOffset }),
+    db.query.moderationNotes.findMany({ orderBy: desc(moderationNotes.createdAt), limit: safeLimit, offset: safeOffset }),
+    db.query.adminActionLogs.findMany({ orderBy: desc(adminActionLogs.createdAt), limit: safeLimit, offset: safeOffset }),
+    db.query.characterFlags.findMany({ where: eq(characterFlags.isActive, true), orderBy: desc(characterFlags.createdAt), limit: safeLimit, offset: safeOffset }),
     db.execute(sql`
       select
         ce.id,
@@ -321,33 +675,199 @@ export async function listAdminAudit(limit = 100, offset = 0) {
     `),
   ]);
 
-  const activeEnforcements = Array.isArray(enforcementRows)
-    ? enforcementRows
-    : ((enforcementRows as any).rows ?? []);
+  const activeEnforcements = Array.isArray(enforcementRows) ? enforcementRows : ((enforcementRows as any).rows ?? []);
   const openAppeals = Array.isArray(appealRows) ? appealRows : ((appealRows as any).rows ?? []);
-  const recentSessions = Array.isArray(sessionRows)
-    ? sessionRows
-    : ((sessionRows as any).rows ?? []);
-  const inventoryHighlights = Array.isArray(inventoryRows)
-    ? inventoryRows
-    : ((inventoryRows as any).rows ?? []);
+  const recentSessions = Array.isArray(sessionRows) ? sessionRows : ((sessionRows as any).rows ?? []);
+  const inventoryHighlights = Array.isArray(inventoryRows) ? inventoryRows : ((inventoryRows as any).rows ?? []);
+
+  return { events, notes, adminLogs, activeFlags, activeEnforcements, openAppeals, recentSessions, inventoryHighlights };
+}
+
+
+export type AdminRollbackCandidate = {
+  id: string;
+  actionType: AdminActionType;
+  summary: string;
+  targetCharacterId: string | null;
+  characterName: string | null;
+  userEmail: string | null;
+  beforeValue: unknown;
+  afterValue: unknown;
+  metadata: unknown;
+  createdAt: Date | string;
+  isRolledBack: boolean;
+};
+
+export async function listAdminRollbackCandidates(input: { limit?: number; offset?: number } = {}) {
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 25)));
+  const safeOffset = Math.max(0, Math.min(10_000, Math.floor(input.offset ?? 0)));
+
+  const result = await db.execute(sql`
+    select
+      al.id,
+      al.action_type as "actionType",
+      al.summary,
+      al.target_character_id as "targetCharacterId",
+      c.name as "characterName",
+      u.email as "userEmail",
+      al.before_value as "beforeValue",
+      al.after_value as "afterValue",
+      al.metadata,
+      al.created_at as "createdAt",
+      exists (
+        select 1
+        from admin_action_logs rb
+        where rb.action_type = 'rollback_apply'
+          and rb.metadata->>'originalActionLogId' = al.id::text
+      ) as "isRolledBack"
+    from admin_action_logs al
+    left join characters c on c.id = al.target_character_id
+    left join users u on u.id = c.user_id
+    where al.action_type in ('cash_adjustment', 'bank_adjustment')
+    order by al.created_at desc, al.id desc
+    limit ${safeLimit}
+    offset ${safeOffset}
+  `);
+
+  const candidates = rowsFromExecuteResult(result).map((row: any) => ({
+    ...row,
+    isRolledBack: Boolean(row.isRolledBack),
+  })) as AdminRollbackCandidate[];
 
   return {
-    events,
-    notes,
-    adminLogs,
-    activeFlags,
-    activeEnforcements,
-    openAppeals,
-    recentSessions,
-    inventoryHighlights,
+    candidates,
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      count: candidates.length,
+      nextOffset: candidates.length === safeLimit ? safeOffset + safeLimit : null,
+      previousOffset: safeOffset > 0 ? Math.max(0, safeOffset - safeLimit) : null,
+    },
   };
 }
 
-export async function listModerationQueue({
-  status = 'open',
-  limit = 50,
-}: { status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'; limit?: number } = {}) {
+function readNumericSnapshot(value: unknown, key: 'cash' | 'bank') {
+  const candidate = (value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined) ?? 0;
+  const numberValue = Number(candidate);
+
+  if (!Number.isFinite(numberValue)) {
+    throw new Error(`Original ${key} snapshot is not usable for rollback.`);
+  }
+
+  return Math.trunc(numberValue);
+}
+
+export async function applyAdminActionRollback(input: { adminUserId: string; actionLogId: string; reason: string }) {
+  const reason = validateModerationReason(input.reason);
+
+  return db.transaction(async (tx) => {
+    const original = await tx.query.adminActionLogs.findFirst({ where: eq(adminActionLogs.id, input.actionLogId) });
+
+    if (!original) {
+      throw new Error('Admin action log not found.');
+    }
+
+    if (original.actionType !== 'cash_adjustment' && original.actionType !== 'bank_adjustment') {
+      throw new Error('Only cash and bank admin adjustments can be rolled back in this pass.');
+    }
+
+    if (!original.targetCharacterId) {
+      throw new Error('Original admin action has no target character.');
+    }
+
+    const priorRollbackResult = await tx.execute(sql`
+      select id
+      from admin_action_logs
+      where action_type = 'rollback_apply'
+        and metadata->>'originalActionLogId' = ${input.actionLogId}
+      limit 1
+    `);
+    const priorRollback = rowsFromExecuteResult(priorRollbackResult)[0];
+
+    if (priorRollback) {
+      throw new Error('This admin action has already been rolled back.');
+    }
+
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, original.targetCharacterId) });
+
+    if (!character) {
+      throw new Error('Rollback target character no longer exists.');
+    }
+
+    const wallet = original.actionType === 'cash_adjustment' ? 'cash' : 'bank';
+    const targetValue = readNumericSnapshot(original.beforeValue, wallet);
+    const currentValue = wallet === 'cash' ? character.cash : character.bank;
+    const delta = targetValue - currentValue;
+    let updatedCharacter = character;
+
+    if (delta !== 0) {
+      const safeAdjustment = wallet === 'cash'
+        ? await adjustCharacterCashSafely(tx, character.id, delta)
+        : await adjustCharacterBankSafely(tx, character.id, delta);
+
+      if (!safeAdjustment.ok) {
+        throw new Error('Could not apply rollback safely. Refresh and try again.');
+      }
+
+      updatedCharacter = safeAdjustment.character;
+
+      await tx.insert(financialTransactions).values({
+        characterId: character.id,
+        type: 'system',
+        amount: String(delta),
+        description: `Admin rollback for ${wallet} adjustment: ${reason}`,
+        metadata: {
+          originalActionLogId: original.id,
+          originalActionType: original.actionType,
+          wallet,
+          beforeCurrent: currentValue,
+          restoredTo: targetValue,
+        },
+      });
+    }
+
+    await tx.insert(playerEvents).values({
+      userId: character.userId,
+      characterId: character.id,
+      visibility: 'admin',
+      type: 'admin_rollback_apply',
+      payload: {
+        originalActionLogId: original.id,
+        originalActionType: original.actionType,
+        wallet,
+        deltaApplied: delta,
+        beforeCurrent: currentValue,
+        restoredTo: targetValue,
+        reason,
+      },
+    });
+
+    const [rollbackLog] = await tx
+      .insert(adminActionLogs)
+      .values({
+        adminUserId: input.adminUserId,
+        targetUserId: character.userId,
+        targetCharacterId: character.id,
+        actionType: 'rollback_apply',
+        summary: `Rolled back ${wallet} adjustment for ${character.name}.`,
+        beforeValue: { [wallet]: currentValue, originalActionLogId: original.id },
+        afterValue: { [wallet]: wallet === 'cash' ? updatedCharacter.cash : updatedCharacter.bank },
+        metadata: {
+          originalActionLogId: original.id,
+          originalActionType: original.actionType,
+          wallet,
+          reason,
+          deltaApplied: delta,
+        },
+      })
+      .returning();
+
+    return { originalActionLog: original, rollbackLog, character: updatedCharacter, wallet, deltaApplied: delta };
+  });
+}
+
+
+export async function listModerationQueue({ status = 'open', limit = 50 }: { status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'; limit?: number } = {}) {
   const safeLimit = Math.max(1, Math.min(100, limit));
 
   const [messageRows, articleRows] = await Promise.all([
@@ -363,7 +883,10 @@ export async function listModerationQueue({
         mr.resolution_note as "resolutionNote",
         m.thread_id as "threadId",
         m.sender_character_id as "senderCharacterId",
-        left(m.body, 280) as "messagePreview",
+        case when m.hidden_at is not null then '[hidden by moderation]' else left(m.body, 280) end as "messagePreview",
+        m.hidden_at as "hiddenAt",
+        m.hidden_reason as "hiddenReason",
+        m.retention_expires_at as "retentionExpiresAt",
         reporter.name as "reporterName",
         sender.name as "senderName"
       from message_reports mr
@@ -400,20 +923,10 @@ export async function listModerationQueue({
     `),
   ]);
 
-  const messageResultRows = Array.isArray(messageRows)
-    ? messageRows
-    : ((messageRows as any).rows ?? []);
-  const articleResultRows = Array.isArray(articleRows)
-    ? articleRows
-    : ((articleRows as any).rows ?? []);
-  const messages = Array.from(messageResultRows as any[]).map((row) => ({
-    kind: 'message' as const,
-    ...row,
-  }));
-  const articles = Array.from(articleResultRows as any[]).map((row) => ({
-    kind: 'article' as const,
-    ...row,
-  }));
+  const messageResultRows = Array.isArray(messageRows) ? messageRows : ((messageRows as any).rows ?? []);
+  const articleResultRows = Array.isArray(articleRows) ? articleRows : ((articleRows as any).rows ?? []);
+  const messages = Array.from(messageResultRows as any[]).map((row) => ({ kind: 'message' as const, ...row }));
+  const articles = Array.from(articleResultRows as any[]).map((row) => ({ kind: 'article' as const, ...row }));
 
   return {
     status,
@@ -430,6 +943,7 @@ export async function resolveModerationReport(input: {
   status: ModerationReportStatus;
   note?: string;
   hideArticle?: boolean;
+  hideMessage?: boolean;
 }) {
   const note = input.note?.trim() || `${input.kind} report marked ${input.status}.`;
 
@@ -439,36 +953,38 @@ export async function resolveModerationReport(input: {
 
   return db.transaction(async (tx) => {
     if (input.kind === 'message') {
-      const existing = await tx.query.messageReports.findFirst({
-        where: eq(messageReports.id, input.reportId),
-      });
+      const existing = await tx.query.messageReports.findFirst({ where: eq(messageReports.id, input.reportId) });
 
       if (!existing) {
         throw new Error('Message report not found.');
       }
 
-      const message = await tx.query.messages.findFirst({
-        where: eq(messages.id, existing.messageId),
-      });
+      const message = await tx.query.messages.findFirst({ where: eq(messages.id, existing.messageId) });
+      let hiddenMessage: any = null;
+
       const [report] = await tx
         .update(messageReports)
-        .set({
-          status: input.status,
-          reviewedAt: sql`now()`,
-          reviewedByUserId: input.adminUserId,
-          resolutionNote: note,
-        })
+        .set({ status: input.status, reviewedAt: sql`now()`, reviewedByUserId: input.adminUserId, resolutionNote: note })
         .where(eq(messageReports.id, input.reportId))
         .returning();
 
+      if (input.hideMessage && message) {
+        [hiddenMessage] = await tx
+          .update(messages)
+          .set({ hiddenAt: sql`now()`, hiddenByUserId: input.adminUserId, hiddenReason: note })
+          .where(and(eq(messages.id, existing.messageId), isNull(messages.hiddenAt)))
+          .returning();
+      }
+
       await tx.insert(moderationNotes).values({
         characterId: message?.senderCharacterId ?? existing.reporterCharacterId,
-        note: `[message report ${input.status}] ${note}`,
-        severity: input.status === 'actioned' ? 'warning' : 'info',
+        note: `[message report ${input.status}${input.hideMessage ? ' hidden' : ''}] ${note}`,
+        severity: input.status === 'actioned' || input.hideMessage ? 'warning' : 'info',
         metadata: {
           reportId: input.reportId,
           messageId: existing.messageId,
           reporterCharacterId: existing.reporterCharacterId,
+          hideMessage: !!input.hideMessage,
         },
       });
 
@@ -476,54 +992,37 @@ export async function resolveModerationReport(input: {
         adminUserId: input.adminUserId,
         targetCharacterId: message?.senderCharacterId ?? null,
         actionType: 'moderation_note',
-        summary: `Marked message report ${input.status}.`,
+        summary: `Marked message report ${input.status}${input.hideMessage ? ' and hid the message' : ''}.`,
         beforeValue: existing,
-        afterValue: report,
-        metadata: { kind: input.kind, note },
+        afterValue: { report, hiddenMessage },
+        metadata: { kind: input.kind, note, hideMessage: !!input.hideMessage },
       });
 
-      return { report };
+      return { report, hiddenMessage };
     }
 
-    const existing = await tx.query.newspaperArticleReports.findFirst({
-      where: eq(newspaperArticleReports.id, input.reportId),
-    });
+    const existing = await tx.query.newspaperArticleReports.findFirst({ where: eq(newspaperArticleReports.id, input.reportId) });
 
     if (!existing) {
       throw new Error('Article report not found.');
     }
 
-    const article = await tx.query.newspaperArticles.findFirst({
-      where: eq(newspaperArticles.id, existing.articleId),
-    });
+    const article = await tx.query.newspaperArticles.findFirst({ where: eq(newspaperArticles.id, existing.articleId) });
     const [report] = await tx
       .update(newspaperArticleReports)
-      .set({
-        status: input.status,
-        reviewedAt: sql`now()`,
-        reviewedByUserId: input.adminUserId,
-        resolutionNote: note,
-      })
+      .set({ status: input.status, reviewedAt: sql`now()`, reviewedByUserId: input.adminUserId, resolutionNote: note })
       .where(eq(newspaperArticleReports.id, input.reportId))
       .returning();
 
     if (input.hideArticle) {
-      await tx
-        .update(newspaperArticles)
-        .set({ isPublished: false, updatedAt: sql`now()` })
-        .where(eq(newspaperArticles.id, existing.articleId));
+      await tx.update(newspaperArticles).set({ isPublished: false, updatedAt: sql`now()` }).where(eq(newspaperArticles.id, existing.articleId));
     }
 
     await tx.insert(moderationNotes).values({
       characterId: article?.authorCharacterId ?? existing.reporterCharacterId,
       note: `[article report ${input.status}] ${note}`,
       severity: input.status === 'actioned' ? 'warning' : 'info',
-      metadata: {
-        reportId: input.reportId,
-        articleId: existing.articleId,
-        reporterCharacterId: existing.reporterCharacterId,
-        hideArticle: !!input.hideArticle,
-      },
+      metadata: { reportId: input.reportId, articleId: existing.articleId, reporterCharacterId: existing.reporterCharacterId, hideArticle: !!input.hideArticle },
     });
 
     await tx.insert(adminActionLogs).values({
@@ -540,9 +1039,7 @@ export async function resolveModerationReport(input: {
   });
 }
 
-export async function listGameConfig({
-  includePrivate = false,
-}: { includePrivate?: boolean } = {}) {
+export async function listGameConfig({ includePrivate = false }: { includePrivate?: boolean } = {}) {
   return db.query.gameConfigEntries.findMany({
     where: includePrivate ? undefined : eq(gameConfigEntries.isPublic, true),
     orderBy: (table, { asc }) => [asc(table.category), asc(table.key)],
@@ -562,15 +1059,11 @@ export async function upsertGameConfig(input: {
   const key = input.key.trim().toLowerCase();
 
   if (!/^[a-z0-9._-]{3,80}$/.test(key)) {
-    throw new Error(
-      'Config key must be 3-80 lowercase letters, numbers, dots, dashes, or underscores.',
-    );
+    throw new Error('Config key must be 3-80 lowercase letters, numbers, dots, dashes, or underscores.');
   }
 
   return db.transaction(async (tx) => {
-    const existing = await tx.query.gameConfigEntries.findFirst({
-      where: eq(gameConfigEntries.key, key),
-    });
+    const existing = await tx.query.gameConfigEntries.findFirst({ where: eq(gameConfigEntries.key, key) });
     const [entry] = await tx
       .insert(gameConfigEntries)
       .values({
@@ -620,9 +1113,7 @@ export async function addCharacterFlag(input: {
   const severity = clampAdminSeverity(input.severity);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, input.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -642,11 +1133,7 @@ export async function addCharacterFlag(input: {
     if (input.flagType === 'suspended') {
       await tx
         .update(characters)
-        .set({
-          status: 'jailed',
-          statusReason: `Admin suspension: ${reason}`,
-          updatedAt: sql`now()`,
-        })
+        .set({ status: 'jailed', statusReason: `Admin suspension: ${reason}`, updatedAt: sql`now()` })
         .where(eq(characters.id, input.characterId));
     }
 
@@ -669,15 +1156,9 @@ export async function addCharacterFlag(input: {
   });
 }
 
-export async function resolveCharacterFlag(input: {
-  adminUserId: string;
-  flagId: string;
-  reason?: string;
-}) {
+export async function resolveCharacterFlag(input: { adminUserId: string; flagId: string; reason?: string }) {
   return db.transaction(async (tx) => {
-    const existing = await tx.query.characterFlags.findFirst({
-      where: eq(characterFlags.id, input.flagId),
-    });
+    const existing = await tx.query.characterFlags.findFirst({ where: eq(characterFlags.id, input.flagId) });
 
     if (!existing) {
       throw new Error('Flag not found.');
@@ -685,12 +1166,7 @@ export async function resolveCharacterFlag(input: {
 
     const [flag] = await tx
       .update(characterFlags)
-      .set({
-        isActive: false,
-        resolvedByUserId: input.adminUserId,
-        resolvedAt: sql`now()`,
-        updatedAt: sql`now()`,
-      })
+      .set({ isActive: false, resolvedByUserId: input.adminUserId, resolvedAt: sql`now()`, updatedAt: sql`now()` })
       .where(eq(characterFlags.id, input.flagId))
       .returning();
 
@@ -708,32 +1184,18 @@ export async function resolveCharacterFlag(input: {
   });
 }
 
-export async function adjustCharacterCash(input: {
-  adminUserId: string;
-  characterId: string;
-  amount: number;
-  reason: string;
-}) {
+export async function adjustCharacterCash(input: { adminUserId: string; characterId: string; amount: number; reason: string }) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, input.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const adjustment = calculateCashAdjustment({
-      currentCash: character.cash,
-      amount: input.amount,
-    });
-    const safeAdjustment = await adjustCharacterCashSafely(
-      tx,
-      input.characterId,
-      adjustment.deltaApplied,
-    );
+    const adjustment = calculateCashAdjustment({ currentCash: character.cash, amount: input.amount });
+    const safeAdjustment = await adjustCharacterCashSafely(tx, input.characterId, adjustment.deltaApplied);
 
     if (!safeAdjustment.ok) {
       throw new Error('Could not apply cash adjustment safely. Refresh and try again.');
@@ -755,12 +1217,7 @@ export async function adjustCharacterCash(input: {
       characterId: input.characterId,
       visibility: 'admin',
       type: 'admin_cash_adjustment',
-      payload: {
-        before: adjustment.before,
-        after: actualAfter,
-        amount: adjustment.deltaApplied,
-        reason,
-      },
+      payload: { before: adjustment.before, after: actualAfter, amount: adjustment.deltaApplied, reason },
     });
 
     await tx.insert(adminActionLogs).values({
@@ -778,32 +1235,18 @@ export async function adjustCharacterCash(input: {
   });
 }
 
-export async function adjustCharacterBank(input: {
-  adminUserId: string;
-  characterId: string;
-  amount: number;
-  reason: string;
-}) {
+export async function adjustCharacterBank(input: { adminUserId: string; characterId: string; amount: number; reason: string }) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, input.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const adjustment = calculateBankAdjustment({
-      currentBank: character.bank,
-      amount: input.amount,
-    });
-    const safeAdjustment = await adjustCharacterBankSafely(
-      tx,
-      input.characterId,
-      adjustment.deltaApplied,
-    );
+    const adjustment = calculateBankAdjustment({ currentBank: character.bank, amount: input.amount });
+    const safeAdjustment = await adjustCharacterBankSafely(tx, input.characterId, adjustment.deltaApplied);
 
     if (!safeAdjustment.ok) {
       throw new Error('Could not apply bank adjustment safely. Refresh and try again.');
@@ -835,17 +1278,11 @@ export async function adjustCharacterBank(input: {
   });
 }
 
-export async function clearCharacterStatus(input: {
-  adminUserId: string;
-  characterId: string;
-  reason: string;
-}) {
+export async function clearCharacterStatus(input: { adminUserId: string; characterId: string; reason: string }) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, input.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -863,11 +1300,7 @@ export async function clearCharacterStatus(input: {
       targetCharacterId: input.characterId,
       actionType: 'status_clear',
       summary: `Cleared status for ${character.name}.`,
-      beforeValue: {
-        status: character.status,
-        statusUntil: character.statusUntil,
-        statusReason: character.statusReason,
-      },
+      beforeValue: { status: character.status, statusUntil: character.statusUntil, statusReason: character.statusReason },
       afterValue: { status: updated.status },
       metadata: { reason },
     });
@@ -889,10 +1322,7 @@ export async function listActiveAnnouncements(limit = 5) {
 }
 
 export async function listAdminAnnouncements(limit = 50) {
-  return db.query.systemAnnouncements.findMany({
-    orderBy: desc(systemAnnouncements.createdAt),
-    limit: Math.max(1, Math.min(100, limit)),
-  });
+  return db.query.systemAnnouncements.findMany({ orderBy: desc(systemAnnouncements.createdAt), limit: Math.max(1, Math.min(100, limit)) });
 }
 
 export async function createAnnouncement(input: {
@@ -940,8 +1370,8 @@ export async function createAnnouncement(input: {
   });
 }
 
-export type EnforcementActionType =
-  'warning' | 'social_mute' | 'shop_restriction' | 'temporary_suspension' | 'cash_penalty';
+
+export type EnforcementActionType = 'warning' | 'social_mute' | 'shop_restriction' | 'temporary_suspension' | 'cash_penalty';
 export type EnforcementAppealStatus = 'open' | 'accepted' | 'rejected' | 'withdrawn';
 
 function getRestrictionLabel(actionType: EnforcementActionType) {
@@ -969,9 +1399,7 @@ function calculateEndsAt(durationHours?: number | null) {
 }
 
 export async function listCharacterSafetyProfile(input: { userId: string; characterId: string }) {
-  const character = await db.query.characters.findFirst({
-    where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
-  });
+  const character = await db.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
 
   if (!character) {
     return null;
@@ -987,25 +1415,14 @@ export async function listCharacterSafetyProfile(input: { userId: string; charac
       orderBy: desc(characterEnforcements.createdAt),
       limit: 20,
     }),
-    db.query.enforcementAppeals.findMany({
-      where: eq(enforcementAppeals.characterId, input.characterId),
-      orderBy: desc(enforcementAppeals.createdAt),
-      limit: 20,
-    }),
-    db.query.moderationNotes.findMany({
-      where: eq(moderationNotes.characterId, input.characterId),
-      orderBy: desc(moderationNotes.createdAt),
-      limit: 10,
-    }),
+    db.query.enforcementAppeals.findMany({ where: eq(enforcementAppeals.characterId, input.characterId), orderBy: desc(enforcementAppeals.createdAt), limit: 20 }),
+    db.query.moderationNotes.findMany({ where: eq(moderationNotes.characterId, input.characterId), orderBy: desc(moderationNotes.createdAt), limit: 10 }),
   ]);
 
   return { activeEnforcements, appeals, notes };
 }
 
-export async function hasActiveCharacterRestriction(input: {
-  characterId: string;
-  actionType: 'social_mute' | 'shop_restriction' | 'temporary_suspension';
-}) {
+export async function hasActiveCharacterRestriction(input: { characterId: string; actionType: 'social_mute' | 'shop_restriction' | 'temporary_suspension' }) {
   const enforcement = await db.query.characterEnforcements.findFirst({
     where: and(
       eq(characterEnforcements.characterId, input.characterId),
@@ -1031,13 +1448,10 @@ export async function applyCharacterEnforcement(input: {
   const severity = clampAdminSeverity(input.severity ?? 1);
   const endsAt = calculateEndsAt(input.durationHours);
   const label = getRestrictionLabel(input.actionType);
-  const cashPenalty =
-    input.actionType === 'cash_penalty' ? Math.max(0, Math.trunc(input.cashPenalty ?? 0)) : 0;
+  const cashPenalty = input.actionType === 'cash_penalty' ? Math.max(0, Math.trunc(input.cashPenalty ?? 0)) : 0;
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, input.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, input.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -1065,12 +1479,7 @@ export async function applyCharacterEnforcement(input: {
     if (input.actionType === 'temporary_suspension') {
       const [updated] = await tx
         .update(characters)
-        .set({
-          status: 'jailed',
-          statusUntil: endsAt,
-          statusReason: `Admin enforcement: ${reason}`,
-          updatedAt: sql`now()`,
-        })
+        .set({ status: 'jailed', statusUntil: endsAt, statusReason: `Admin enforcement: ${reason}`, updatedAt: sql`now()` })
         .where(eq(characters.id, input.characterId))
         .returning();
       updatedCharacter = updated;
@@ -1091,13 +1500,7 @@ export async function applyCharacterEnforcement(input: {
         type: 'system',
         amount: String(updatedCharacter.cash - character.cash),
         description: `Admin cash penalty: ${reason}`,
-        metadata: {
-          enforcementId: enforcement.id,
-          before: character.cash,
-          after: updatedCharacter.cash,
-          cashPenalty,
-          appliedPenalty,
-        },
+        metadata: { enforcementId: enforcement.id, before: character.cash, after: updatedCharacter.cash, cashPenalty, appliedPenalty },
       });
     }
 
@@ -1137,25 +1540,17 @@ export async function applyCharacterEnforcement(input: {
   });
 }
 
-export async function liftCharacterEnforcement(input: {
-  adminUserId: string;
-  enforcementId: string;
-  reason: string;
-}) {
+export async function liftCharacterEnforcement(input: { adminUserId: string; enforcementId: string; reason: string }) {
   const reason = validateModerationReason(input.reason);
 
   return db.transaction(async (tx) => {
-    const enforcement = await tx.query.characterEnforcements.findFirst({
-      where: eq(characterEnforcements.id, input.enforcementId),
-    });
+    const enforcement = await tx.query.characterEnforcements.findFirst({ where: eq(characterEnforcements.id, input.enforcementId) });
 
     if (!enforcement) {
       throw new Error('Enforcement not found.');
     }
 
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, enforcement.characterId),
-    });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, enforcement.characterId) });
 
     if (!character) {
       throw new Error('Character not found.');
@@ -1163,23 +1558,12 @@ export async function liftCharacterEnforcement(input: {
 
     const [updated] = await tx
       .update(characterEnforcements)
-      .set({
-        isActive: false,
-        liftedByUserId: input.adminUserId,
-        liftedAt: sql`now()`,
-        updatedAt: sql`now()`,
-      })
+      .set({ isActive: false, liftedByUserId: input.adminUserId, liftedAt: sql`now()`, updatedAt: sql`now()` })
       .where(eq(characterEnforcements.id, input.enforcementId))
       .returning();
 
-    if (
-      enforcement.actionType === 'temporary_suspension' &&
-      character.statusReason?.startsWith('Admin enforcement:')
-    ) {
-      await tx
-        .update(characters)
-        .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
-        .where(eq(characters.id, character.id));
+    if (enforcement.actionType === 'temporary_suspension' && character.statusReason?.startsWith('Admin enforcement:')) {
+      await tx.update(characters).set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
     }
 
     await tx.insert(moderationNotes).values({
@@ -1218,12 +1602,7 @@ export async function liftCharacterEnforcement(input: {
   });
 }
 
-export async function submitEnforcementAppeal(input: {
-  userId: string;
-  characterId: string;
-  enforcementId: string;
-  body: string;
-}) {
+export async function submitEnforcementAppeal(input: { userId: string; characterId: string; enforcementId: string; body: string }) {
   const body = input.body.trim();
 
   if (body.length < 10 || body.length > 1000) {
@@ -1231,20 +1610,13 @@ export async function submitEnforcementAppeal(input: {
   }
 
   return db.transaction(async (tx) => {
-    const character = await tx.query.characters.findFirst({
-      where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)),
-    });
+    const character = await tx.query.characters.findFirst({ where: and(eq(characters.id, input.characterId), eq(characters.userId, input.userId)) });
 
     if (!character) {
       throw new Error('Character not found.');
     }
 
-    const enforcement = await tx.query.characterEnforcements.findFirst({
-      where: and(
-        eq(characterEnforcements.id, input.enforcementId),
-        eq(characterEnforcements.characterId, input.characterId),
-      ),
-    });
+    const enforcement = await tx.query.characterEnforcements.findFirst({ where: and(eq(characterEnforcements.id, input.enforcementId), eq(characterEnforcements.characterId, input.characterId)) });
 
     if (!enforcement) {
       throw new Error('Enforcement not found.');
@@ -1255,14 +1627,7 @@ export async function submitEnforcementAppeal(input: {
       .values({ enforcementId: input.enforcementId, characterId: input.characterId, body })
       .onConflictDoUpdate({
         target: [enforcementAppeals.enforcementId, enforcementAppeals.characterId],
-        set: {
-          body,
-          status: 'open',
-          reviewedByUserId: null,
-          reviewedAt: null,
-          resolutionNote: null,
-          updatedAt: sql`now()`,
-        },
+        set: { body, status: 'open', reviewedByUserId: null, reviewedAt: null, resolutionNote: null, updatedAt: sql`now()` },
       })
       .returning();
 
@@ -1278,30 +1643,18 @@ export async function submitEnforcementAppeal(input: {
   });
 }
 
-export async function reviewEnforcementAppeal(input: {
-  adminUserId: string;
-  appealId: string;
-  status: 'accepted' | 'rejected';
-  note: string;
-  liftEnforcement?: boolean;
-}) {
+export async function reviewEnforcementAppeal(input: { adminUserId: string; appealId: string; status: 'accepted' | 'rejected'; note: string; liftEnforcement?: boolean }) {
   const note = validateModerationReason(input.note);
 
   return db.transaction(async (tx) => {
-    const appeal = await tx.query.enforcementAppeals.findFirst({
-      where: eq(enforcementAppeals.id, input.appealId),
-    });
+    const appeal = await tx.query.enforcementAppeals.findFirst({ where: eq(enforcementAppeals.id, input.appealId) });
 
     if (!appeal) {
       throw new Error('Appeal not found.');
     }
 
-    const enforcement = await tx.query.characterEnforcements.findFirst({
-      where: eq(characterEnforcements.id, appeal.enforcementId),
-    });
-    const character = await tx.query.characters.findFirst({
-      where: eq(characters.id, appeal.characterId),
-    });
+    const enforcement = await tx.query.characterEnforcements.findFirst({ where: eq(characterEnforcements.id, appeal.enforcementId) });
+    const character = await tx.query.characters.findFirst({ where: eq(characters.id, appeal.characterId) });
 
     if (!enforcement || !character) {
       throw new Error('Appeal target not found.');
@@ -1309,13 +1662,7 @@ export async function reviewEnforcementAppeal(input: {
 
     const [updatedAppeal] = await tx
       .update(enforcementAppeals)
-      .set({
-        status: input.status,
-        reviewedByUserId: input.adminUserId,
-        reviewedAt: sql`now()`,
-        resolutionNote: note,
-        updatedAt: sql`now()`,
-      })
+      .set({ status: input.status, reviewedByUserId: input.adminUserId, reviewedAt: sql`now()`, resolutionNote: note, updatedAt: sql`now()` })
       .where(eq(enforcementAppeals.id, input.appealId))
       .returning();
 
@@ -1323,24 +1670,13 @@ export async function reviewEnforcementAppeal(input: {
     if (input.status === 'accepted' && input.liftEnforcement) {
       const [updatedEnforcement] = await tx
         .update(characterEnforcements)
-        .set({
-          isActive: false,
-          liftedByUserId: input.adminUserId,
-          liftedAt: sql`now()`,
-          updatedAt: sql`now()`,
-        })
+        .set({ isActive: false, liftedByUserId: input.adminUserId, liftedAt: sql`now()`, updatedAt: sql`now()` })
         .where(eq(characterEnforcements.id, enforcement.id))
         .returning();
       lifted = updatedEnforcement;
 
-      if (
-        enforcement.actionType === 'temporary_suspension' &&
-        character.statusReason?.startsWith('Admin enforcement:')
-      ) {
-        await tx
-          .update(characters)
-          .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
-          .where(eq(characters.id, character.id));
+      if (enforcement.actionType === 'temporary_suspension' && character.statusReason?.startsWith('Admin enforcement:')) {
+        await tx.update(characters).set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` }).where(eq(characters.id, character.id));
       }
     }
 
@@ -1449,9 +1785,7 @@ export async function expireDueCharacterEnforcements({ limit = 100 } = {}) {
       for update skip locked
     `);
 
-    const due = Array.from(
-      (Array.isArray(dueRows) ? dueRows : ((dueRows as any).rows ?? [])) as any[],
-    );
+    const due = Array.from((Array.isArray(dueRows) ? dueRows : ((dueRows as any).rows ?? [])) as any[]);
 
     if (!due.length) {
       return { expired: 0, enforcements: [] };
@@ -1471,10 +1805,7 @@ export async function expireDueCharacterEnforcements({ limit = 100 } = {}) {
         .where(eq(characterEnforcements.id, enforcement.id))
         .returning();
 
-      if (
-        enforcement.actionType === 'temporary_suspension' &&
-        String(enforcement.statusReason ?? '').startsWith('Admin enforcement:')
-      ) {
+      if (enforcement.actionType === 'temporary_suspension' && String(enforcement.statusReason ?? '').startsWith('Admin enforcement:')) {
         await tx
           .update(characters)
           .set({ status: 'free', statusUntil: null, statusReason: null, updatedAt: sql`now()` })
@@ -1544,9 +1875,7 @@ export async function getModerationTransparencySummary({ days = 30 } = {}) {
   return {
     days: safeDays,
     reports: Array.isArray(reportRows) ? reportRows : ((reportRows as any).rows ?? []),
-    enforcements: Array.isArray(enforcementRows)
-      ? enforcementRows
-      : ((enforcementRows as any).rows ?? []),
+    enforcements: Array.isArray(enforcementRows) ? enforcementRows : ((enforcementRows as any).rows ?? []),
     appeals: Array.isArray(appealRows) ? appealRows : ((appealRows as any).rows ?? []),
   };
 }

@@ -54,8 +54,7 @@ export function calculateMarketPressure(input: MarketPriceInput): MarketPressure
   };
 }
 
-export type MarketEventKind =
-  'shortage' | 'surplus' | 'demand_spike' | 'crackdown' | 'route_disruption';
+export type MarketEventKind = 'shortage' | 'surplus' | 'demand_spike' | 'crackdown' | 'route_disruption';
 
 export type MarketEventDefinition = {
   key: string;
@@ -180,14 +179,8 @@ export function calculateMarketEventImpact(input: MarketEventImpactInput) {
     };
   }
 
-  const adjustedSupply = Math.max(
-    1,
-    Math.floor(baseline.supply * normalizeMultiplier(event.supplyMultiplier)),
-  );
-  const adjustedDemand = Math.max(
-    1,
-    Math.floor(baseline.demand * normalizeMultiplier(event.demandMultiplier)),
-  );
+  const adjustedSupply = Math.max(1, Math.floor(baseline.supply * normalizeMultiplier(event.supplyMultiplier)));
+  const adjustedDemand = Math.max(1, Math.floor(baseline.demand * normalizeMultiplier(event.demandMultiplier)));
   const adjustedVolatility = baseline.volatility + event.volatilityDelta;
   const adjustedPressure = calculateMarketPressure({
     basePrice: baseline.basePrice,
@@ -195,12 +188,8 @@ export function calculateMarketEventImpact(input: MarketEventImpactInput) {
     demand: adjustedDemand,
     volatility: adjustedVolatility,
   });
-  const floorPrice = event.priceFloorMultiplier
-    ? Math.floor(baseline.basePrice * normalizeMultiplier(event.priceFloorMultiplier))
-    : 1;
-  const ceilingPrice = event.priceCeilingMultiplier
-    ? Math.floor(baseline.basePrice * normalizeMultiplier(event.priceCeilingMultiplier))
-    : Number.POSITIVE_INFINITY;
+  const floorPrice = event.priceFloorMultiplier ? Math.floor(baseline.basePrice * normalizeMultiplier(event.priceFloorMultiplier)) : 1;
+  const ceilingPrice = event.priceCeilingMultiplier ? Math.floor(baseline.basePrice * normalizeMultiplier(event.priceCeilingMultiplier)) : Number.POSITIVE_INFINITY;
   const boundedPrice = Math.min(Math.max(adjustedPressure.price, floorPrice), ceilingPrice);
   const adjusted = { ...adjustedPressure, price: Math.max(1, boundedPrice) };
   const priceDelta = adjusted.price - baseline.price;
@@ -215,8 +204,7 @@ export function calculateMarketEventImpact(input: MarketEventImpactInput) {
     riskBefore: baseRisk,
     riskAfter: Math.max(0, baseRisk + event.riskDelta),
     priceDelta,
-    priceDeltaPercent:
-      baseline.price > 0 ? Math.round((priceDelta / baseline.price) * 10_000) / 100 : 0,
+    priceDeltaPercent: baseline.price > 0 ? Math.round((priceDelta / baseline.price) * 10_000) / 100 : 0,
   };
 }
 
@@ -302,8 +290,7 @@ export function calculateMarketEventLifecycle(input: MarketEventLifecycleInput) 
   const endsAt = normalizeDateInput(input.endsAt, startsAt);
   const startsInSeconds = Math.max(0, Math.floor((startsAt.getTime() - now.getTime()) / 1000));
   const expiresInSeconds = Math.max(0, Math.floor((endsAt.getTime() - now.getTime()) / 1000));
-  const status: MarketEventScheduleStatus =
-    now < startsAt ? 'upcoming' : now >= endsAt ? 'expired' : 'active';
+  const status: MarketEventScheduleStatus = now < startsAt ? 'upcoming' : now >= endsAt ? 'expired' : 'active';
 
   return {
     status,
@@ -315,23 +302,15 @@ export function calculateMarketEventLifecycle(input: MarketEventLifecycleInput) 
   };
 }
 
-export function scheduleMarketEventOccurrence(
-  input: MarketEventScheduleInput,
-): MarketEventOccurrence | null {
+export function scheduleMarketEventOccurrence(input: MarketEventScheduleInput): MarketEventOccurrence | null {
   const location = normalizeScheduleLocation(input.location);
   const itemKey = input.itemKey?.trim() || null;
   const now = normalizeDateInput(input.now);
-  const cadenceHours = Math.max(
-    1,
-    Math.min(72, Math.floor(input.cadenceHours ?? DEFAULT_MARKET_EVENT_CADENCE_HOURS)),
-  );
+  const cadenceHours = Math.max(1, Math.min(72, Math.floor(input.cadenceHours ?? DEFAULT_MARKET_EVENT_CADENCE_HOURS)));
   const cadenceMs = cadenceHours * 60 * 60 * 1000;
   const bucketStartMs = Math.floor(now.getTime() / cadenceMs) * cadenceMs;
   const bucket = Math.floor(bucketStartMs / cadenceMs);
-  const allowedKeys = new Set(
-    input.allowedEventKeys?.filter((key) => getMarketEventDefinition(key)) ??
-      MARKET_EVENTS.map((event) => event.key),
-  );
+  const allowedKeys = new Set(input.allowedEventKeys?.filter((key) => getMarketEventDefinition(key)) ?? MARKET_EVENTS.map((event) => event.key));
   const candidates = MARKET_EVENTS.filter((event) => allowedKeys.has(event.key));
 
   if (candidates.length === 0) {
@@ -356,9 +335,7 @@ export function scheduleMarketEventOccurrence(
   };
 }
 
-export function hydrateMarketEventOccurrence(
-  input: PersistedMarketEventOccurrenceInput,
-): MarketEventOccurrence | null {
+export function hydrateMarketEventOccurrence(input: PersistedMarketEventOccurrenceInput): MarketEventOccurrence | null {
   const event = getMarketEventDefinition(input.eventKey);
 
   if (!event) {
@@ -381,24 +358,19 @@ export function hydrateMarketEventOccurrence(
   };
 }
 
-export function buildMarketEventNewsArticle(input: {
-  occurrence: MarketEventOccurrence;
-  itemName?: string | null;
-}): MarketEventNewsArticle {
+export function buildMarketEventNewsArticle(input: { occurrence: MarketEventOccurrence; itemName?: string | null }): MarketEventNewsArticle {
   const { occurrence } = input;
   const itemLabel = input.itemName?.trim() || occurrence.itemKey || 'local goods';
-  const locationLabel =
-    occurrence.location
-      .split('-')
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ') || 'Starter City';
-  const direction =
-    occurrence.event.supplyMultiplier < 1
-      ? 'tightens supply'
-      : occurrence.event.demandMultiplier > 1
-        ? 'lifts demand'
-        : 'cools prices';
+  const locationLabel = occurrence.location
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || 'Starter City';
+  const direction = occurrence.event.supplyMultiplier < 1
+    ? 'tightens supply'
+    : occurrence.event.demandMultiplier > 1
+      ? 'lifts demand'
+      : 'cools prices';
   const title = `${occurrence.event.name} ${direction} in ${locationLabel}`;
   const excerpt = `${itemLabel} traders are reacting to ${occurrence.event.description.toLowerCase()}`;
   const body = [
@@ -426,6 +398,7 @@ export function buildMarketEventNewsArticle(input: {
   };
 }
 
+
 export type PlayerTradeQuoteInput = {
   quantity: number;
   priceEach: number;
@@ -444,13 +417,9 @@ export type PlayerTradeQuote = {
 export function calculatePlayerTradeQuote(input: PlayerTradeQuoteInput): PlayerTradeQuote {
   const quantity = Math.max(1, Math.min(1000, Math.floor(input.quantity)));
   const priceEach = Math.max(1, Math.min(1_000_000, Math.floor(input.priceEach)));
-  const sellerFeeBasisPoints = Math.max(
-    0,
-    Math.min(2500, Math.floor(input.sellerFeeBasisPoints ?? 250)),
-  );
+  const sellerFeeBasisPoints = Math.max(0, Math.min(2500, Math.floor(input.sellerFeeBasisPoints ?? 250)));
   const gross = quantity * priceEach;
-  const sellerFee =
-    sellerFeeBasisPoints > 0 ? Math.max(1, Math.floor((gross * sellerFeeBasisPoints) / 10_000)) : 0;
+  const sellerFee = sellerFeeBasisPoints > 0 ? Math.max(1, Math.floor((gross * sellerFeeBasisPoints) / 10_000)) : 0;
   const sellerPayout = Math.max(0, gross - sellerFee);
 
   return {
@@ -463,10 +432,7 @@ export function calculatePlayerTradeQuote(input: PlayerTradeQuoteInput): PlayerT
   };
 }
 
-export function calculatePlayerTradeExpiry(input: {
-  now?: Date | string | number;
-  expiresInHours?: number;
-}) {
+export function calculatePlayerTradeExpiry(input: { now?: Date | string | number; expiresInHours?: number }) {
   const now = normalizeDateInput(input.now);
   const expiresInHours = Math.max(1, Math.min(168, Math.floor(input.expiresInHours ?? 24)));
   const expiresAt = new Date(now.getTime() + expiresInHours * 60 * 60 * 1000);
@@ -514,10 +480,7 @@ function isExpiredPlayerTradeOffer(offer: PlayerTradeSummaryOffer) {
   return offer.status === 'expired' || (offer.status === 'open' && offer.isExpired === true);
 }
 
-function sumPlayerTradeMetric(
-  offers: readonly PlayerTradeSummaryOffer[],
-  pick: (offer: PlayerTradeSummaryOffer) => number,
-) {
+function sumPlayerTradeMetric(offers: readonly PlayerTradeSummaryOffer[], pick: (offer: PlayerTradeSummaryOffer) => number) {
   return offers.reduce((total, offer) => total + Math.max(0, Math.floor(pick(offer))), 0);
 }
 
@@ -547,6 +510,7 @@ export function summarizePlayerTradeOffers(input: {
     completedSellerFees: sumPlayerTradeMetric(accepted, (offer) => offer.sellerFee),
   };
 }
+
 
 export type MoneySinkPaymentSource = 'cash' | 'bank';
 
@@ -639,7 +603,7 @@ export function calculateMoneySinkPurchase(input: MoneySinkPurchaseInput) {
 
   return {
     ok: hasFunds,
-    code: hasFunds ? ('ok' as const) : ('insufficient_funds' as const),
+    code: hasFunds ? 'ok' as const : 'insufficient_funds' as const,
     message: hasFunds ? 'Money sink purchased.' : `Not enough ${input.paymentSource} balance.`,
     sink,
     paymentSource: input.paymentSource,
@@ -650,6 +614,8 @@ export function calculateMoneySinkPurchase(input: MoneySinkPurchaseInput) {
     bankAfter: input.paymentSource === 'bank' && hasFunds ? bank - cost : bank,
   };
 }
+
+
 
 export type LoanOfferDefinition = {
   key: string;
@@ -760,6 +726,8 @@ export function calculateLoanRequest(input: LoanRequestInput) {
   };
 }
 
+
+
 export const DEFAULT_LOAN_DEFAULT_GRACE_HOURS = 24;
 
 export type LoanLifecycleStatus = 'active' | 'overdue' | 'defaulted' | 'repaid' | 'cancelled';
@@ -772,15 +740,9 @@ export function calculateLoanLifecycle(input: {
 }) {
   const dueAt = new Date(input.dueAt);
   const now = new Date(input.now ?? Date.now());
-  const graceHours = Math.max(
-    1,
-    Math.floor(input.defaultGraceHours ?? DEFAULT_LOAN_DEFAULT_GRACE_HOURS),
-  );
+  const graceHours = Math.max(1, Math.floor(input.defaultGraceHours ?? DEFAULT_LOAN_DEFAULT_GRACE_HOURS));
   const defaultAt = new Date(dueAt.getTime() + graceHours * 60 * 60 * 1000);
-  const hoursPastDue = Math.max(
-    0,
-    Math.floor((now.getTime() - dueAt.getTime()) / (60 * 60 * 1000)),
-  );
+  const hoursPastDue = Math.max(0, Math.floor((now.getTime() - dueAt.getTime()) / (60 * 60 * 1000)));
 
   if (input.status === 'repaid' || input.status === 'cancelled') {
     return {
@@ -836,11 +798,7 @@ export function calculateLoanLifecycle(input: {
   };
 }
 
-export function calculateLoanOutstanding(input: {
-  principal: number;
-  fee: number;
-  repaidAmount?: number | null;
-}) {
+export function calculateLoanOutstanding(input: { principal: number; fee: number; repaidAmount?: number | null }) {
   const principal = Math.max(0, Math.floor(input.principal));
   const fee = Math.max(0, Math.floor(input.fee));
   const repaidAmount = Math.max(0, Math.floor(input.repaidAmount ?? 0));
@@ -854,6 +812,7 @@ export function calculateLoanOutstanding(input: {
     outstanding: Math.max(0, totalDue - repaidAmount),
   };
 }
+
 
 export type LoanRepaymentInput = {
   principal: number;
@@ -870,10 +829,7 @@ export function calculateLoanRepayment(input: LoanRepaymentInput) {
     repaidAmount: input.repaidAmount,
   });
   const bank = Math.max(0, Math.floor(input.bank));
-  const normalizedRequest = Math.max(
-    0,
-    Math.floor(input.requestedAmount ?? outstanding.outstanding),
-  );
+  const normalizedRequest = Math.max(0, Math.floor(input.requestedAmount ?? outstanding.outstanding));
   const requestedAmount = normalizedRequest > 0 ? normalizedRequest : outstanding.outstanding;
   const paymentAmount = Math.min(outstanding.outstanding, requestedAmount);
   const sufficientFunds = bank >= paymentAmount;
@@ -882,22 +838,20 @@ export function calculateLoanRepayment(input: LoanRepaymentInput) {
 
   return {
     ok: outstanding.outstanding > 0 && paymentAmount > 0 && sufficientFunds,
-    code:
-      outstanding.outstanding <= 0
-        ? ('settled' as const)
-        : paymentAmount <= 0
-          ? ('invalid_amount' as const)
-          : sufficientFunds
-            ? ('ok' as const)
-            : ('insufficient_funds' as const),
-    message:
-      outstanding.outstanding <= 0
-        ? 'Loan has no outstanding balance.'
-        : paymentAmount <= 0
-          ? 'Repayment amount must be greater than zero.'
-          : sufficientFunds
-            ? 'Loan payment accepted.'
-            : 'Not enough bank balance for this loan payment.',
+    code: outstanding.outstanding <= 0
+      ? 'settled' as const
+      : paymentAmount <= 0
+        ? 'invalid_amount' as const
+        : sufficientFunds
+          ? 'ok' as const
+          : 'insufficient_funds' as const,
+    message: outstanding.outstanding <= 0
+      ? 'Loan has no outstanding balance.'
+      : paymentAmount <= 0
+        ? 'Repayment amount must be greater than zero.'
+        : sufficientFunds
+          ? 'Loan payment accepted.'
+          : 'Not enough bank balance for this loan payment.',
     ...outstanding,
     bankBefore: bank,
     requestedAmount,

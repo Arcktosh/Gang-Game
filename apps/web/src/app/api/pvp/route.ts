@@ -12,18 +12,13 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const query = pvpProfileQuerySchema.safeParse({
-      characterId: request.nextUrl.searchParams.get('characterId'),
-    });
+    const query = pvpProfileQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') });
 
     if (!query.success) {
       return jsonError('bad_request', 'Invalid PvP query.', 400, query.error.flatten());
     }
 
-    const result = await getPvpProfile({
-      userId: auth.userId,
-      characterId: query.data.characterId,
-    });
+    const result = await getPvpProfile({ userId: auth.userId, characterId: query.data.characterId });
 
     if (!result) {
       return jsonError('not_found', 'Character not found.', 404);

@@ -1,6 +1,6 @@
 # MVP Acceptance Checklist
 
-This document captures the MVP acceptance status after Feature Pass 89. It is intentionally stricter than the feature checklist: it defines the minimum evidence needed before calling a build an MVP candidate.
+This document captures the MVP acceptance status after Feature Pass 93. It is intentionally stricter than the feature checklist: it defines the minimum evidence needed before calling a build an MVP candidate.
 
 ## MVP acceptance status
 
@@ -63,7 +63,7 @@ The MVP is acceptable for controlled testing when all of these are true:
 - Profile shows resources, status, XP progress, reward tier, and recent event history.
 - Market, shops, messages, newspaper, factions, and admin have at least first-pass route/page coverage.
 - Admin access uses explicit roles/capabilities instead of broad `isAdmin` checks.
-- Unsafe routes are rate-limited and all API routes have request observability.
+- Unsafe routes are rate-limited, high-risk mutation surfaces have feature-flag kill switches, and all API routes have request observability.
 - Release, runtime smoke, backup, and restore procedures are documented.
 - The static MVP acceptance gate passes.
 
@@ -89,10 +89,11 @@ The following remain intentionally post-MVP or public-beta hardening items:
 - External abuse analytics, bot detection, and load testing
 - production SSE fan-out
 - external log shipping and error reporting
-- abuse analytics and bot detection
+- deeper abuse analytics and bot detection
 - full admin moderation archive and economy/inventory/session audit pages
 - richer shops, messages, newspaper, profile, faction, and economy depth
 - public deployment automation and load testing
+
 
 ## Runtime proof command
 
@@ -114,6 +115,7 @@ MVP_PROOF_DRY_RUN=true pnpm prove:mvp-runtime
 
 Feature Pass 59 adds public launch polish for privacy, terms, community rules, and beta test plan coverage. The public pages `/privacy`, `/terms`, `/rules`, and `/onboarding` are now statically validated, but the legal documents remain draft operational baselines until production legal review is complete.
 
+
 ## Site-quality acceptance addendum
 
 Feature Pass 60 adds the static site-quality gate. MVP acceptance now also requires:
@@ -123,3 +125,10 @@ Feature Pass 60 adds the static site-quality gate. MVP acceptance now also requi
 - Skip-link and focus-visible support present.
 - Responsive game navigation and grid behavior present.
 - Manual Lighthouse and keyboard checks completed before public beta.
+
+
+## Feature Pass 93 audit evidence
+
+- [x] Admin audit workbench endpoints exist for economy transactions, inventory stacks, and sessions.
+- [x] Each workbench endpoint supports JSON retrieval and CSV export for support/escalation evidence.
+- [ ] Installed-environment proof must still validate the new `0045_admin_audit_workbench.sql` indexes and Admin Console filtering against a seeded PostgreSQL database.

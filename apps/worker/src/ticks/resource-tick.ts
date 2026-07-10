@@ -32,10 +32,7 @@ export async function regenerateCharacterResources() {
     });
 
     if (!regenerated.changed) {
-      await db
-        .update(characters)
-        .set({ lastResourceTickAt: sql`now()` })
-        .where(eq(characters.id, character.id));
+      await db.update(characters).set({ lastResourceTickAt: sql`now()` }).where(eq(characters.id, character.id));
       continue;
     }
 

@@ -9,10 +9,7 @@ import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 const liftSchema = z.object({ reason: z.string().trim().min(5).max(500) });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ enforcementId: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ enforcementId: string }> }) {
   return withApiObservability(request, async () => {
     const admin = await requireAdminCapability(request, 'enforce_players');
 
@@ -22,11 +19,7 @@ export async function POST(
 
     const session = admin.session;
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:admin:enforcements:id:lift', session.user.id),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:enforcements:id:lift', session.user.id), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -47,18 +40,10 @@ export async function POST(
       fingerprint: { enforcementId, ...body.data },
       handler: async () => {
         try {
-          const result = await liftCharacterEnforcement({
-            adminUserId: session.user.id,
-            enforcementId,
-            reason: body.data.reason,
-          });
+          const result = await liftCharacterEnforcement({ adminUserId: session.user.id, enforcementId, reason: body.data.reason });
           return jsonOk(result);
         } catch (caught) {
-          return jsonError(
-            'bad_request',
-            caught instanceof Error ? caught.message : 'Could not lift enforcement.',
-            400,
-          );
+          return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not lift enforcement.', 400);
         }
       },
     });

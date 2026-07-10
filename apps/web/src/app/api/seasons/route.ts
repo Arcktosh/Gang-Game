@@ -12,18 +12,13 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const query = seasonProfileQuerySchema.safeParse({
-      characterId: request.nextUrl.searchParams.get('characterId') ?? undefined,
-    });
+    const query = seasonProfileQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') ?? undefined });
 
     if (!query.success) {
       return jsonError('bad_request', 'Invalid season profile query.', 400, query.error.flatten());
     }
 
-    const result = await getSeasonProfile({
-      userId: auth.userId,
-      characterId: query.data.characterId,
-    });
+    const result = await getSeasonProfile({ userId: auth.userId, characterId: query.data.characterId });
 
     if (!result) {
       return jsonError('not_found', 'Character not found.', 404);

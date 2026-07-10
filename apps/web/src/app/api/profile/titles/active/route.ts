@@ -13,11 +13,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:profile:titles:active', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:profile:titles:active', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -29,11 +25,7 @@ export async function POST(request: NextRequest) {
       return body.response;
     }
 
-    const result = await setActiveTitle({
-      userId: auth.userId,
-      characterId: body.data.characterId,
-      titleKey: body.data.titleKey,
-    });
+    const result = await setActiveTitle({ userId: auth.userId, characterId: body.data.characterId, titleKey: body.data.titleKey });
 
     if (!result.ok) {
       const status = result.code === 'not_found' ? 404 : 403;

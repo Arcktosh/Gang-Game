@@ -12,9 +12,7 @@ export function startProgressionTick() {
       const summary = await completeDueProgression(100);
 
       if (summary.processed > 0) {
-        console.log(
-          `progression tick completed ${summary.completedTraining} training session(s) and ${summary.completedCourses} course(s)`,
-        );
+        console.log(`progression tick completed ${summary.completedTraining} training session(s) and ${summary.completedCourses} course(s)`);
       }
     },
   });

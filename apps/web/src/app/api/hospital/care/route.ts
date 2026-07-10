@@ -15,11 +15,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:hospital:care', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:hospital:care', auth.userId), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -39,10 +35,7 @@ export async function POST(request: NextRequest) {
       handler: async () => {
         const result = await db.transaction(async (tx) => {
           const character = await tx.query.characters.findFirst({
-            where: and(
-              eq(characters.id, body.data.characterId),
-              eq(characters.userId, auth.userId),
-            ),
+            where: and(eq(characters.id, body.data.characterId), eq(characters.userId, auth.userId)),
           });
 
           if (!character) {
@@ -50,12 +43,7 @@ export async function POST(request: NextRequest) {
           }
 
           const refreshedCharacter = await refreshCharacterResources(tx, character);
-          const careResult = await buyHospitalCare({
-            tx,
-            character: refreshedCharacter,
-            userId: auth.userId,
-            service: body.data.service,
-          });
+          const careResult = await buyHospitalCare({ tx, character: refreshedCharacter, userId: auth.userId, service: body.data.service });
 
           if (!careResult.ok) {
             return { error: jsonError('forbidden', careResult.message, 403) };

@@ -130,18 +130,14 @@ button {
   min-height: 44px;
   padding: 0.75rem 1.5rem;
   transition: all 200ms ease;
-  box-shadow:
-    var(--glow-sm),
-    0 8px 24px rgba(217, 70, 239, 0.25);
+  box-shadow: var(--glow-sm), 0 8px 24px rgba(217, 70, 239, 0.25);
   position: relative;
 }
 
 button:hover:not(:disabled) {
   background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%);
   border-color: rgba(217, 70, 239, 0.7);
-  box-shadow:
-    var(--glow-lg),
-    0 12px 40px rgba(217, 70, 239, 0.4);
+  box-shadow: var(--glow-lg), 0 12px 40px rgba(217, 70, 239, 0.4);
   transform: translateY(-3px);
 }
 
@@ -183,9 +179,7 @@ select:focus,
 textarea:focus {
   background: rgba(15, 15, 25, 0.98);
   border-color: rgba(0, 217, 255, 0.6);
-  box-shadow:
-    0 0 0 3px rgba(0, 217, 255, 0.15),
-    var(--glow-md);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15), var(--glow-md);
   outline: none;
 }
 
@@ -273,9 +267,7 @@ article[style*='border'] {
   background:
     linear-gradient(180deg, rgba(217, 70, 239, 0.08), rgba(0, 217, 255, 0.04)), var(--surface);
   border: 1.5px solid rgba(217, 70, 239, 0.25);
-  box-shadow:
-    var(--glow-sm),
-    0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--glow-sm), 0 10px 40px rgba(0, 0, 0, 0.3);
   transition: all 200ms ease;
 }
 
@@ -521,9 +513,7 @@ h3 {
   background: linear-gradient(135deg, #d946ef 0%, #a78bfa 100%);
   border: 2px solid rgba(0, 217, 255, 0.4);
   border-radius: 12px;
-  box-shadow:
-    var(--glow-lg),
-    0 12px 36px rgba(217, 70, 239, 0.35);
+  box-shadow: var(--glow-lg), 0 12px 36px rgba(217, 70, 239, 0.35);
   color: white;
   display: inline-flex;
   font-weight: 950;
@@ -535,9 +525,7 @@ h3 {
 
 .game-brand__mark:hover {
   border-color: rgba(0, 217, 255, 0.8);
-  box-shadow:
-    var(--glow-lg),
-    0 16px 48px rgba(217, 70, 239, 0.45);
+  box-shadow: var(--glow-lg), 0 16px 48px rgba(217, 70, 239, 0.45);
   transform: scale(1.08);
 }
 
@@ -1062,9 +1050,7 @@ th {
 }
 
 .game-sidebar__link--active {
-  box-shadow:
-    inset 3px 0 0 var(--neon-cyan),
-    var(--glow-sm);
+  box-shadow: inset 3px 0 0 var(--neon-cyan), var(--glow-sm);
 }
 
 .game-sidebar__icon {

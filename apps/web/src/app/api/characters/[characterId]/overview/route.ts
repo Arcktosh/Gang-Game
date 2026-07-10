@@ -40,10 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       }),
       listCharacterProgression(character.id),
       db.query.factionMembers.findFirst({
-        where: and(
-          eq(factionMembers.characterId, character.id),
-          eq(factionMembers.status, 'active'),
-        ),
+        where: and(eq(factionMembers.characterId, character.id), eq(factionMembers.status, 'active')),
       }),
     ]);
 

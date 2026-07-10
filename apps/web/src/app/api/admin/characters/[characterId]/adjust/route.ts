@@ -13,10 +13,7 @@ const adjustSchema = z.object({
   reason: z.string().min(5).max(500),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ characterId: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ characterId: string }> }) {
   return withApiObservability(request, async () => {
     const admin = await requireAdminCapability(request, 'manage_economy');
 
@@ -26,11 +23,7 @@ export async function POST(
 
     const session = admin.session;
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:admin:characters:id:adjust', session.user.id),
-      windowSeconds: 60,
-      maxRequests: 30,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:characters:id:adjust', session.user.id), windowSeconds: 60, maxRequests: 30 });
 
     if (!limit.ok) {
       return limit.response;
@@ -51,28 +44,13 @@ export async function POST(
       fingerprint: { characterId, ...body.data },
       handler: async () => {
         try {
-          const character =
-            body.data.wallet === 'cash'
-              ? await adjustCharacterCash({
-                  adminUserId: session.user.id,
-                  characterId,
-                  amount: body.data.amount,
-                  reason: body.data.reason,
-                })
-              : await adjustCharacterBank({
-                  adminUserId: session.user.id,
-                  characterId,
-                  amount: body.data.amount,
-                  reason: body.data.reason,
-                });
+          const character = body.data.wallet === 'cash'
+            ? await adjustCharacterCash({ adminUserId: session.user.id, characterId, amount: body.data.amount, reason: body.data.reason })
+            : await adjustCharacterBank({ adminUserId: session.user.id, characterId, amount: body.data.amount, reason: body.data.reason });
 
           return jsonOk({ character });
         } catch (caught) {
-          return jsonError(
-            'bad_request',
-            caught instanceof Error ? caught.message : 'Could not adjust character.',
-            400,
-          );
+          return jsonError('bad_request', caught instanceof Error ? caught.message : 'Could not adjust character.', 400);
         }
       },
     });

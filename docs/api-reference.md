@@ -1,6 +1,6 @@
 # API Surface Reference
 
-Current as of Feature Pass 84. Feature Pass 84 keeps the API surface stable and expands browser coverage for faction bank, member-rank, and territory action routes.
+Current as of Feature Pass 93. Feature Pass 93 adds the admin audit workbench endpoints for economy, inventory, and session investigations with CSV exports.
 
 This is the current human-readable API route map. It is intentionally lighter than a formal OpenAPI spec, but `pnpm validate:docs` now checks that every concrete route file under `apps/web/src/app/api/**/route.ts` is represented here.
 
@@ -108,10 +108,16 @@ This is the current human-readable API route map. It is intentionally lighter th
 ## Moderation and admin
 
 - `GET` `/api/admin/audit`
+- `GET` `/api/admin/audit/economy`
+- `GET` `/api/admin/audit/inventory`
+- `GET` `/api/admin/audit/sessions`
+- `POST` `/api/admin/anomalies/scan`
+- `POST` `/api/admin/anomalies/:anomalyId`
 - `GET, POST` `/api/admin/announcements`
 - `GET, PATCH` `/api/admin/config`
 - `GET` `/api/admin/economy/loans`
 - `GET` `/api/admin/moderation`
+- `GET, POST` `/api/admin/rollback`
 - `POST` `/api/admin/moderation/reports/:reportId`
 - `GET` `/api/admin/search`
 - `GET` `/api/admin/transparency`
@@ -144,6 +150,36 @@ All current API route files are wrapped with `withApiObservability` and include:
 
 Unhandled errors in API routes are logged as structured JSON and returned as a generic `server_error` response. Production error responses do not expose stack traces or raw exception messages.
 
+### Feature flags
+
+Admin-operated feature flags can temporarily disable high-risk mutation surfaces without redeploying. Disabled routes return a standard `feature_disabled` error with HTTP 503 and details containing the feature key and label. Read-only pages remain available where possible so staff can investigate and players can see state during maintenance.
+
+Current guarded mutation surfaces include messages, newspaper actions, shops, trades, gambling, finance trading, market actions, contracts, factions, and PvP attacks.
+
+
+### Admin rollback tooling
+
+Feature Pass 94 adds a first-pass rollback workbench for admin economy mistakes. `GET /api/admin/rollback` lists recent cash/bank admin adjustment candidates and whether each source action has already been reversed. `POST /api/admin/rollback` accepts `actionLogId` and `reason`, restores the character cash/bank value to the original before-snapshot, writes a financial transaction when a delta is needed, and records a separate `rollback_apply` admin audit entry. The route requires `manage_economy`, rate limiting, observability, and idempotency.
+
+### Admin audit workbench
+
+Feature Pass 93 adds admin investigation endpoints that support filtered JSON retrieval and CSV export (`format=csv`) without direct database access:
+
+- `GET /api/admin/audit/economy` - filter financial transactions by player/search text, transaction type, absolute amount range, and lookback days.
+- `GET /api/admin/audit/inventory` - filter current inventory stacks by player/search text, item key, and quantity range.
+- `GET /api/admin/audit/sessions` - filter recent sessions by account/search text, IP address, and lookback days.
+
+The Admin Console surfaces the same workbench with summary counts, recent rows, and CSV export links. Economy and inventory audit endpoints require `manage_economy`; session audit requires `search_players`.
+
+### Operational anomalies
+
+The worker and admin console can scan for high-risk operational signals such as unusual net worth, transaction spikes, large inventory stacks, and high recent session IP spread. Open anomaly signals appear in the Admin Console for review, dismissal, or resolution.
+
+Current anomaly routes include:
+
+- `POST /api/admin/anomalies/scan`
+- `POST /api/admin/anomalies/:anomalyId`
+
 ### Pagination
 
 Paginated list endpoints accept:
@@ -161,6 +197,9 @@ Currently paginated endpoints include:
 - `GET /api/shops`
 - `GET /api/admin/audit`
 - `GET /api/admin/economy/loans`
+- `GET /api/admin/audit/economy`
+- `GET /api/admin/audit/inventory`
+- `GET /api/admin/audit/sessions`
 
 ### Rate limits
 
@@ -212,6 +251,7 @@ Behavior:
 - Reusing the same key with a different payload returns `409 conflict`.
 - Reusing a key while the first request is still processing returns `409 conflict`.
 - Failed validation/permission responses are not cached as completed responses.
+
 
 ### Bank history query notes
 
@@ -286,9 +326,13 @@ See `docs/runtime-smoke.md` for configuration and CI usage.
 - Add error code catalog.
 - Generate an OpenAPI spec or typed client once route contracts stabilize.
 
+
 ## Representative route-contract audit after pass 46
 
 Pass 46 added `scripts/audit-route-contracts.mjs` and `pnpm audit:route-contracts`. The audit checks 12 representative route contracts across auth, jobs, crimes, market, shops, contracts, and admin routes for expected guard tokens including observability, auth/admin checks, rate limits, body/query validation, and idempotency where applicable.
+
+
+
 
 ## MVP gameplay progression audit after pass 48
 
@@ -310,13 +354,16 @@ Current page coverage:
 - `/newspaper`
 - `/factions`
 
+
 ## Admin RBAC audit after pass 50
 
 Pass 49 added `scripts/validate-admin-rbac.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks all 14 admin route files for `requireAdminCapability`, rejects direct `session.user.isAdmin` checks in admin routes, verifies literal capability declarations, verifies the admin page uses `hasAdminCapability`, and confirms `0029_admin_roles.sql` remains covered by the all-migration runner.
 
+
 ## MVP acceptance validation
 
 Pass 53 added `scripts/validate-mvp-acceptance.mjs`; Feature Pass 88 folded the alias into `pnpm validate:static`. The validator checks that representative MVP API route files remain present for auth, characters, jobs, crimes, legal/hospital recovery, market, shops, messages, newspaper, factions, and admin operations.
+
 
 ## Feature Pass 59 admin operations UI validation
 

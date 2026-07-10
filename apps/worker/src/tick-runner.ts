@@ -19,18 +19,9 @@ type SerializedError = {
   stack?: string;
 };
 
-const DEFAULT_MAX_ATTEMPTS = positiveIntegerOrDefault(
-  Number(process.env.WORKER_TICK_MAX_ATTEMPTS),
-  3,
-);
-const DEFAULT_RETRY_BASE_MS = positiveIntegerOrDefault(
-  Number(process.env.WORKER_TICK_RETRY_BASE_MS),
-  1_000,
-);
-const DEFAULT_RETRY_MAX_MS = positiveIntegerOrDefault(
-  Number(process.env.WORKER_TICK_RETRY_MAX_MS),
-  30_000,
-);
+const DEFAULT_MAX_ATTEMPTS = positiveIntegerOrDefault(Number(process.env.WORKER_TICK_MAX_ATTEMPTS), 3);
+const DEFAULT_RETRY_BASE_MS = positiveIntegerOrDefault(Number(process.env.WORKER_TICK_RETRY_BASE_MS), 1_000);
+const DEFAULT_RETRY_MAX_MS = positiveIntegerOrDefault(Number(process.env.WORKER_TICK_RETRY_MAX_MS), 30_000);
 const DEAD_LETTER_DISABLED = process.env.WORKER_DEAD_LETTER_DISABLED === 'true';
 
 function positiveIntegerOrDefault(value: number, fallback: number) {
@@ -90,26 +81,14 @@ async function writeDeadLetter(options: WorkerTickOptions, attempts: number, err
       payload: resolvePayload(options.deadLetterPayload),
     });
   } catch (deadLetterError) {
-    console.error(
-      `[worker:${options.name}] failed to write dead letter`,
-      serializeError(deadLetterError),
-    );
+    console.error(`[worker:${options.name}] failed to write dead letter`, serializeError(deadLetterError));
   }
 }
 
 async function runWithRetry(options: WorkerTickOptions) {
-  const maxAttempts = positiveIntegerOrDefault(
-    options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
-    DEFAULT_MAX_ATTEMPTS,
-  );
-  const retryBaseMs = positiveIntegerOrDefault(
-    options.retryBaseMs ?? DEFAULT_RETRY_BASE_MS,
-    DEFAULT_RETRY_BASE_MS,
-  );
-  const retryMaxMs = positiveIntegerOrDefault(
-    options.retryMaxMs ?? DEFAULT_RETRY_MAX_MS,
-    DEFAULT_RETRY_MAX_MS,
-  );
+  const maxAttempts = positiveIntegerOrDefault(options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS, DEFAULT_MAX_ATTEMPTS);
+  const retryBaseMs = positiveIntegerOrDefault(options.retryBaseMs ?? DEFAULT_RETRY_BASE_MS, DEFAULT_RETRY_BASE_MS);
+  const retryMaxMs = positiveIntegerOrDefault(options.retryMaxMs ?? DEFAULT_RETRY_MAX_MS, DEFAULT_RETRY_MAX_MS);
   let attempt = 0;
   let lastError: unknown;
 
@@ -129,10 +108,7 @@ async function runWithRetry(options: WorkerTickOptions) {
       }
 
       const backoffMs = retryDelayMs(attempt, retryBaseMs, retryMaxMs);
-      console.warn(
-        `[worker:${options.name}] attempt ${attempt} failed; retrying in ${backoffMs}ms`,
-        serialized,
-      );
+      console.warn(`[worker:${options.name}] attempt ${attempt} failed; retrying in ${backoffMs}ms`, serialized);
       await delay(backoffMs);
     }
   }
@@ -145,9 +121,7 @@ export function scheduleWorkerTick<T = unknown>(options: WorkerTickOptions<T>) {
 
   async function runOnce() {
     if (inFlight) {
-      console.warn(
-        `[worker:${options.name}] previous tick still running; skipping overlapping tick`,
-      );
+      console.warn(`[worker:${options.name}] previous tick still running; skipping overlapping tick`);
       return;
     }
 

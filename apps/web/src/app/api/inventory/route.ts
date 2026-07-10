@@ -14,28 +14,19 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:inventory', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:inventory', auth.userId), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;
     }
 
-    const query = inventoryProfileQuerySchema.safeParse({
-      characterId: request.nextUrl.searchParams.get('characterId'),
-    });
+    const query = inventoryProfileQuerySchema.safeParse({ characterId: request.nextUrl.searchParams.get('characterId') });
 
     if (!query.success) {
       return jsonError('invalid_query', 'Invalid inventory query.', 400, query.error.flatten());
     }
 
-    const result = await listInventoryProfile({
-      userId: auth.userId,
-      characterId: query.data.characterId,
-    });
+    const result = await listInventoryProfile({ userId: auth.userId, characterId: query.data.characterId });
 
     if (!result.ok) {
       return jsonError(result.code, result.message, result.code === 'not_found' ? 404 : 403);
@@ -53,11 +44,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'actions:inventory', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 40,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'actions:inventory', auth.userId), windowSeconds: 60, maxRequests: 40 });
 
     if (!limit.ok) {
       return limit.response;
@@ -75,30 +62,18 @@ export async function POST(request: NextRequest) {
       routeScope: `inventory:${body.data.action}`,
       fingerprint: body.data,
       handler: async () => {
-        const result =
-          body.data.action === 'use'
-            ? await useInventoryItem({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                inventoryItemId: body.data.inventoryItemId,
-              })
-            : await transferInventoryItem({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                recipientCharacterId: body.data.recipientCharacterId,
-                inventoryItemId: body.data.inventoryItemId,
-                quantity: body.data.quantity,
-              });
+        const result = body.data.action === 'use'
+          ? await useInventoryItem({ userId: auth.userId, characterId: body.data.characterId, inventoryItemId: body.data.inventoryItemId })
+          : await transferInventoryItem({
+              userId: auth.userId,
+              characterId: body.data.characterId,
+              recipientCharacterId: body.data.recipientCharacterId,
+              inventoryItemId: body.data.inventoryItemId,
+              quantity: body.data.quantity,
+            });
 
         if (!result.ok) {
-          const status =
-            result.code === 'not_found'
-              ? 404
-              : result.code === 'cooldown_active'
-                ? 429
-                : result.code === 'conflict'
-                  ? 409
-                  : 403;
+          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : result.code === 'conflict' ? 409 : 403;
           return jsonError(result.code, result.message, status);
         }
 

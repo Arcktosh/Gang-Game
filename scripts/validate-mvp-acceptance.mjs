@@ -55,18 +55,12 @@ for (const scriptName of requiredRootScripts) {
   }
 }
 
-if (
-  !String(rootPackage.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-mvp-acceptance.mjs',
-  )
-) {
+if (!String(rootPackage.scripts?.['validate:static'] ?? '').includes('scripts/validate-mvp-acceptance.mjs')) {
   errors.push('package.json validate:static must include scripts/validate-mvp-acceptance.mjs.');
 }
 
 if (!String(dbPackage.scripts?.['db:apply:all'] ?? '').includes('apply-migrations.ts')) {
-  errors.push(
-    'packages/db/package.json must keep db:apply:all wired to the tracked migration runner.',
-  );
+  errors.push('packages/db/package.json must keep db:apply:all wired to the tracked migration runner.');
 }
 if (!String(dbPackage.scripts?.['db:apply:file'] ?? '').includes('run-sql-file.ts')) {
   errors.push('packages/db/package.json must keep db:apply:file wired for targeted repair.');
@@ -185,28 +179,12 @@ requireIncludes('docs/mvp-release-runbook.md', [
 
 requireIncludes('docs/backup-restore.md', ['pnpm db:backup', 'pnpm db:restore --']);
 requireIncludes('docs/runtime-smoke.md', ['SMOKE_STRICT_HEALTH_OK=true', 'pnpm smoke:runtime']);
-requireIncludes('docs/migration-guide.md', [
-  'pnpm db:setup',
-  'pnpm db:apply:all',
-  'pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql',
-  '0031_monetization_foundation.sql',
-]);
-requireIncludes('README.md', [
-  'Feature Pass 56',
-  'docs/mvp-acceptance.md',
-  'pnpm validate:static',
-  'pnpm prove:mvp-runtime',
-  'docs/monetization.md',
-]);
+requireIncludes('docs/migration-guide.md', ['pnpm db:setup', 'pnpm db:apply:all', 'pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql', '0031_monetization_foundation.sql']);
+requireIncludes('README.md', ['Feature Pass 56', 'docs/mvp-acceptance.md', 'pnpm validate:static', 'pnpm prove:mvp-runtime', 'docs/monetization.md']);
 requireIncludes('docs/project-status.md', ['Feature Pass 56', 'MVP candidate']);
 requireIncludes('docs/remaining-work.md', ['Feature Pass 56', 'Runtime proof still required']);
 requireIncludes('docs/feature-checklist.md', ['Feature Pass 56', 'Static MVP acceptance gate']);
-requireIncludes('docs/validation-audit.md', [
-  'validate:static',
-  'validate-integration-tests.mjs',
-  'validate-monetization-foundation.mjs',
-  'MVP acceptance',
-]);
+requireIncludes('docs/validation-audit.md', ['validate:static', 'validate-integration-tests.mjs', 'validate-monetization-foundation.mjs', 'MVP acceptance']);
 
 const result = {
   summary: {

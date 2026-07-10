@@ -19,15 +19,7 @@ export async function GET(request: NextRequest) {
       return jsonError('bad_request', 'Invalid moderation status.', 400);
     }
 
-    const limit = Math.min(
-      100,
-      Math.max(1, Number(request.nextUrl.searchParams.get('limit') ?? 50)),
-    );
-    return jsonOk(
-      await listModerationQueue({
-        status: status as 'open' | 'reviewed' | 'dismissed' | 'actioned',
-        limit,
-      }),
-    );
+    const limit = Math.min(100, Math.max(1, Number(request.nextUrl.searchParams.get('limit') ?? 50)));
+    return jsonOk(await listModerationQueue({ status: status as 'open' | 'reviewed' | 'dismissed' | 'actioned', limit }));
   });
 }

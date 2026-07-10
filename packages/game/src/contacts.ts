@@ -1,12 +1,5 @@
-export type ContactSpecialty =
-  'muscle' | 'driver' | 'dealer' | 'lawyer' | 'medic' | 'hacker' | 'broker' | 'scout';
-export type ContactAssignmentType =
-  | 'job_assist'
-  | 'crime_setup'
-  | 'shop_shift'
-  | 'territory_scout'
-  | 'market_tip'
-  | 'recovery_support';
+export type ContactSpecialty = 'muscle' | 'driver' | 'dealer' | 'lawyer' | 'medic' | 'hacker' | 'broker' | 'scout';
+export type ContactAssignmentType = 'job_assist' | 'crime_setup' | 'shop_shift' | 'territory_scout' | 'market_tip' | 'recovery_support';
 
 export type ContactLike = {
   level: number;
@@ -16,35 +9,21 @@ export type ContactLike = {
 };
 
 export function calculateRecruitCost(level: number, specialty: ContactSpecialty) {
-  const premium =
-    specialty === 'lawyer' || specialty === 'hacker' || specialty === 'broker' ? 175 : 100;
+  const premium = specialty === 'lawyer' || specialty === 'hacker' || specialty === 'broker' ? 175 : 100;
   return Math.max(150, 250 + level * 125 + premium);
 }
 
 export function calculateContactUpkeep(level: number, specialty: ContactSpecialty) {
-  const modifier =
-    specialty === 'lawyer' || specialty === 'hacker'
-      ? 1.3
-      : specialty === 'driver' || specialty === 'muscle'
-        ? 1.15
-        : 1;
+  const modifier = specialty === 'lawyer' || specialty === 'hacker' ? 1.3 : specialty === 'driver' || specialty === 'muscle' ? 1.15 : 1;
   return Math.round((45 + level * 18) * modifier);
 }
 
 export function calculateContactPower(contact: ContactLike) {
-  const specialtyBonus =
-    contact.specialty === 'muscle' || contact.specialty === 'hacker'
-      ? 8
-      : contact.specialty === 'lawyer' || contact.specialty === 'broker'
-        ? 6
-        : 4;
+  const specialtyBonus = contact.specialty === 'muscle' || contact.specialty === 'hacker' ? 8 : contact.specialty === 'lawyer' || contact.specialty === 'broker' ? 6 : 4;
   return Math.max(1, Math.round(contact.level * 10 + contact.loyalty * 0.45 + specialtyBonus));
 }
 
-export function calculateAssignmentDurationSeconds(
-  assignmentType: ContactAssignmentType,
-  contact: ContactLike,
-) {
+export function calculateAssignmentDurationSeconds(assignmentType: ContactAssignmentType, contact: ContactLike) {
   const base: Record<ContactAssignmentType, number> = {
     job_assist: 1800,
     crime_setup: 2700,
@@ -56,10 +35,7 @@ export function calculateAssignmentDurationSeconds(
   return Math.max(600, base[assignmentType] - contact.level * 45 - Math.floor(contact.loyalty / 2));
 }
 
-export function calculateAssignmentReward(
-  assignmentType: ContactAssignmentType,
-  contact: ContactLike,
-) {
+export function calculateAssignmentReward(assignmentType: ContactAssignmentType, contact: ContactLike) {
   const power = calculateContactPower(contact);
   const base: Record<ContactAssignmentType, number> = {
     job_assist: 80,
@@ -72,10 +48,7 @@ export function calculateAssignmentReward(
   return Math.round(base[assignmentType] + power * 6);
 }
 
-export function calculateAssignmentRisk(
-  assignmentType: ContactAssignmentType,
-  contact: ContactLike,
-) {
+export function calculateAssignmentRisk(assignmentType: ContactAssignmentType, contact: ContactLike) {
   const base: Record<ContactAssignmentType, number> = {
     job_assist: 5,
     crime_setup: 30,
@@ -101,11 +74,9 @@ export function calculateAssignmentOutcome(contact: ContactLike, riskScore: numb
   const power = calculateContactPower(contact);
   const successScore = power + Math.floor(contact.loyalty / 2);
   const threshold = riskScore + 35;
-  const success = successScore >= threshold || successScore + contact.level * 3 > riskScore * 1.6;
+  const success = successScore >= threshold || (successScore + contact.level * 3) > riskScore * 1.6;
   const loyaltyDelta = success ? 2 : -Math.max(2, Math.floor(riskScore / 10));
-  const experienceGain = success
-    ? Math.max(5, Math.floor(riskScore / 2) + contact.level * 2)
-    : Math.max(1, Math.floor(riskScore / 5));
+  const experienceGain = success ? Math.max(5, Math.floor(riskScore / 2) + contact.level * 2) : Math.max(1, Math.floor(riskScore / 5));
   return { success, loyaltyDelta, experienceGain };
 }
 

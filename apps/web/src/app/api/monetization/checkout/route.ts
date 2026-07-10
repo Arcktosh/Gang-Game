@@ -15,11 +15,7 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'monetization:checkout', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 10,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'monetization:checkout', auth.userId), windowSeconds: 60, maxRequests: 10 });
 
     if (!limit.ok) {
       return limit.response;
@@ -31,9 +27,7 @@ export async function POST(request: NextRequest) {
       return body.response;
     }
 
-    const product = await db.query.productCatalog.findFirst({
-      where: eq(productCatalog.key, body.data.productKey),
-    });
+    const product = await db.query.productCatalog.findFirst({ where: eq(productCatalog.key, body.data.productKey) });
 
     if (!product || !product.isActive) {
       return jsonError('not_found', 'Product not found.', 404);

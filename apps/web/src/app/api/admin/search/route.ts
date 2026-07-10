@@ -21,11 +21,7 @@ export async function GET(request: NextRequest) {
 
     const session = admin.session;
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:admin:search', session.user.id),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:search', session.user.id), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;
@@ -43,11 +39,7 @@ export async function GET(request: NextRequest) {
     try {
       return jsonOk(await searchAdminCharacters({ query: query.data.q, limit: query.data.limit }));
     } catch (error) {
-      return jsonError(
-        'bad_request',
-        error instanceof Error ? error.message : 'Unable to search characters.',
-        400,
-      );
+      return jsonError('bad_request', error instanceof Error ? error.message : 'Unable to search characters.', 400);
     }
   });
 }

@@ -1,10 +1,5 @@
 import { canManageFactionArmory, canSetFactionRole, canWithdrawFactionFunds } from '@drugdeal/game';
-import {
-  getFactionForCharacter,
-  listActiveActionLocks,
-  listFactions,
-  listTerritories,
-} from '@drugdeal/db';
+import { getFactionForCharacter, listActiveActionLocks, listFactions, listTerritories } from '@drugdeal/db';
 import { GameActionForm } from '@/features/game/action-form';
 import {
   Card,
@@ -41,9 +36,7 @@ export default async function FactionsPage() {
   const ownRole = ownFaction?.membership.role ?? 'recruit';
   const canWithdraw = canWithdrawFactionFunds(ownRole);
   const canUseArmory = canManageFactionArmory(ownRole);
-  const characterById = new Map(
-    ownFaction?.memberCharacters.map((member) => [member.id, member]) ?? [],
-  );
+  const characterById = new Map(ownFaction?.memberCharacters.map((member) => [member.id, member]) ?? []);
   const factionById = new Map(factions.map((faction) => [faction.id, faction]));
 
   return (
@@ -89,12 +82,7 @@ export default async function FactionsPage() {
                 fields={[
                   { name: 'name', label: 'Name', placeholder: 'Northside Crew' },
                   { name: 'tag', label: 'Tag', placeholder: 'NSC' },
-                  {
-                    name: 'description',
-                    label: 'Description',
-                    placeholder: 'Optional faction description',
-                    omitWhenEmpty: true,
-                  },
+                  { name: 'description', label: 'Description', placeholder: 'Optional faction description', omitWhenEmpty: true },
                 ]}
                 successMessage="Faction created."
                 idempotent={false}
@@ -103,49 +91,24 @@ export default async function FactionsPage() {
           )}
         </Card>
 
-        <Card
-          title="Faction bank"
-          meta={ownFaction?.faction ? money(ownFaction.faction.bank) : 'No active crew'}
-        >
+        <Card title="Faction bank" meta={ownFaction?.faction ? money(ownFaction.faction.bank) : 'No active crew'}>
           {ownFaction?.faction ? (
             <div style={{ display: 'grid', gap: 10 }}>
               <GameActionForm
                 endpoint={`/api/factions/${ownFactionId ?? ''}/bank`}
                 label="Deposit faction funds"
                 payload={{ characterId: character.id, action: 'deposit' }}
-                fields={[
-                  {
-                    name: 'amount',
-                    label: 'Amount',
-                    type: 'number',
-                    min: 1,
-                    max: 1_000_000,
-                    defaultValue: 100,
-                  },
-                ]}
+                fields={[{ name: 'amount', label: 'Amount', type: 'number', min: 1, max: 1_000_000, defaultValue: 100 }]}
                 successMessage="Faction deposit recorded."
               />
               <GameActionForm
                 endpoint={`/api/factions/${ownFactionId ?? ''}/bank`}
                 label="Withdraw faction funds"
                 payload={{ characterId: character.id, action: 'withdraw' }}
-                fields={[
-                  {
-                    name: 'amount',
-                    label: 'Amount',
-                    type: 'number',
-                    min: 1,
-                    max: 1_000_000,
-                    defaultValue: 100,
-                  },
-                ]}
+                fields={[{ name: 'amount', label: 'Amount', type: 'number', min: 1, max: 1_000_000, defaultValue: 100 }]}
                 successMessage="Faction withdrawal recorded."
                 disabled={!canWithdraw}
-                disabledReason={
-                  !canWithdraw
-                    ? 'Only underbosses and bosses can withdraw faction funds.'
-                    : undefined
-                }
+                disabledReason={!canWithdraw ? 'Only underbosses and bosses can withdraw faction funds.' : undefined}
               />
             </div>
           ) : (
@@ -157,21 +120,13 @@ export default async function FactionsPage() {
       <div style={{ height: 16 }} />
 
       <Grid>
-        <Card
-          title="Faction armory"
-          meta={
-            ownFaction?.armory.length ? `${ownFaction.armory.length} stocked items` : 'No stock'
-          }
-        >
+        <Card title="Faction armory" meta={ownFaction?.armory.length ? `${ownFaction.armory.length} stocked items` : 'No stock'}>
           {ownFaction?.faction ? (
             <div style={{ display: 'grid', gap: 14 }}>
               {ownFaction.armory.length > 0 ? (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {ownFaction.armory.map((stack) => (
-                    <article
-                      key={stack.id}
-                      style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
-                    >
+                    <article key={stack.id} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
                       <strong>{stack.item?.name ?? stack.itemKey}</strong>
                       <StatList
                         items={[
@@ -184,29 +139,12 @@ export default async function FactionsPage() {
                       <GameActionForm
                         endpoint={`/api/factions/${ownFactionId ?? ''}/inventory`}
                         label="Withdraw armory stock"
-                        payload={{
-                          characterId: character.id,
-                          action: 'withdraw',
-                          factionInventoryItemId: stack.id,
-                        }}
-                        fields={[
-                          {
-                            name: 'quantity',
-                            label: 'Quantity',
-                            type: 'number',
-                            min: 1,
-                            max: stack.quantity,
-                            defaultValue: 1,
-                          },
-                        ]}
+                        payload={{ characterId: character.id, action: 'withdraw', factionInventoryItemId: stack.id }}
+                        fields={[{ name: 'quantity', label: 'Quantity', type: 'number', min: 1, max: stack.quantity, defaultValue: 1 }]}
                         successMessage="Armory withdrawal completed."
                         cooldown={armoryCooldown}
                         disabled={!canUseArmory}
-                        disabledReason={
-                          !canUseArmory
-                            ? 'Only lieutenants and above can withdraw from the faction armory.'
-                            : undefined
-                        }
+                        disabledReason={!canUseArmory ? 'Only lieutenants and above can withdraw from the faction armory.' : undefined}
                       />
                     </article>
                   ))}
@@ -220,22 +158,12 @@ export default async function FactionsPage() {
           )}
         </Card>
 
-        <Card
-          title="Stock the armory"
-          meta={
-            ownFaction?.characterInventory.length
-              ? `${ownFaction.characterInventory.length} personal stacks`
-              : 'No inventory'
-          }
-        >
+        <Card title="Stock the armory" meta={ownFaction?.characterInventory.length ? `${ownFaction.characterInventory.length} personal stacks` : 'No inventory'}>
           {ownFaction?.faction ? (
             ownFaction.characterInventory.length > 0 ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {ownFaction.characterInventory.map((stack) => (
-                  <article
-                    key={stack.id}
-                    style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
-                  >
+                  <article key={stack.id} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
                     <strong>{stack.item?.name ?? stack.itemKey}</strong>
                     <p style={{ color: '#a1a1aa', margin: '4px 0 8px' }}>
                       Personal stock: {stack.quantity} - {stack.item?.category ?? 'item'}
@@ -243,21 +171,8 @@ export default async function FactionsPage() {
                     <GameActionForm
                       endpoint={`/api/factions/${ownFactionId ?? ''}/inventory`}
                       label="Deposit to armory"
-                      payload={{
-                        characterId: character.id,
-                        action: 'deposit',
-                        inventoryItemId: stack.id,
-                      }}
-                      fields={[
-                        {
-                          name: 'quantity',
-                          label: 'Quantity',
-                          type: 'number',
-                          min: 1,
-                          max: stack.quantity,
-                          defaultValue: 1,
-                        },
-                      ]}
+                      payload={{ characterId: character.id, action: 'deposit', inventoryItemId: stack.id }}
+                      fields={[{ name: 'quantity', label: 'Quantity', type: 'number', min: 1, max: stack.quantity, defaultValue: 1 }]}
                       successMessage="Armory deposit completed."
                       cooldown={armoryCooldown}
                     />
@@ -276,22 +191,15 @@ export default async function FactionsPage() {
       <div style={{ height: 16 }} />
 
       <Grid>
-        <Card
-          title="Member ranks and permissions"
-          meta={ownFaction?.members.length ? `${ownFaction.members.length} active` : 'No crew'}
-        >
+        <Card title="Member ranks and permissions" meta={ownFaction?.members.length ? `${ownFaction.members.length} active` : 'No crew'}>
           {ownFaction?.faction && ownFaction.members.length > 0 ? (
             <div style={{ display: 'grid', gap: 12 }}>
               {ownFaction.members.map((member) => {
                 const profile = characterById.get(member.characterId);
-                const canChangeRole =
-                  member.characterId !== character.id && canSetFactionRole(ownRole, member.role);
+                const canChangeRole = member.characterId !== character.id && canSetFactionRole(ownRole, member.role);
 
                 return (
-                  <article
-                    key={member.characterId}
-                    style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
-                  >
+                  <article key={member.characterId} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
                     <strong>{profile?.name ?? member.characterId}</strong>
                     <StatList
                       items={[
@@ -307,25 +215,11 @@ export default async function FactionsPage() {
                       method="PATCH"
                       label="Update role"
                       payload={{ characterId: character.id, memberCharacterId: member.characterId }}
-                      fields={[
-                        {
-                          name: 'role',
-                          label: 'New role',
-                          type: 'select',
-                          options: assignableRoles,
-                          defaultValue: member.role === 'boss' ? 'underboss' : member.role,
-                        },
-                      ]}
+                      fields={[{ name: 'role', label: 'New role', type: 'select', options: assignableRoles, defaultValue: member.role === 'boss' ? 'underboss' : member.role }]}
                       successMessage="Faction member role updated."
                       idempotent={false}
                       disabled={!canChangeRole}
-                      disabledReason={
-                        !canChangeRole
-                          ? member.role === 'boss'
-                            ? 'Boss roles cannot be reassigned from this control.'
-                            : 'Only the faction boss can assign member ranks.'
-                          : undefined
-                      }
+                      disabledReason={!canChangeRole ? (member.role === 'boss' ? 'Boss roles cannot be reassigned from this control.' : 'Only the faction boss can assign member ranks.') : undefined}
                     />
                   </article>
                 );
@@ -340,16 +234,12 @@ export default async function FactionsPage() {
           {factions.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>
               {factions.map((faction) => (
-                <article
-                  key={faction.id}
-                  style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
-                >
+                <article key={faction.id} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
                   <strong>
                     {faction.name} [{faction.tag}]
                   </strong>
                   <p style={{ color: '#a1a1aa', margin: '4px 0 0' }}>
-                    {faction.description} - Reputation {faction.reputation} - Members{' '}
-                    {faction.memberCount}
+                    {faction.description} - Reputation {faction.reputation} - Members {faction.memberCount}
                   </p>
                   {!ownFaction?.faction ? (
                     <GameActionForm
@@ -375,31 +265,20 @@ export default async function FactionsPage() {
         {territories.length > 0 ? (
           <Grid min={240}>
             {territories.map((territory) => {
-              const controller = territory.controlledByFactionId
-                ? factionById.get(territory.controlledByFactionId)
-                : null;
+              const controller = territory.controlledByFactionId ? factionById.get(territory.controlledByFactionId) : null;
               const isOwnTerritory = territory.controlledByFactionId === ownFactionId;
               const isUncontrolled = !territory.controlledByFactionId;
               const canUseTerritoryActions = Boolean(ownFactionId);
 
               return (
-                <article
-                  key={territory.key}
-                  style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}
-                >
+                <article key={territory.key} style={{ borderTop: '1px solid #27272a', paddingTop: 10 }}>
                   <strong>{territory.name}</strong>
                   <p style={{ color: '#a1a1aa', margin: '4px 0 0' }}>
-                    {territory.location} - income {money(territory.incomePerTick)} - defense{' '}
-                    {territory.defenseRating} - control {territory.controlScore}
+                    {territory.location} - income {money(territory.incomePerTick)} - defense {territory.defenseRating} - control {territory.controlScore}
                   </p>
                   <StatList
                     items={[
-                      {
-                        label: 'Controller',
-                        value: controller
-                          ? `${controller.name} [${controller.tag}]`
-                          : 'Uncontrolled',
-                      },
+                      { label: 'Controller', value: controller ? `${controller.name} [${controller.tag}]` : 'Uncontrolled' },
                       { label: 'Contested until', value: formatDate(territory.contestedUntil) },
                     ]}
                   />
@@ -407,73 +286,41 @@ export default async function FactionsPage() {
                     <GameActionForm
                       endpoint="/api/territories/actions"
                       label="Scout territory"
-                      payload={{
-                        characterId: character.id,
-                        territoryKey: territory.key,
-                        action: 'scout',
-                      }}
+                      payload={{ characterId: character.id, territoryKey: territory.key, action: 'scout' }}
                       successMessage="Territory scouted."
                       cooldown={territoryCooldown}
                       disabled={!canUseTerritoryActions}
-                      disabledReason={
-                        !canUseTerritoryActions
-                          ? 'Join a faction before taking territory actions.'
-                          : undefined
-                      }
+                      disabledReason={!canUseTerritoryActions ? 'Join a faction before taking territory actions.' : undefined}
                     />
                     <GameActionForm
                       endpoint="/api/territories/actions"
                       label="Claim territory"
-                      payload={{
-                        characterId: character.id,
-                        territoryKey: territory.key,
-                        action: 'claim',
-                      }}
+                      payload={{ characterId: character.id, territoryKey: territory.key, action: 'claim' }}
                       successMessage="Territory claim attempted."
                       cooldown={territoryCooldown}
                       hidden={!isUncontrolled}
                       disabled={!canUseTerritoryActions}
-                      disabledReason={
-                        !canUseTerritoryActions
-                          ? 'Join a faction before taking territory actions.'
-                          : undefined
-                      }
+                      disabledReason={!canUseTerritoryActions ? 'Join a faction before taking territory actions.' : undefined}
                     />
                     <GameActionForm
                       endpoint="/api/territories/actions"
                       label="Reinforce territory"
-                      payload={{
-                        characterId: character.id,
-                        territoryKey: territory.key,
-                        action: 'reinforce',
-                      }}
+                      payload={{ characterId: character.id, territoryKey: territory.key, action: 'reinforce' }}
                       successMessage="Territory reinforced."
                       cooldown={territoryCooldown}
                       hidden={!isOwnTerritory}
                       disabled={!canUseTerritoryActions}
-                      disabledReason={
-                        !canUseTerritoryActions
-                          ? 'Join a faction before taking territory actions.'
-                          : undefined
-                      }
+                      disabledReason={!canUseTerritoryActions ? 'Join a faction before taking territory actions.' : undefined}
                     />
                     <GameActionForm
                       endpoint="/api/territories/actions"
                       label="Attack territory"
-                      payload={{
-                        characterId: character.id,
-                        territoryKey: territory.key,
-                        action: 'attack',
-                      }}
+                      payload={{ characterId: character.id, territoryKey: territory.key, action: 'attack' }}
                       successMessage="Territory attack resolved."
                       cooldown={territoryCooldown}
                       hidden={isOwnTerritory || isUncontrolled}
                       disabled={!canUseTerritoryActions}
-                      disabledReason={
-                        !canUseTerritoryActions
-                          ? 'Join a faction before taking territory actions.'
-                          : undefined
-                      }
+                      disabledReason={!canUseTerritoryActions ? 'Join a faction before taking territory actions.' : undefined}
                     />
                   </div>
                 </article>

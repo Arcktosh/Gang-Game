@@ -3,13 +3,11 @@ import { playerTradeOfferActionSchema } from '@drugdeal/validators';
 import { NextRequest } from 'next/server';
 import { withIdempotency } from '@/lib/idempotency';
 import { withApiObservability } from '@/lib/observability';
+import { requireFeatureEnabled } from '@/lib/feature-flags';
 import { assertRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { jsonError, jsonOk, parseJsonBody, requireRequestUserId } from '@/lib/api';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ tradeOfferId: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ tradeOfferId: string }> }) {
   return withApiObservability(request, async () => {
     const auth = await requireRequestUserId(request);
 
@@ -17,14 +15,16 @@ export async function POST(
       return auth.response;
     }
 
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'actions:trade-offer', auth.userId),
-      windowSeconds: 60,
-      maxRequests: 40,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'actions:trade-offer', auth.userId), windowSeconds: 60, maxRequests: 40 });
 
     if (!limit.ok) {
       return limit.response;
+    }
+
+    const feature = await requireFeatureEnabled('feature.trades');
+
+    if (!feature.ok) {
+      return feature.response;
     }
 
     const { tradeOfferId } = await params;
@@ -40,28 +40,12 @@ export async function POST(
       routeScope: `trades:${body.data.action}`,
       fingerprint: { tradeOfferId, ...body.data },
       handler: async () => {
-        const result =
-          body.data.action === 'accept'
-            ? await acceptPlayerTradeOffer({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                tradeOfferId,
-              })
-            : await cancelPlayerTradeOffer({
-                userId: auth.userId,
-                characterId: body.data.characterId,
-                tradeOfferId,
-              });
+        const result = body.data.action === 'accept'
+          ? await acceptPlayerTradeOffer({ userId: auth.userId, characterId: body.data.characterId, tradeOfferId })
+          : await cancelPlayerTradeOffer({ userId: auth.userId, characterId: body.data.characterId, tradeOfferId });
 
         if (!result.ok) {
-          const status =
-            result.code === 'not_found'
-              ? 404
-              : result.code === 'cooldown_active'
-                ? 429
-                : result.code === 'conflict'
-                  ? 409
-                  : 403;
+          const status = result.code === 'not_found' ? 404 : result.code === 'cooldown_active' ? 429 : result.code === 'conflict' ? 409 : 403;
           return jsonError(result.code, result.message, status);
         }
 

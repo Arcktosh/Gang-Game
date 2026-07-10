@@ -4,10 +4,7 @@ export type TrainingCostInput = {
 };
 
 export function calculateScaledTrainingEnergyCost(input: TrainingCostInput): number {
-  return Math.max(
-    input.baseEnergyCost,
-    Math.floor(input.baseEnergyCost + input.currentStat * 0.15),
-  );
+  return Math.max(input.baseEnergyCost, Math.floor(input.baseEnergyCost + input.currentStat * 0.15));
 }
 
 export type TimedProgressionPlanInput = {
@@ -26,9 +23,7 @@ export type TimedProgressionPlan = {
   dueAt: Date;
 };
 
-export function calculateTimedProgressionPlan(
-  input: TimedProgressionPlanInput,
-): TimedProgressionPlan {
+export function calculateTimedProgressionPlan(input: TimedProgressionPlanInput): TimedProgressionPlan {
   const startedAt = input.now ?? new Date();
   const currentStat = Math.max(0, Math.floor(input.currentStat ?? 0));
   const baseDurationSeconds = Math.max(60, Math.floor(input.baseDurationSeconds));
@@ -110,9 +105,7 @@ function coerceDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function summarizeProgressionQueue(
-  input: ProgressionQueueSnapshotInput,
-): ProgressionQueueSnapshot {
+export function summarizeProgressionQueue(input: ProgressionQueueSnapshotInput): ProgressionQueueSnapshot {
   const now = input.now ?? new Date();
   const scheduledTraining = input.training.filter((entry) => entry.status === 'scheduled');
   const scheduledCourses = input.courses.filter((entry) => entry.status === 'scheduled');
@@ -187,9 +180,7 @@ export function calculateProgressionFromExperience(experience: number): Progress
   const nextLevelExperience = calculateExperienceForLevel(level + 1);
   const experienceIntoLevel = Math.max(0, normalizedExperience - currentLevelExperience);
   const experienceForNextLevel = Math.max(1, nextLevelExperience - currentLevelExperience);
-  const progressPercent = Number(
-    Math.min(100, Math.max(0, (experienceIntoLevel / experienceForNextLevel) * 100)).toFixed(2),
-  );
+  const progressPercent = Number(Math.min(100, Math.max(0, (experienceIntoLevel / experienceForNextLevel) * 100)).toFixed(2));
 
   return {
     level,

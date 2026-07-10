@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./tasks.schema.json",
+  "title": "DrugDeal Game Agent Task Queue",
+  "type": "object",
+  "required": [
+    "version",
+    "project",
+    "workflow",
+    "tasks"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow": {
+      "type": "object",
+      "required": [
+        "statuses",
+        "priorities",
+        "selectionRules"
+      ],
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "backlog",
+              "ready",
+              "in_progress",
+              "blocked",
+              "done",
+              "cancelled"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "priorities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "selectionRules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "priority",
+          "type",
+          "scope",
+          "dependsOn",
+          "sourceRefs",
+          "acceptanceCriteria",
+          "commands"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]+-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "backlog",
+              "ready",
+              "in_progress",
+              "blocked",
+              "done",
+              "cancelled"
+            ]
+          },
+          "priority": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptanceCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

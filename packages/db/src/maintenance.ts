@@ -1,17 +1,12 @@
 import { lt, sql } from 'drizzle-orm';
 import { db } from './client';
-import {
-  apiIdempotencyKeys,
-  characterActionLocks,
-  emailVerificationTokens,
-  notificationDigests,
-  passwordResetTokens,
-  userSessions,
-} from './schema';
+import { apiIdempotencyKeys, characterActionLocks, emailVerificationTokens, notificationDigests, passwordResetTokens, userSessions } from './schema';
+import { cleanupExpiredMessages } from './queries/messages';
 
 export type MaintenanceCleanupOptions = {
   digestRetentionDays?: number;
   actionLockRetentionMinutes?: number;
+  messageRetentionDays?: number;
 };
 
 export type MaintenanceCleanupResult = {
@@ -20,6 +15,7 @@ export type MaintenanceCleanupResult = {
   expiredActionLocks: number;
   oldNotificationDigests: number;
   expiredAccountTokens: number;
+  expiredMessages: number;
 };
 
 const DEFAULT_DIGEST_RETENTION_DAYS = 30;
@@ -47,18 +43,11 @@ export async function cleanupExpiredSessions() {
   return deleted.length;
 }
 
-export async function cleanupExpiredActionLocks(
-  retentionMinutes = DEFAULT_ACTION_LOCK_RETENTION_MINUTES,
-) {
-  const safeRetentionMinutes = positiveIntegerOrDefault(
-    retentionMinutes,
-    DEFAULT_ACTION_LOCK_RETENTION_MINUTES,
-  );
+export async function cleanupExpiredActionLocks(retentionMinutes = DEFAULT_ACTION_LOCK_RETENTION_MINUTES) {
+  const safeRetentionMinutes = positiveIntegerOrDefault(retentionMinutes, DEFAULT_ACTION_LOCK_RETENTION_MINUTES);
   const deleted = await db
     .delete(characterActionLocks)
-    .where(
-      sql`${characterActionLocks.lockedUntil} < now() - (${safeRetentionMinutes}::text || ' minutes')::interval`,
-    )
+    .where(sql`${characterActionLocks.lockedUntil} < now() - (${safeRetentionMinutes}::text || ' minutes')::interval`)
     .returning({ id: characterActionLocks.id });
 
   return deleted.length;
@@ -68,52 +57,39 @@ export async function cleanupOldNotificationDigests(retentionDays = DEFAULT_DIGE
   const safeRetentionDays = positiveIntegerOrDefault(retentionDays, DEFAULT_DIGEST_RETENTION_DAYS);
   const deleted = await db
     .delete(notificationDigests)
-    .where(
-      sql`${notificationDigests.createdAt} < now() - (${safeRetentionDays}::text || ' days')::interval`,
-    )
+    .where(sql`${notificationDigests.createdAt} < now() - (${safeRetentionDays}::text || ' days')::interval`)
     .returning({ id: notificationDigests.id });
 
   return deleted.length;
 }
 
+
 export async function cleanupExpiredAccountTokens() {
   const [passwordTokens, emailTokens] = await Promise.all([
     db
       .delete(passwordResetTokens)
-      .where(
-        sql`${passwordResetTokens.expiresAt} <= now() OR ${passwordResetTokens.usedAt} IS NOT NULL`,
-      )
+      .where(sql`${passwordResetTokens.expiresAt} <= now() OR ${passwordResetTokens.usedAt} IS NOT NULL`)
       .returning({ id: passwordResetTokens.id }),
     db
       .delete(emailVerificationTokens)
-      .where(
-        sql`${emailVerificationTokens.expiresAt} <= now() OR ${emailVerificationTokens.usedAt} IS NOT NULL`,
-      )
+      .where(sql`${emailVerificationTokens.expiresAt} <= now() OR ${emailVerificationTokens.usedAt} IS NOT NULL`)
       .returning({ id: emailVerificationTokens.id }),
   ]);
 
   return passwordTokens.length + emailTokens.length;
 }
 
-export async function runMaintenanceCleanup(
-  options: MaintenanceCleanupOptions = {},
-): Promise<MaintenanceCleanupResult> {
+export async function runMaintenanceCleanup(options: MaintenanceCleanupOptions = {}): Promise<MaintenanceCleanupResult> {
   const digestRetentionDays = options.digestRetentionDays ?? DEFAULT_DIGEST_RETENTION_DAYS;
-  const actionLockRetentionMinutes =
-    options.actionLockRetentionMinutes ?? DEFAULT_ACTION_LOCK_RETENTION_MINUTES;
+  const actionLockRetentionMinutes = options.actionLockRetentionMinutes ?? DEFAULT_ACTION_LOCK_RETENTION_MINUTES;
 
-  const [
-    expiredIdempotencyKeys,
-    expiredSessions,
-    expiredActionLocks,
-    oldNotificationDigests,
-    expiredAccountTokens,
-  ] = await Promise.all([
+  const [expiredIdempotencyKeys, expiredSessions, expiredActionLocks, oldNotificationDigests, expiredAccountTokens, expiredMessages] = await Promise.all([
     cleanupExpiredIdempotencyKeys(),
     cleanupExpiredSessions(),
     cleanupExpiredActionLocks(actionLockRetentionMinutes),
     cleanupOldNotificationDigests(digestRetentionDays),
     cleanupExpiredAccountTokens(),
+    cleanupExpiredMessages(),
   ]);
 
   return {
@@ -122,5 +98,6 @@ export async function runMaintenanceCleanup(
     expiredActionLocks,
     oldNotificationDigests,
     expiredAccountTokens,
+    expiredMessages,
   };
 }

@@ -10,14 +10,7 @@ type SessionUser = {
   adminRole?: AdminRole | null;
 };
 
-export const adminRoles = [
-  'none',
-  'support',
-  'moderator',
-  'economy_manager',
-  'game_master',
-  'owner',
-] as const;
+export const adminRoles = ['none', 'support', 'moderator', 'economy_manager', 'game_master', 'owner'] as const;
 export type AdminRole = (typeof adminRoles)[number];
 
 export const adminCapabilities = [
@@ -36,23 +29,8 @@ export const adminRoleCapabilities: Record<AdminRole, readonly AdminCapability[]
   support: ['view_admin', 'search_players'],
   moderator: ['view_admin', 'search_players', 'moderate_content'],
   economy_manager: ['view_admin', 'search_players', 'manage_economy'],
-  game_master: [
-    'view_admin',
-    'search_players',
-    'manage_announcements',
-    'moderate_content',
-    'enforce_players',
-    'manage_economy',
-  ],
-  owner: [
-    'view_admin',
-    'search_players',
-    'manage_config',
-    'manage_announcements',
-    'moderate_content',
-    'enforce_players',
-    'manage_economy',
-  ],
+  game_master: ['view_admin', 'search_players', 'manage_announcements', 'moderate_content', 'enforce_players', 'manage_economy'],
+  owner: ['view_admin', 'search_players', 'manage_config', 'manage_announcements', 'moderate_content', 'enforce_players', 'manage_economy'],
 };
 
 export function normalizeAdminRole(value: string | null | undefined): AdminRole {
@@ -82,10 +60,7 @@ export async function requireAdminCapability(request: NextRequest, capability: A
   }
 
   if (!hasAdminCapability(session.user, capability)) {
-    return {
-      ok: false as const,
-      response: jsonError('forbidden', 'Admin capability required.', 403, { capability }),
-    };
+    return { ok: false as const, response: jsonError('forbidden', 'Admin capability required.', 403, { capability }) };
   }
 
   return {

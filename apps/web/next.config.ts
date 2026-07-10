@@ -26,9 +26,7 @@ function loadEnvFileIfPresent(filePath: string) {
       continue;
     }
 
-    const assignment = trimmed.startsWith('export ')
-      ? trimmed.slice('export '.length).trim()
-      : trimmed;
+    const assignment = trimmed.startsWith('export ') ? trimmed.slice('export '.length).trim() : trimmed;
     const equalsIndex = assignment.indexOf('=');
 
     if (equalsIndex <= 0) {
@@ -47,12 +45,7 @@ function loadEnvFileIfPresent(filePath: string) {
 function loadMonorepoRootEnv() {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const monorepoRoot = resolve(process.cwd(), '../..');
-  const envFiles = [
-    `.env.${nodeEnv}.local`,
-    nodeEnv === 'test' ? null : '.env.local',
-    `.env.${nodeEnv}`,
-    '.env',
-  ];
+  const envFiles = [`.env.${nodeEnv}.local`, nodeEnv === 'test' ? null : '.env.local', `.env.${nodeEnv}`, '.env'];
 
   for (const envFile of envFiles) {
     if (envFile) {

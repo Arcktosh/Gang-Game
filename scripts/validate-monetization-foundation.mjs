@@ -12,25 +12,9 @@ const requiredFiles = [
   'apps/web/src/app/api/monetization/checkout/route.ts',
   'docs/monetization.md',
 ];
-const requiredMigrationTokens = [
-  'product_catalog',
-  'user_entitlements',
-  'character_cosmetics',
-  'founder_badge',
-  'season_pass_s1',
-];
-const requiredRouteTokens = [
-  'withApiObservability',
-  'requireRequestUserId',
-  'assertRateLimit',
-  'checkoutIntentSchema',
-];
-const requiredDocsTokens = [
-  'cosmetics are allowed',
-  'GET /api/monetization/catalog',
-  'POST /api/monetization/checkout',
-  'STRIPE_SECRET_KEY',
-];
+const requiredMigrationTokens = ['product_catalog', 'user_entitlements', 'character_cosmetics', 'founder_badge', 'season_pass_s1'];
+const requiredRouteTokens = ['withApiObservability', 'requireRequestUserId', 'assertRateLimit', 'checkoutIntentSchema'];
+const requiredDocsTokens = ['cosmetics are allowed', 'GET /api/monetization/catalog', 'POST /api/monetization/checkout', 'STRIPE_SECRET_KEY'];
 const errors = [];
 
 function read(relativePath) {
@@ -73,25 +57,15 @@ if (fs.existsSync(path.join(root, 'docs/monetization.md'))) {
 
 const packageJson = JSON.parse(read('package.json'));
 const dbPackageJson = JSON.parse(read('packages/db/package.json'));
-if (
-  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-monetization-foundation.mjs',
-  )
-) {
+if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-monetization-foundation.mjs')) {
   errors.push('validate:static does not include scripts/validate-monetization-foundation.mjs.');
 }
 if (!String(dbPackageJson.scripts?.['db:apply:all'] ?? '').includes('apply-migrations.ts')) {
-  errors.push(
-    'packages/db/package.json must keep db:apply:all wired to the tracked migration runner.',
-  );
+  errors.push('packages/db/package.json must keep db:apply:all wired to the tracked migration runner.');
 }
 
 const apiRef = read('docs/api-reference.md');
-for (const route of [
-  '/api/monetization/catalog',
-  '/api/monetization/entitlements',
-  '/api/monetization/checkout',
-]) {
+for (const route of ['/api/monetization/catalog', '/api/monetization/entitlements', '/api/monetization/checkout']) {
   if (!apiRef.includes(`\`${route}\``)) {
     errors.push(`docs/api-reference.md is missing ${route}.`);
   }

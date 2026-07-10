@@ -15,11 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const session = admin.session;
-    const limit = await assertRateLimit({
-      key: rateLimitKey(request, 'api:admin:economy:loans', session.user.id),
-      windowSeconds: 60,
-      maxRequests: 60,
-    });
+    const limit = await assertRateLimit({ key: rateLimitKey(request, 'api:admin:economy:loans', session.user.id), windowSeconds: 60, maxRequests: 60 });
 
     if (!limit.ok) {
       return limit.response;
@@ -33,12 +29,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!query.success) {
-      return jsonError(
-        'invalid_query',
-        'Invalid admin loan exposure query.',
-        400,
-        query.error.flatten(),
-      );
+      return jsonError('invalid_query', 'Invalid admin loan exposure query.', 400, query.error.flatten());
     }
 
     const result = await listAdminLoanExposure({

@@ -78,23 +78,13 @@ export function evaluateMutationOrigin(request: NextRequest): OriginDecision {
   const trustedOrigins = getTrustedOrigins(request);
 
   if (SAFE_HTTP_METHODS.has(request.method.toUpperCase())) {
-    return {
-      allowed: true,
-      reason: 'safe_method',
-      origin: getRequestOrigin(request),
-      trustedOrigins,
-    };
+    return { allowed: true, reason: 'safe_method', origin: getRequestOrigin(request), trustedOrigins };
   }
 
   const origin = getRequestOrigin(request);
 
   if (!origin) {
-    return {
-      allowed: process.env.NODE_ENV !== 'production',
-      reason: 'missing_origin',
-      origin,
-      trustedOrigins,
-    };
+    return { allowed: process.env.NODE_ENV !== 'production', reason: 'missing_origin', origin, trustedOrigins };
   }
 
   if (origin === normalizeOrigin(request.nextUrl.origin)) {
@@ -122,9 +112,7 @@ export function securityHeaders() {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     isProduction ? 'upgrade-insecure-requests' : '',
-  ]
-    .filter(Boolean)
-    .join('; ');
+  ].filter(Boolean).join('; ');
 
   const headers: Record<string, string> = {
     'Content-Security-Policy': csp,

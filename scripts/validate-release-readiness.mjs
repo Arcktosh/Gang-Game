@@ -61,11 +61,7 @@ for (const scriptName of requiredPackageScripts) {
   }
 }
 
-if (
-  !String(packageJson.scripts?.['validate:static'] ?? '').includes(
-    'scripts/validate-release-readiness.mjs',
-  )
-) {
+if (!String(packageJson.scripts?.['validate:static'] ?? '').includes('scripts/validate-release-readiness.mjs')) {
   errors.push('package.json validate:static must include scripts/validate-release-readiness.mjs.');
 }
 
