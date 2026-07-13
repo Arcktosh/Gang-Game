@@ -16,7 +16,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "types":["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
       "@drugdeal/db": [
         "./packages/db/src"
@@ -29,6 +31,9 @@
       ],
       "@drugdeal/ui": [
         "./packages/ui/src"
+      ],
+      "@drugdeal/observability": [
+        "./packages/observability/src"
       ]
     }
   }

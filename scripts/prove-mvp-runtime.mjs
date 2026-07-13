@@ -8,6 +8,7 @@ const repoRoot = process.cwd();
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run') || parseBoolean(process.env.MVP_PROOF_DRY_RUN, false);
 const skipInstall = args.has('--skip-install') || parseBoolean(process.env.MVP_PROOF_SKIP_INSTALL, false);
+const skipPreflight = args.has('--skip-preflight') || parseBoolean(process.env.MVP_PROOF_SKIP_PREFLIGHT, false);
 const skipDocker = args.has('--skip-docker') || parseBoolean(process.env.MVP_PROOF_SKIP_DOCKER, false);
 const skipMigrations = args.has('--skip-migrations') || parseBoolean(process.env.MVP_PROOF_SKIP_MIGRATIONS, false);
 const skipValidation = args.has('--skip-validation') || parseBoolean(process.env.MVP_PROOF_SKIP_VALIDATION, false);
@@ -296,6 +297,14 @@ async function main() {
   try {
     ensureEnvFile();
     loadRootEnv();
+
+    if (!skipPreflight) {
+      const doctorArgs = ['scripts/production-doctor.mjs', '--proof'];
+      if (skipDocker) doctorArgs.push('--skip-docker');
+      if (skipBackup) doctorArgs.push('--skip-backup');
+      if (skipServer) doctorArgs.push('--skip-server');
+      await runCommand('production-preflight', process.execPath, doctorArgs);
+    }
     useCurrentDatabase = parseBoolean(process.env.MVP_PROOF_USE_CURRENT_DATABASE, false);
     const proofDatabaseUrl = getProofDatabaseUrl();
     const runtimeEnv = getRuntimeEnv(proofDatabaseUrl);

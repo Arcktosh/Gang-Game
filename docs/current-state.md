@@ -1,6 +1,6 @@
 # Current State Brief
 
-Last updated: Feature Pass 97 agent-memory and public-barrel refactor.
+Last updated: Feature Pass 100 production observability foundation and installed CI proof.
 
 ## Project posture
 
@@ -27,9 +27,32 @@ DrugDeal Game is a **static MVP candidate pending installed-environment runtime 
 
 1. Runtime proof still required in a real installed environment; Feature Pass 95 fixed the Windows `spawn EINVAL` failure path, and Feature Pass 96 fixed the follow-up Admin Console nullable audit row typecheck failure reported during `pnpm prove:mvp-runtime`.
 2. Database-backed integration tests are scaffolded but not fully proven.
-3. External log shipping, alerting, abuse analytics, bot detection, and load testing remain production-hardening work.
+3. Vendor-neutral structured telemetry and alert shipping are implemented; production sink deployment, dashboards, alert exercises, abuse analytics, bot detection, and load testing remain.
 4. Public legal/payment workflows remain draft-only pending review.
 
 ## Current command surface
 
 Use the reduced command set in `README.md`: `pnpm validate:static`, `pnpm validate:ci`, `pnpm agent:memory`, `pnpm agent:memory:check`, `pnpm db:setup`, `pnpm db:apply:all`, `pnpm db:apply:file`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
+
+## Feature Pass 98 test baseline update
+
+The worker, database, and UI packages now have executable baseline test commands instead of placeholder echoes. Static validation verifies the commands and expected test files. Full execution remains pending the installed-environment proof.
+
+## Feature Pass 99 production proof readiness
+
+The runtime proof now begins with `pnpm doctor:proof`, which reports environment and repository prerequisites before any long-running install, migration, build, test, smoke, backup, or restore operation. `VAL-001` remains open until the strict doctor and full proof both pass. A committed `pnpm-lock.yaml` is now explicitly treated as a production reproducibility requirement.
+
+
+## Feature Pass 100 production observability and CI proof
+
+- Added `@drugdeal/observability` as a dependency-free shared package for structured events, critical alerts, recursive redaction, and optional HTTP shipping.
+- Added request completion/server-error telemetry to all API routes through the existing observability wrapper.
+- Added worker startup, shutdown, schedule, retry, overlap, completion, failure, and exhausted-retry alerts.
+- Added safe observability configuration status to `/api/health` runtime diagnostics.
+- Added `docs/observability-runbook.md`, environment configuration, tests, and a static contract validator.
+- Generated `pnpm-lock.yaml` with pnpm 9.15.4, resolving the reproducible-install blocker identified in Feature Pass 99.
+- Installed dependencies and ran the dependency-backed workspace CI gate in the sandbox.
+
+- The installed test run found and fixed direct Node JSX execution for `StatCard` by adding the required React runtime import.
+- Next production build concurrency is now bounded by `NEXT_BUILD_CPUS` (default 4) to prevent resource exhaustion on shared CI hosts.
+- Static validation, workspace typecheck, production build, and all executable package tests passed after the repairs.

@@ -1,0 +1,120 @@
+{
+  "summary": {
+    "checkedAt": "2026-07-12T07:23:00.449Z",
+    "ok": false,
+    "checks": 19,
+    "failed": 7,
+    "proofMode": true
+  },
+  "checks": [
+    {
+      "name": "node",
+      "ok": true,
+      "actual": "v22.16.0",
+      "expected": ">=22.0.0",
+      "remediation": "Install Node.js 22 or newer."
+    },
+    {
+      "name": "pnpm",
+      "ok": false,
+      "actual": "not found",
+      "expected": "9.15.4",
+      "remediation": "Run corepack enable && corepack prepare pnpm@9.15.4 --activate."
+    },
+    {
+      "name": "docker",
+      "ok": false,
+      "actual": "not found",
+      "remediation": "Install Docker Engine or Docker Desktop and ensure docker is on PATH."
+    },
+    {
+      "name": "docker-compose",
+      "ok": false,
+      "actual": "not available",
+      "remediation": "Install the Docker Compose v2 plugin."
+    },
+    {
+      "name": "pg_dump",
+      "ok": false,
+      "actual": "not found",
+      "remediation": "Install PostgreSQL client tools so pg_dump is available on PATH."
+    },
+    {
+      "name": "pg_restore",
+      "ok": false,
+      "actual": "not found",
+      "remediation": "Install PostgreSQL client tools so pg_restore is available on PATH."
+    },
+    {
+      "name": "file:pnpm-lock.yaml",
+      "ok": false,
+      "remediation": "Restore the required repository file pnpm-lock.yaml."
+    },
+    {
+      "name": "file:pnpm-workspace.yaml",
+      "ok": true,
+      "remediation": "Restore the required repository file pnpm-workspace.yaml."
+    },
+    {
+      "name": "file:docker-compose.yml",
+      "ok": true,
+      "remediation": "Restore the required repository file docker-compose.yml."
+    },
+    {
+      "name": "file:.env.example",
+      "ok": true,
+      "remediation": "Restore the required repository file .env.example."
+    },
+    {
+      "name": "file:scripts/prove-mvp-runtime.mjs",
+      "ok": true,
+      "remediation": "Restore the required repository file scripts/prove-mvp-runtime.mjs."
+    },
+    {
+      "name": "file:scripts/runtime-smoke.mjs",
+      "ok": true,
+      "remediation": "Restore the required repository file scripts/runtime-smoke.mjs."
+    },
+    {
+      "name": "file:scripts/backup-db.sh",
+      "ok": true,
+      "remediation": "Restore the required repository file scripts/backup-db.sh."
+    },
+    {
+      "name": "file:scripts/restore-db.sh",
+      "ok": true,
+      "remediation": "Restore the required repository file scripts/restore-db.sh."
+    },
+    {
+      "name": "environment-file",
+      "ok": true,
+      "actual": ".env",
+      "remediation": "Copy .env.example to .env and replace all placeholders."
+    },
+    {
+      "name": "DATABASE_URL",
+      "ok": true,
+      "actual": "configured",
+      "remediation": "Set DATABASE_URL to a PostgreSQL connection string."
+    },
+    {
+      "name": "AUTH_SECRET",
+      "ok": true,
+      "actual": "35 characters",
+      "expected": "at least 32 non-placeholder characters",
+      "remediation": "Generate a strong AUTH_SECRET, for example with openssl rand -base64 48."
+    },
+    {
+      "name": "application-origin",
+      "ok": true,
+      "actual": "http://localhost:3000",
+      "remediation": "Set NEXT_PUBLIC_APP_URL or APP_ORIGIN to a valid HTTP(S) origin."
+    },
+    {
+      "name": "restore-database-url",
+      "ok": false,
+      "actual": "not configured",
+      "remediation": "Set MVP_RESTORE_DATABASE_URL to a disposable PostgreSQL database to prove restore behavior."
+    }
+  ]
+}

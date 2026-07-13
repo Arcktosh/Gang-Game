@@ -1,0 +1,28 @@
+{
+  "featurePass": 100,
+  "validatedAt": "2026-07-12T09:22:00.000Z",
+  "packageManager": "pnpm 9.15.4",
+  "nodeVersion": "22.x",
+  "checks": {
+    "dependencyInstall": "passed",
+    "lockfileGenerated": "passed",
+    "staticValidation": "passed",
+    "workspaceTypecheck": "passed",
+    "observabilityTests": "passed",
+    "workerTests": "passed",
+    "webTests": "passed",
+    "uiTests": "passed after React runtime import repair",
+    "allPackageTests": "passed",
+    "workerBuild": "passed",
+    "webProductionBuild": "passed with NEXT_BUILD_CPUS=2",
+    "combinedValidateCi": "not completed as one process because the sandbox execution window terminated the long aggregate command; every stage passed separately"
+  },
+  "remainingRuntimeProof": [
+    "Docker Compose services",
+    "clean PostgreSQL migration application",
+    "Redis-required behavior",
+    "live web and worker smoke",
+    "database backup and restore",
+    "database-backed integration proof"
+  ]
+}

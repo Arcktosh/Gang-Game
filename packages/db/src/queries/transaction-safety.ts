@@ -1,15 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { characterAssetPositions, characters, contracts, inventoryItems, shopListings } from '../schema';
+import { normalizeInteger, normalizeNonNegativeInteger, normalizePositiveInteger } from '../transaction-normalization';
 
 type Tx = any;
 
 
-function normalizeExperienceGain(experienceGain: number) {
-  return Math.max(0, Math.floor(experienceGain));
-}
-
 function nextExperienceSql(experienceGain: number) {
-  return sql`greatest(0, ${characters.experience} + ${normalizeExperienceGain(experienceGain)})`;
+  return sql`greatest(0, ${characters.experience} + ${normalizeNonNegativeInteger(experienceGain)})`;
 }
 
 function nextLevelSql(experienceGain: number) {
@@ -21,7 +18,7 @@ function nextMaxNerveSql(experienceGain: number) {
 }
 
 export async function decrementCharacterCash(tx: Tx, characterId: string, amount: number) {
-  const normalizedAmount = Math.max(0, Math.floor(amount));
+  const normalizedAmount = normalizeNonNegativeInteger(amount);
 
   if (normalizedAmount === 0) {
     const character = await tx.query.characters.findFirst({ where: eq(characters.id, characterId) });
@@ -38,7 +35,7 @@ export async function decrementCharacterCash(tx: Tx, characterId: string, amount
 }
 
 export async function incrementCharacterCash(tx: Tx, characterId: string, amount: number) {
-  const normalizedAmount = Math.max(0, Math.floor(amount));
+  const normalizedAmount = normalizeNonNegativeInteger(amount);
   const [character] = await tx
     .update(characters)
     .set({ cash: sql`${characters.cash} + ${normalizedAmount}`, updatedAt: sql`now()` })
@@ -49,7 +46,7 @@ export async function incrementCharacterCash(tx: Tx, characterId: string, amount
 }
 
 export async function adjustCharacterCash(tx: Tx, characterId: string, delta: number) {
-  const normalizedDelta = Math.floor(delta);
+  const normalizedDelta = normalizeInteger(delta);
 
   if (normalizedDelta < 0) {
     return decrementCharacterCash(tx, characterId, Math.abs(normalizedDelta));
@@ -60,7 +57,7 @@ export async function adjustCharacterCash(tx: Tx, characterId: string, delta: nu
 
 
 export async function incrementCharacterBank(tx: Tx, characterId: string, amount: number) {
-  const normalizedAmount = Math.max(0, Math.floor(amount));
+  const normalizedAmount = normalizeNonNegativeInteger(amount);
   const [character] = await tx
     .update(characters)
     .set({ bank: sql`${characters.bank} + ${normalizedAmount}`, updatedAt: sql`now()` })
@@ -71,7 +68,7 @@ export async function incrementCharacterBank(tx: Tx, characterId: string, amount
 }
 
 export async function decrementCharacterBank(tx: Tx, characterId: string, amount: number) {
-  const normalizedAmount = Math.max(0, Math.floor(amount));
+  const normalizedAmount = normalizeNonNegativeInteger(amount);
 
   if (normalizedAmount === 0) {
     const character = await tx.query.characters.findFirst({ where: eq(characters.id, characterId) });
@@ -88,7 +85,7 @@ export async function decrementCharacterBank(tx: Tx, characterId: string, amount
 }
 
 export async function adjustCharacterBank(tx: Tx, characterId: string, delta: number) {
-  const normalizedDelta = Math.floor(delta);
+  const normalizedDelta = normalizeInteger(delta);
 
   if (normalizedDelta < 0) {
     return decrementCharacterBank(tx, characterId, Math.abs(normalizedDelta));
@@ -98,7 +95,7 @@ export async function adjustCharacterBank(tx: Tx, characterId: string, delta: nu
 }
 
 export async function decrementInventoryQuantity(tx: Tx, inventoryItemId: string, quantity: number) {
-  const normalizedQuantity = Math.max(1, Math.floor(quantity));
+  const normalizedQuantity = normalizePositiveInteger(quantity);
   const [inventoryItem] = await tx
     .update(inventoryItems)
     .set({ quantity: sql`${inventoryItems.quantity} - ${normalizedQuantity}`, updatedAt: sql`now()` })
@@ -109,7 +106,7 @@ export async function decrementInventoryQuantity(tx: Tx, inventoryItemId: string
 }
 
 export async function reserveShopListingQuantity(tx: Tx, listingId: string, quantity: number) {
-  const normalizedQuantity = Math.max(1, Math.floor(quantity));
+  const normalizedQuantity = normalizePositiveInteger(quantity);
   const [listing] = await tx
     .update(shopListings)
     .set({
@@ -232,7 +229,7 @@ export async function cancelOpenContract(tx: Tx, input: { contractId: string; cr
 }
 
 export async function reserveAssetPositionQuantity(tx: Tx, positionId: string, quantity: number) {
-  const normalizedQuantity = Math.max(1, Math.floor(quantity));
+  const normalizedQuantity = normalizePositiveInteger(quantity);
   const [position] = await tx
     .update(characterAssetPositions)
     .set({ quantity: sql`${characterAssetPositions.quantity} - ${normalizedQuantity}`, updatedAt: sql`now()` })
@@ -246,7 +243,7 @@ export async function addAssetPositionQuantity(
   tx: Tx,
   input: { characterId: string; assetKey: string; quantity: number; averageCost: number },
 ) {
-  const normalizedQuantity = Math.max(1, Math.floor(input.quantity));
+  const normalizedQuantity = normalizePositiveInteger(input.quantity);
   const [position] = await tx
     .insert(characterAssetPositions)
     .values({ characterId: input.characterId, assetKey: input.assetKey, quantity: normalizedQuantity, averageCost: input.averageCost })

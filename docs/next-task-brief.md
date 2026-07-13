@@ -35,3 +35,28 @@ Feature Pass 96 proof repair update: [x] Admin Console audit workbench props now
 ## Feature Pass 97 agent workflow update
 
 Future passes should begin with `AGENTS.md` and `.agent-memory/README.md`, update `.agent-memory/tasks.json` as work moves, and run `pnpm agent:memory` whenever file structure, imports, manifests, public exports, routes, pages, or top-level symbols change.
+
+## Feature Pass 98 package-test update
+
+`@drugdeal/worker`, `@drugdeal/db`, and `@drugdeal/ui` now have executable deterministic baseline tests. On the next installed-environment pass, run `pnpm test` as part of `pnpm validate:ci`; repair any TypeScript or runtime failures before marking `TST-001` done.
+
+## Feature Pass 99 production doctor
+
+Begin the next installed-environment pass with:
+
+```bash
+pnpm doctor:proof
+pnpm install --frozen-lockfile
+MVP_RESTORE_DATABASE_URL=postgres://postgres:postgres@localhost:5432/drugdeal_game_restore pnpm prove:mvp-runtime
+```
+
+Do not bypass the preflight except to diagnose the doctor itself. Generate and commit `pnpm-lock.yaml` using the pinned pnpm 9.15.4 before treating dependency installation as reproducible.
+
+
+## Feature Pass 100 installed CI and observability update
+
+The project now contains a committed `pnpm-lock.yaml`, and the pinned pnpm 9.15.4 workspace can install and execute dependency-backed checks. The next pass should continue `VAL-001` with Docker/PostgreSQL available: run the strict doctor, apply all migrations to a clean database, execute runtime smoke, and prove backup/restore. For observability, configure `OBSERVABILITY_HTTP_ENDPOINT`, `OBSERVABILITY_ALERT_ENDPOINT`, and `APP_RELEASE`, then verify the deployment steps in `docs/observability-runbook.md`.
+
+- The installed test run found and fixed direct Node JSX execution for `StatCard` by adding the required React runtime import.
+- Next production build concurrency is now bounded by `NEXT_BUILD_CPUS` (default 4) to prevent resource exhaustion on shared CI hosts.
+- Static validation, workspace typecheck, production build, and all executable package tests passed after the repairs.

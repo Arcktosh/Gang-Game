@@ -20,7 +20,8 @@
     "react": "latest",
     "react-dom": "latest",
     "zod": "latest",
-    "ioredis": "latest"
+    "ioredis": "latest",
+    "@drugdeal/observability": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

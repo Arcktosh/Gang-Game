@@ -10,7 +10,7 @@ Use this file as the first read for future tasks. The docs are intentionally com
 | Implement a route | `docs/api-reference.md` | route file and related validator |
 | Change schema/data | `docs/migration-guide.md` | latest SQL migration and DB query file |
 | Validate a pass | `docs/validation-audit.md`, `docs/mvp-acceptance.md` | specific `scripts/*.mjs` validator |
-| Prepare beta/release | `docs/mvp-release-runbook.md`, `docs/runtime-smoke.md`, `docs/backup-restore.md` | `docs/integration-testing.md` |
+| Prepare beta/release | `docs/mvp-release-runbook.md`, `docs/runtime-smoke.md`, `docs/backup-restore.md` | `docs/integration-testing.md`, `docs/observability-runbook.md` |
 | Launch/legal content | `docs/privacy-policy.md`, `docs/terms-of-service.md`, `docs/community-rules.md`, `docs/beta-test-plan.md` | public pages |
 | Monetization work | `docs/monetization.md` | product/entitlement schema and checkout routes |
 

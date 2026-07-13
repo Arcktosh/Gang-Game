@@ -80,12 +80,14 @@
         "Every discovered failure is fixed or recorded as a new task with reproduction details."
       ],
       "commands": [
+        "pnpm doctor:proof",
         "pnpm install",
         "docker compose up -d",
         "pnpm db:setup",
         "pnpm validate:ci",
         "pnpm prove:mvp-runtime"
-      ]
+      ],
+      "notes": "Feature Pass 100 generated pnpm-lock.yaml with pnpm 9.15.4 and passed dependency installation, the complete static gate, workspace typechecking, the production Next.js build, and all executable package tests. It also capped Next build parallelism through NEXT_BUILD_CPUS after the sandbox exposed excessive 55-worker page generation. VAL-001 remains open only for Docker/PostgreSQL migration, live app/worker smoke, backup, restore, Redis-required, and database integration proof."
     },
     {
       "id": "VAL-002",
@@ -225,7 +227,7 @@
     {
       "id": "TST-001",
       "title": "Replace placeholder package tests with executable baselines",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "type": "testing",
       "scope": [
@@ -249,7 +251,8 @@
       ],
       "commands": [
         "pnpm test"
-      ]
+      ],
+      "notes": "Feature Pass 100 executed the worker, database, UI, web, validator, game, and observability test suites through the pinned pnpm workspace as part of validate:ci."
     },
     {
       "id": "OPS-001",
@@ -278,7 +281,8 @@
       ],
       "commands": [
         "pnpm validate:ci"
-      ]
+      ],
+      "notes": "Feature Pass 100 added the vendor-neutral @drugdeal/observability package, recursive redaction, structured web/worker events, HTTP event and alert sinks, health configuration visibility, critical API/worker alerts, graceful worker lifecycle telemetry, tests, and an operations runbook. External sink deployment, alert ownership verification, dashboards, and live incident exercises remain."
     },
     {
       "id": "OPS-002",

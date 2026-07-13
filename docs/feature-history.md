@@ -5670,3 +5670,35 @@ node scripts/validate-docs.mjs
 ```
 
 Full dependency-backed typecheck, build, tests, and runtime proof remain part of `VAL-001` in `.agent-memory/tasks.json`.
+
+## Feature Pass 98 - executable package test baselines
+
+- Replaced placeholder test commands in `@drugdeal/worker`, `@drugdeal/db`, and `@drugdeal/ui` with executable Node test suites run through `tsx`.
+- Added deterministic worker retry/backoff and dead-letter tests through an injected execution seam; runtime scheduling behavior and defaults remain unchanged.
+- Extracted transaction integer normalization into a pure database helper and added boundary tests for monetary values, quantities, and signed deltas.
+- Added semantic contract tests for the shared `StatCard` component.
+- Added `validate-package-test-baselines.mjs` to the static validation chain so placeholder package tests cannot return unnoticed.
+- Installed-environment execution of these suites remains part of `VAL-001`/`TST-001` because the offline refactor environment cannot install the pinned pnpm toolchain.
+
+## Feature Pass 99 — production proof preflight
+
+- Added `pnpm doctor:production` and strict `pnpm doctor:proof` preflight commands.
+- Added actionable checks for Node 22, the pinned pnpm version, Docker Compose v2, PostgreSQL backup/restore tools, required repository files, database configuration, authentication secret quality, application origin, and the disposable restore database.
+- Integrated the strict doctor into `pnpm prove:mvp-runtime` before dependency installation and database work; `--skip-preflight`/`MVP_PROOF_SKIP_PREFLIGHT=true` remain explicit emergency overrides.
+- Added a static validator so the doctor and proof integration cannot silently disappear.
+- The first real preflight exposed concrete environment blockers: pnpm, Docker, PostgreSQL client tools, `MVP_RESTORE_DATABASE_URL`, and the missing committed `pnpm-lock.yaml`.
+
+
+## Feature Pass 100 - production observability foundation and installed CI proof
+
+- Added the shared `@drugdeal/observability` workspace package with structured JSON events, alerts, recursive sensitive-field redaction, bounded payload handling, optional HTTP sinks, release/environment metadata, and safe configuration diagnostics.
+- Instrumented API completion, 5xx responses, and unhandled exceptions with request IDs and durations.
+- Instrumented worker lifecycle, scheduling, retries, overlaps, completion, exhausted retries, dead-letter write failures, startup, and graceful shutdown.
+- Added critical alert events for API exceptions/server errors and worker startup/retry exhaustion.
+- Added `docs/observability-runbook.md`, environment variables, package tests, and `validate-observability-foundation.mjs`.
+- Generated the missing `pnpm-lock.yaml` with pnpm 9.15.4 and installed the complete workspace dependency graph.
+- Ran dependency-backed typechecks and tests, including the previously slow in-memory rate-limiter test.
+
+- The installed test run found and fixed direct Node JSX execution for `StatCard` by adding the required React runtime import.
+- Next production build concurrency is now bounded by `NEXT_BUILD_CPUS` (default 4) to prevent resource exhaustion on shared CI hosts.
+- Static validation, workspace typecheck, production build, and all executable package tests passed after the repairs.

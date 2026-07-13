@@ -57,7 +57,10 @@ function loadMonorepoRootEnv() {
 loadMonorepoRootEnv();
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@drugdeal/db', '@drugdeal/game', '@drugdeal/ui', '@drugdeal/validators'],
+  transpilePackages: ['@drugdeal/db', '@drugdeal/game', '@drugdeal/observability', '@drugdeal/ui', '@drugdeal/validators'],
+  experimental: {
+    cpus: Math.max(1, Number(process.env.NEXT_BUILD_CPUS) || 4),
+  },
   typescript: {
     // The package build script runs `tsc --noEmit` first. Next's internal checker
     // still probes the legacy TypeScript compiler API path, which is incompatible

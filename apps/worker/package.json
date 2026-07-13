@@ -8,14 +8,15 @@
     "build": "tsc --noEmit",
     "lint": "echo 'lint placeholder'",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"no tests yet\""
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "@drugdeal/db": "workspace:*",
     "@drugdeal/game": "workspace:*",
     "bullmq": "latest",
     "drizzle-orm": "^0.45.2",
-    "ioredis": "latest"
+    "ioredis": "latest",
+    "@drugdeal/observability": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "latest",

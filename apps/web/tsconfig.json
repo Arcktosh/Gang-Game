@@ -16,6 +16,9 @@
       ],
       "@drugdeal/ui": [
         "../../packages/ui/src"
+      ],
+      "@drugdeal/observability": [
+        "../../packages/observability/src"
       ]
     },
     "plugins": [

@@ -7,7 +7,7 @@ Runtime proof still required. Feature Pass 56 established the MVP acceptance gat
 1. Run `pnpm prove:mvp-runtime` with dependencies installed, PostgreSQL running, and Redis running.
 2. Run `pnpm prove:integration` against a disposable `TEST_DATABASE_URL`.
 3. Fix any migration, build, typecheck, test, smoke, backup, or restore failures found during proof.
-4. Add external log shipping, alerting, abuse analytics, bot detection, and load testing.
+4. Deploy the configured observability sinks, verify alert ownership/dashboards, then add abuse analytics, bot detection, and load testing.
 
 ## Feature-depth backlog
 
@@ -40,3 +40,14 @@ Feature Pass 96 proof repair update: [x] Admin Console audit workbench state/pro
 
 
 Feature Pass 97 agent-memory update: [x] Added deterministic file/import/manifest/public-API/symbol indexes, a validated JSON task queue, and a stale-memory gate in `pnpm validate:static`.
+
+Feature Pass 98 testing update: [x] Placeholder worker, database, and UI test commands were replaced with executable deterministic baselines. Installed-environment execution is still required before `TST-001` can be closed.
+
+## Feature Pass 99 follow-up
+
+Run `pnpm doctor:proof` first in the installed development or staging environment. Repair every failed prerequisite, including generating and committing `pnpm-lock.yaml` with pnpm 9.15.4, installing Docker Compose v2 and PostgreSQL client tools, and configuring `MVP_RESTORE_DATABASE_URL` to a disposable database. Then rerun `pnpm prove:mvp-runtime` without `--skip-preflight`.
+
+
+## Feature Pass 100 follow-up
+
+The shared observability foundation, API/worker telemetry, redaction, HTTP shipping hooks, runbook, tests, and committed pnpm lockfile are complete. Remaining observability work is operational: configure real event/alert endpoints, verify redaction against production-shaped payloads, create dashboards, test alert routing, and run incident/rollback exercises. `VAL-001` still requires Docker/PostgreSQL-backed migrations, live runtime smoke, backup, and restore proof.
