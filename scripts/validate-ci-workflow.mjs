@@ -21,7 +21,7 @@ if (!fs.existsSync(workflowPath)) {
     'actions/setup-node@v4',
     'node-version: 22',
     'corepack enable',
-    'pnpm install --no-frozen-lockfile',
+    'pnpm install --frozen-lockfile',
     'pnpm validate:ci',
   ];
 

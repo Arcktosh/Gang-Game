@@ -15,6 +15,7 @@ export * from './feature-flags';
 export * from './finance';
 export * from './gambling';
 export * from './inventory';
+export * from './item-images';
 export * from './legal';
 export * from './market';
 export * from './messages';
@@ -50,3 +51,4 @@ export {
   reserveShopListingQuantity,
   resolveCrimeCharacterUpdate,
 } from './transaction-safety';
+export * from './gameplay-actions';

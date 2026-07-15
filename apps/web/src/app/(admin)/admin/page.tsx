@@ -1,4 +1,4 @@
-import { getModerationTransparencySummary, listAdminAnnouncements, listAdminAudit, listAdminEconomyAudit, listAdminInventoryAudit, listAdminLoanExposure, listAdminRollbackCandidates, listAdminSessionAudit, listFeatureFlagStates, listGameConfig, listModerationQueue, listOperationalAnomalies } from '@drugdeal/db';
+import { getModerationTransparencySummary, listAdminAnnouncements, listAdminAudit, listAdminEconomyAudit, listAdminInventoryAudit, listAdminLoanExposure, listAdminRollbackCandidates, listAdminSessionAudit, listFeatureFlagStates, listGameConfig, listItemImageCatalog, listModerationQueue, listOperationalAnomalies } from '@drugdeal/db';
 import { redirect } from 'next/navigation';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { AdminPanel } from '@/features/admin/admin-panel';
@@ -16,7 +16,8 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
-  const [config, featureFlags, audit, announcements, moderation, moderationArchive, transparency, loanExposure, anomalies, economyAudit, inventoryAudit, sessionAudit, rollbackCandidates] = await Promise.all([
+  const canManageProductImages = hasAdminCapability(session.user, 'manage_config');
+  const [config, featureFlags, audit, announcements, moderation, moderationArchive, transparency, loanExposure, anomalies, economyAudit, inventoryAudit, sessionAudit, rollbackCandidates, itemCatalog] = await Promise.all([
     listGameConfig({ includePrivate: true }),
     listFeatureFlagStates(),
     listAdminAudit(50),
@@ -34,6 +35,7 @@ export default async function AdminPage() {
     listAdminInventoryAudit({ limit: 12 }),
     listAdminSessionAudit({ limit: 12, days: 30 }),
     listAdminRollbackCandidates({ limit: 12 }),
+    canManageProductImages ? listItemImageCatalog() : Promise.resolve([]),
   ]);
 
   return (
@@ -51,7 +53,7 @@ export default async function AdminPage() {
           </div>
         </div>
       </header>
-      <AdminPanel config={config} featureFlags={featureFlags} audit={audit} announcements={announcements} moderation={moderation} moderationArchive={moderationArchive} transparency={transparency} loanExposure={loanExposure} anomalies={anomalies} auditWorkbench={{ economy: economyAudit, inventory: inventoryAudit, sessions: sessionAudit }} rollbackCandidates={rollbackCandidates} />
+      <AdminPanel config={config} featureFlags={featureFlags} audit={audit} announcements={announcements} moderation={moderation} moderationArchive={moderationArchive} transparency={transparency} loanExposure={loanExposure} anomalies={anomalies} auditWorkbench={{ economy: economyAudit, inventory: inventoryAudit, sessions: sessionAudit }} rollbackCandidates={rollbackCandidates} itemCatalog={itemCatalog} canManageProductImages={canManageProductImages} />
     </main>
   );
 }

@@ -1,7 +1,10 @@
 'use client';
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { canCreateFactionContract, canWithdrawFactionFunds, type FactionRole } from '@drugdeal/game';
 import { useRouter } from 'next/navigation';
+import { CollapsibleCard } from '@/features/game/collapsible-card';
+import { ProductImage, SupplyDemandGraph } from '@/features/game/product-display';
 import { useToast } from '@/features/ui/toast-provider';
 import { formatDateOnly, formatDateTime } from '@/lib/format';
 
@@ -31,7 +34,7 @@ const DASHBOARD_SECTIONS = [
   { id: 'dashboard-news', label: 'News', icon: '◇' },
 ] as const;
 
-type DashboardSectionId = (typeof DASHBOARD_SECTIONS)[number]['id'];
+export type DashboardSectionId = (typeof DASHBOARD_SECTIONS)[number]['id'];
 
 type Character = {
   id: string;
@@ -120,7 +123,15 @@ type MarketItem = {
   price: number;
   supply: number;
   demand: number;
-  item: { key: string; name: string; category: string; description: string; isIllegal: boolean };
+  item: {
+    key: string;
+    name: string;
+    category: string;
+    description: string;
+    isIllegal: boolean;
+    imageAltText?: string | null;
+    imageUpdatedAt?: string | Date | null;
+  };
 };
 type InventoryItem = { id: string; itemKey: string; quantity: number };
 type StatusDetail = {
@@ -155,12 +166,12 @@ type OwnFaction = {
   membership: {
     factionId: string;
     characterId: string;
-    role: string;
+    role: FactionRole;
     status: string;
     contributionPoints?: number;
   };
   faction: FactionSummary | null;
-  members: { characterId: string; role: string; status: string; contributionPoints?: number }[];
+  members: { characterId: string; role: FactionRole; status: string; contributionPoints?: number }[];
   ledger: {
     id: string;
     entryType: string;
@@ -209,6 +220,10 @@ type ShopDetail = {
     priceEach: number;
     status: string;
     itemName: string;
+    itemCategory?: string;
+    itemDescription?: string;
+    imageAltText?: string | null;
+    imageUpdatedAt?: string | Date | null;
   }[];
   ledger: { id: string; description: string; amount: number; createdAt: string | Date }[];
   reviews?: {
@@ -229,6 +244,10 @@ type ShopListing = {
   itemKey: string;
   itemName: string;
   itemCategory: string;
+  itemDescription: string;
+  isIllegal: boolean;
+  imageAltText?: string | null;
+  imageUpdatedAt?: string | Date | null;
   quantity: number;
   soldQuantity: number;
   priceEach: number;
@@ -918,6 +937,7 @@ type CharacterProgressionHistory = {
 };
 
 type CharacterPanelProps = {
+  activeSection: DashboardSectionId;
   characters: Character[];
   jobs: Job[];
   crimes: Crime[];
@@ -1036,6 +1056,7 @@ async function getJson(path: string) {
 }
 
 export function CharacterPanel({
+  activeSection,
   characters,
   jobs,
   crimes,
@@ -1097,15 +1118,7 @@ export function CharacterPanel({
   const [notificationCategoryFilter, setNotificationCategoryFilter] = useState('all');
   const [notificationPriorityFilter, setNotificationPriorityFilter] = useState('all');
   const [notificationUnreadOnly, setNotificationUnreadOnly] = useState(false);
-  const [activeDashboardSection, setActiveDashboardSection] =
-    useState<DashboardSectionId>('dashboard-overview');
-  const dashboardSectionIds = useMemo(
-    () => new Set<DashboardSectionId>(DASHBOARD_SECTIONS.map((section) => section.id)),
-    [],
-  );
-  const dashboardSectionLabel =
-    DASHBOARD_SECTIONS.find((section) => section.id === activeDashboardSection)?.label ??
-    'Overview';
+  const economySectionOpen = activeSection === 'dashboard-economy';
   const lastToastNotificationIdRef = useRef<string | null>(null);
   const lastIncomingMessageIdRef = useRef<string | null>(null);
   const activeCharacter = characters[0];
@@ -1121,7 +1134,7 @@ export function CharacterPanel({
   const financeHistoryKey = financeHistoryAssetKeys.join('|');
 
   useEffect(() => {
-    if (!activeCharacter?.id) {
+    if (!activeCharacter?.id || activeSection !== 'dashboard-activity') {
       setLiveNotifications(null);
       setLiveNotificationStatus('closed');
       return;
@@ -1166,16 +1179,20 @@ export function CharacterPanel({
       source.close();
       setLiveNotificationStatus('closed');
     };
-  }, [activeCharacter?.id, toast]);
+  }, [activeCharacter?.id, activeSection, toast]);
 
   useEffect(() => {
+    if (activeSection !== 'dashboard-activity') {
+      return;
+    }
+
     if (typeof window === 'undefined' || !('Notification' in window)) {
       setBrowserNotificationPermission('unsupported');
       return;
     }
 
     setBrowserNotificationPermission(Notification.permission);
-  }, []);
+  }, [activeSection]);
 
   useEffect(() => {
     if (!actionLocks.length) {
@@ -1194,7 +1211,7 @@ export function CharacterPanel({
       return;
     }
 
-    if (activeDashboardSection !== 'dashboard-economy') {
+    if (!economySectionOpen) {
       return;
     }
 
@@ -1255,10 +1272,10 @@ export function CharacterPanel({
     return () => {
       cancelled = true;
     };
-  }, [activeDashboardSection, financeHistories, financeHistoryKey]);
+  }, [economySectionOpen, financeHistories, financeHistoryKey]);
 
   useEffect(() => {
-    if (!activeCharacter?.id) {
+    if (!activeCharacter?.id || activeSection !== 'dashboard-messages') {
       setLiveMessages(null);
       setLiveMessageStatus('closed');
       return;
@@ -1290,22 +1307,7 @@ export function CharacterPanel({
       source.close();
       setLiveMessageStatus('closed');
     };
-  }, [activeCharacter?.id, toast]);
-
-  useEffect(() => {
-    function resolveDashboardSectionFromHash() {
-      const hash = window.location.hash.replace('#', '');
-      const nextSection = dashboardSectionIds.has(hash as DashboardSectionId)
-        ? (hash as DashboardSectionId)
-        : 'dashboard-overview';
-      setActiveDashboardSection((current) => (current === nextSection ? current : nextSection));
-    }
-
-    resolveDashboardSectionFromHash();
-    window.addEventListener('hashchange', resolveDashboardSectionFromHash);
-
-    return () => window.removeEventListener('hashchange', resolveDashboardSectionFromHash);
-  }, [dashboardSectionIds]);
+  }, [activeCharacter?.id, activeSection, toast]);
 
   async function handleEnableBrowserAlerts() {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -1827,6 +1829,12 @@ export function CharacterPanel({
   }
 
   const inventoryByKey = new Map(inventory.map((item) => [item.itemKey, item.quantity]));
+  const marketByItemKey = new Map(market.map((entry) => [entry.itemKey, entry]));
+  const purchasableShopListings = shopListings.filter(
+    (listing) =>
+      listing.ownerCharacterId !== activeCharacter.id &&
+      listing.quantity - listing.soldQuantity > 0,
+  );
   const primaryShop = ownShops[0]?.shop ?? null;
   const listableInventory = inventory.filter((item) => item.quantity > 0);
   const activeStatusUntil = statusDetail?.blockedUntil ?? activeCharacter.statusUntil ?? null;
@@ -1902,14 +1910,26 @@ export function CharacterPanel({
     digestEnabled: true,
     digestFrequencyMinutes: 1440,
   };
-  const isSectionActive = (sectionId: DashboardSectionId) => activeDashboardSection === sectionId;
-  const actionGridVisible = [
-    'dashboard-actions',
-    'dashboard-economy',
-    'dashboard-progression',
-    'dashboard-crew',
-    'dashboard-news',
-  ].includes(activeDashboardSection);
+  const dashboardAvailableContracts = (contracts?.openContracts ?? []).filter(
+    (contract) => contract.createdByCharacterId !== activeCharacter.id,
+  );
+  const dashboardOwnContracts = contracts?.mine ?? [];
+  const canPostDashboardFactionContract = Boolean(
+    ownFaction?.faction && canCreateFactionContract(ownFaction.membership.role),
+  );
+  const canWithdrawOwnFactionFunds = Boolean(
+    ownFaction?.faction && canWithdrawFactionFunds(ownFaction.membership.role),
+  );
+  const isSectionActive = (sectionId: DashboardSectionId) => activeSection === sectionId;
+  const actionGridVisible = (
+    [
+      'dashboard-actions',
+      'dashboard-economy',
+      'dashboard-progression',
+      'dashboard-crew',
+      'dashboard-news',
+    ] as DashboardSectionId[]
+  ).includes(activeSection);
   const overviewProgress = [
     {
       label: 'Health',
@@ -1998,8 +2018,6 @@ export function CharacterPanel({
         </div>
       ) : null}
 
-      <p className="dashboard-section-focus">Showing {dashboardSectionLabel}.</p>
-
       {activeCooldowns.length ? (
         <div className="cooldown-summary" aria-live="polite">
           <strong>Action cooldowns</strong>
@@ -2013,13 +2031,10 @@ export function CharacterPanel({
         </div>
       ) : null}
 
-      <div
-        id="dashboard-overview"
-        className="dashboard-section"
-        hidden={!isSectionActive('dashboard-overview')}
-      >
-        <h2>{activeCharacter.name}</h2>
-        <div className="progress-grid">
+      {isSectionActive('dashboard-overview') ? (
+        <div id="dashboard-overview" className="dashboard-section">
+        <CollapsibleCard title={activeCharacter.name} defaultOpen>
+          <div className="progress-grid">
           {overviewProgress.map((item) => (
             <ProgressBar
               key={item.label}
@@ -2044,19 +2059,20 @@ export function CharacterPanel({
             </article>
           ))}
         </div>
-      </div>
+        </CollapsibleCard>
+        </div>
+      ) : null}
 
       {!isAvailable ? (
-        <article
-          hidden={!isSectionActive('dashboard-overview')}
+        <CollapsibleCard
+          title="Character unavailable"
+          defaultOpen
+          visible={isSectionActive('dashboard-overview')}
           style={{
             border: '1px solid #f97316',
-            borderRadius: 12,
-            padding: 16,
             background: 'rgba(249, 115, 22, 0.08)',
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Character unavailable</h3>
           <p style={{ marginBottom: 4 }}>Status: {activeCharacter.status}</p>
           <p style={{ marginBottom: 4 }}>
             Reason: {statusDetail?.reason ?? activeCharacter.statusReason ?? 'No reason recorded.'}
@@ -2072,23 +2088,21 @@ export function CharacterPanel({
           {statusDetail?.jailSentence ? (
             <p style={{ marginBottom: 0 }}>Fine paid/owed: ${statusDetail.jailSentence.fine}</p>
           ) : null}
-        </article>
+        </CollapsibleCard>
       ) : null}
 
       {safetyProfile &&
       (safetyProfile.activeEnforcements.length ||
         safetyProfile.appeals.length ||
         safetyProfile.notes.length) ? (
-        <article
-          hidden={!isSectionActive('dashboard-overview')}
+        <CollapsibleCard
+          title="Safety / Moderation"
+          visible={isSectionActive('dashboard-overview')}
           style={{
             border: '1px solid #f97316',
-            borderRadius: 12,
-            padding: 16,
             background: 'rgba(249, 115, 22, 0.06)',
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Safety / Moderation</h3>
           {safetyProfile.activeEnforcements.length ? (
             <div style={{ display: 'grid', gap: 12 }}>
               <strong>Active enforcements</strong>
@@ -2146,34 +2160,28 @@ export function CharacterPanel({
               ))}
             </div>
           ) : null}
-        </article>
+        </CollapsibleCard>
       ) : null}
 
-      {messageCenter ? (
-        <article
-          className="card dashboard-section"
-          id="dashboard-messages"
-          hidden={!isSectionActive('dashboard-messages')}
-        >
-          <div
-            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
-          >
-            <div>
-              <h3 style={{ margin: 0 }}>Messages / Social</h3>
-              <p style={{ margin: '6px 0 0', color: '#a1a1aa' }}>
+      {messageCenter && isSectionActive('dashboard-messages') ? (
+        <section className="dashboard-section" id="dashboard-messages">
+          <CollapsibleCard
+            title="Messages / Social"
+            meta={
+              <>
                 {liveMessages?.unreadTotal ?? messageCenter.unreadTotal} unread ·{' '}
-                {liveMessages?.threadCount ?? messageCenter.threads.length} active threads ·{' '}
-                {liveMessages?.blockedCount ?? messageCenter.blocked.length} blocked · live{' '}
+                {liveMessages?.threadCount ?? messageCenter.threads.length} threads · live{' '}
                 {liveMessageStatus}
-              </p>
-            </div>
+              </>
+            }
+            defaultOpen
+          >
             {(liveMessages?.blockedByCount ?? messageCenter.blockedByCount) ? (
-              <span style={{ color: '#f97316' }}>
+              <p style={{ color: '#f97316', marginTop: 0 }}>
                 {liveMessages?.blockedByCount ?? messageCenter.blockedByCount} character(s) have
                 blocked you
-              </span>
+              </p>
             ) : null}
-          </div>
           <form onSubmit={handleSendMessage} style={{ display: 'grid', gap: 8, marginTop: 16 }}>
             <strong>Start direct message</strong>
             <select name="recipientCharacterId" required defaultValue="">
@@ -2376,33 +2384,23 @@ export function CharacterPanel({
               </div>
             </div>
           ) : null}
-        </article>
+          </CollapsibleCard>
+        </section>
       ) : null}
 
-      {notificationCenter ? (
-        <article
-          className="card dashboard-section"
-          id="dashboard-activity"
-          hidden={!isSectionActive('dashboard-activity')}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <h3 style={{ margin: 0 }}>Inbox / Activity</h3>
-              <p style={{ margin: '6px 0 0', color: '#a1a1aa' }}>
+      {notificationCenter && isSectionActive('dashboard-activity') ? (
+        <section className="dashboard-section" id="dashboard-activity">
+          <CollapsibleCard
+            title="Inbox / Activity"
+            meta={
+              <>
                 {liveNotifications?.unreadCount ?? notificationCenter.unreadCount} unread ·{' '}
                 {liveNotifications?.highPriorityCount ?? notificationCenter.highPriorityCount} high
-                priority · live {liveNotificationStatus} · urgent browser alerts enabled when
-                permitted
-              </p>
-            </div>
+                priority · live {liveNotificationStatus}
+              </>
+            }
+            defaultOpen
+          >
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
                 disabled={isSubmitting || notificationCenter.unreadCount === 0}
@@ -2439,7 +2437,6 @@ export function CharacterPanel({
                 Browser alerts: {browserNotificationPermission}
               </button>
             </div>
-          </div>
           <div
             style={{
               display: 'grid',
@@ -2633,22 +2630,24 @@ export function CharacterPanel({
               )}
             </div>
           </div>
-        </article>
+          </CollapsibleCard>
+        </section>
       ) : null}
 
-      <div
-        id="dashboard-actions"
-        className="dashboard-section dashboard-section-grid"
-        hidden={!actionGridVisible}
-        style={{
+      {actionGridVisible ? (
+        <div
+          id={activeSection}
+          className="dashboard-section dashboard-section-grid"
+          style={{
           display: 'grid',
           gap: 16,
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         }}
       >
         <ActionCard
-          hidden={!isSectionActive('dashboard-actions')}
+          visible={isSectionActive('dashboard-actions')}
           title="Day Job"
+          defaultOpen
           items={jobs}
           empty="No jobs available."
           render={(job) => (
@@ -2673,7 +2672,7 @@ export function CharacterPanel({
         />
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-actions')}
+          visible={isSectionActive('dashboard-actions')}
           title="Crimes"
           items={crimes.filter((crime) => activeCharacter.level >= crime.requiredLevel)}
           empty="No crimes available at your current level."
@@ -2700,7 +2699,7 @@ export function CharacterPanel({
         />
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-actions')}
+          visible={isSectionActive('dashboard-actions')}
           title="Training"
           items={trainingActivities}
           empty="No training available."
@@ -2736,7 +2735,7 @@ export function CharacterPanel({
         />
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-actions')}
+          visible={isSectionActive('dashboard-actions')}
           title="Education"
           items={courses}
           empty="No courses available."
@@ -2773,8 +2772,10 @@ export function CharacterPanel({
           }}
         />
 
-        <article className="card" hidden={!isSectionActive('dashboard-actions')}>
-          <h3 style={{ marginTop: 0 }}>Training queue</h3>
+        <CollapsibleCard
+          title="Training queue"
+          visible={isSectionActive('dashboard-actions')}
+        >
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Active training {activeTrainingQueue.length} · active courses {activeCourseQueue.length}
             {nextProgressionDueAt ? ` · next completion ${formatDateTime(nextProgressionDueAt)}` : ''}
@@ -2794,10 +2795,10 @@ export function CharacterPanel({
               <span style={{ color: '#a1a1aa' }}>No active training or education timers.</span>
             )}
           </div>
-        </article>
+        </CollapsibleCard>
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-actions')}
+          visible={isSectionActive('dashboard-actions')}
           title="Travel"
           items={routes}
           empty="No routes from this location."
@@ -2822,8 +2823,10 @@ export function CharacterPanel({
           )}
         />
 
-        <article className="card" hidden={!isSectionActive('dashboard-actions')}>
-          <h3 style={{ marginTop: 0 }}>Legal / Recovery</h3>
+        <CollapsibleCard
+          title="Legal / Recovery"
+          visible={isSectionActive('dashboard-actions')}
+        >
           <div style={{ display: 'grid', gap: 8 }}>
             <button
               disabled={isSubmitting || activeCharacter.heat <= 0}
@@ -2891,10 +2894,14 @@ export function CharacterPanel({
               Private hospital care · $350
             </button>
           </div>
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" id="dashboard-crew" hidden={!isSectionActive('dashboard-crew')}>
-          <h3 style={{ marginTop: 0 }}>Faction</h3>
+        <CollapsibleCard
+          title="Faction"
+          id="dashboard-crew"
+          visible={isSectionActive('dashboard-crew')}
+          defaultOpen
+        >
           {ownFaction?.faction ? (
             <div style={{ display: 'grid', gap: 12 }}>
               <div>
@@ -2920,18 +2927,20 @@ export function CharacterPanel({
                 >
                   Deposit $50
                 </button>
-                <button
-                  disabled={isSubmitting}
-                  onClick={() =>
-                    runAction(
-                      `/api/factions/${ownFaction.faction?.id}/bank`,
-                      { characterId: activeCharacter.id, action: 'withdraw', amount: 50 },
-                      'Withdrew $50 from the faction bank.',
-                    )
-                  }
-                >
-                  Withdraw $50
-                </button>
+                {canWithdrawOwnFactionFunds ? (
+                  <button
+                    disabled={isSubmitting}
+                    onClick={() =>
+                      runAction(
+                        `/api/factions/${ownFaction.faction?.id}/bank`,
+                        { characterId: activeCharacter.id, action: 'withdraw', amount: 50 },
+                        'Withdrew $50 from the faction bank.',
+                      )
+                    }
+                  >
+                    Withdraw $50
+                  </button>
+                ) : null}
                 <button
                   disabled={isSubmitting}
                   onClick={() =>
@@ -3002,10 +3011,10 @@ export function CharacterPanel({
               </div>
             </div>
           )}
-        </article>
+        </CollapsibleCard>
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-crew')}
+          visible={isSectionActive('dashboard-crew')}
           title="Territories"
           items={territories}
           empty="No territories available."
@@ -3125,12 +3134,12 @@ export function CharacterPanel({
           }}
         />
 
-        <article
-          className="card"
+        <CollapsibleCard
+          title="Player Shops"
           id="dashboard-economy"
-          hidden={!isSectionActive('dashboard-economy')}
+          visible={isSectionActive('dashboard-economy')}
+          defaultOpen
         >
-          <h3 style={{ marginTop: 0 }}>Player Shops</h3>
           {primaryShop ? (
             <div style={{ display: 'grid', gap: 10 }}>
               <strong>
@@ -3249,68 +3258,92 @@ export function CharacterPanel({
               </button>
             </form>
           )}
-          <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-            <strong>Local listings</strong>
-            {shopListings.length ? (
-              shopListings.slice(0, 8).map((listing) => {
+          {purchasableShopListings.length > 0 ? (
+            <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+              <strong>Local listings</strong>
+              {purchasableShopListings.slice(0, 8).map((listing) => {
                 const remaining = listing.quantity - listing.soldQuantity;
-                return (
-                  <div key={listing.listingId} style={{ display: 'grid', gap: 4 }}>
-                    <button
-                      disabled={
-                        isSubmitting ||
-                        !isAvailable ||
-                        listing.ownerCharacterId === activeCharacter.id ||
-                        remaining < 1
-                      }
-                      onClick={() =>
-                        runAction(
-                          '/api/shops/purchase',
-                          {
-                            characterId: activeCharacter.id,
-                            listingId: listing.listingId,
-                            quantity: 1,
-                          },
-                          `Bought ${listing.itemName} from ${listing.shopName}.`,
-                        )
-                      }
-                    >
-                      {listing.itemName} · ${listing.priceEach} · {remaining} left ·{' '}
-                      {listing.shopName}
-                    </button>
-                    <button
-                      disabled={
-                        isSubmitting ||
-                        !isAvailable ||
-                        listing.ownerCharacterId === activeCharacter.id
-                      }
-                      onClick={() =>
-                        runAction(
-                          '/api/shops/actions',
-                          {
-                            action: 'review',
-                            characterId: activeCharacter.id,
-                            shopId: listing.shopId,
-                            rating: 5,
-                            body: 'Reliable local seller.',
-                          },
-                          `Reviewed ${listing.shopName}.`,
-                        )
-                      }
-                    >
-                      Leave 5-star review for {listing.shopName}
-                    </button>
-                  </div>
-                );
-              })
-            ) : (
-              <span style={{ color: '#a1a1aa' }}>No active local shop listings.</span>
-            )}
-          </div>
-        </article>
+                const localMarket = marketByItemKey.get(listing.itemKey);
 
-        <article className="card" id="dashboard-news" hidden={!isSectionActive('dashboard-news')}>
-          <h3 style={{ marginTop: 0 }}>Newspaper</h3>
+                return (
+                  <article className="dashboard-product" key={listing.listingId}>
+                    <ProductImage
+                      compact
+                      imageAltText={listing.imageAltText}
+                      imageUpdatedAt={listing.imageUpdatedAt}
+                      itemKey={listing.itemKey}
+                      name={listing.itemName}
+                    />
+                    <div className="dashboard-product__content">
+                      <strong>{listing.itemName}</strong>
+                      <span className="dashboard-product__meta">
+                        ${listing.priceEach} · {remaining} left · {listing.shopName}
+                      </span>
+                      <div className="dashboard-product__actions">
+                        <button
+                          disabled={isSubmitting || !isAvailable}
+                          onClick={() =>
+                            runAction(
+                              '/api/shops/purchase',
+                              {
+                                characterId: activeCharacter.id,
+                                listingId: listing.listingId,
+                                quantity: 1,
+                              },
+                              `Bought ${listing.itemName} from ${listing.shopName}.`,
+                            )
+                          }
+                        >
+                          Purchase 1
+                        </button>
+                        <button
+                          disabled={isSubmitting || !isAvailable}
+                          onClick={() =>
+                            runAction(
+                              '/api/shops/actions',
+                              {
+                                action: 'review',
+                                characterId: activeCharacter.id,
+                                shopId: listing.shopId,
+                                rating: 5,
+                                body: 'Reliable local seller.',
+                              },
+                              `Reviewed ${listing.shopName}.`,
+                            )
+                          }
+                        >
+                          Leave 5-star review
+                        </button>
+                      </div>
+                      <details className="product-details">
+                        <summary>View details</summary>
+                        <div className="product-details__body">
+                          <p>{listing.itemDescription || 'No product description is available.'}</p>
+                          <p>
+                            {listing.itemCategory} sold by {listing.shopName} in {listing.location}.
+                          </p>
+                          {localMarket ? (
+                            <SupplyDemandGraph
+                              supply={localMarket.supply}
+                              demand={localMarket.demand}
+                            />
+                          ) : null}
+                        </div>
+                      </details>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+        </CollapsibleCard>
+
+        <CollapsibleCard
+          title="Newspaper"
+          id="dashboard-news"
+          visible={isSectionActive('dashboard-news')}
+          defaultOpen
+        >
           <form
             onSubmit={handleSubmitArticle}
             style={{ display: 'grid', gap: 8, marginBottom: 12 }}
@@ -3419,10 +3452,12 @@ export function CharacterPanel({
               <span style={{ color: '#a1a1aa' }}>No articles yet.</span>
             )}
           </div>
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Banking</h3>
+        <CollapsibleCard
+          title="Banking"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Move funds between pocket cash and protected bank balance. Cash is used for most quick
             actions; bank balance counts toward net worth and safer long-term progression.
@@ -3569,11 +3604,13 @@ export function CharacterPanel({
               <span style={{ color: '#a1a1aa' }}>No matching bank transactions yet.</span>
             )}
           </div>
-        </article>
+        </CollapsibleCard>
 
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Loans</h3>
+        <CollapsibleCard
+          title="Loans"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Use fictional short-term loans as a controlled cashflow tool. Funds are deposited into
             the bank and must be repaid from the bank balance before another loan can be opened.
@@ -3693,10 +3730,12 @@ export function CharacterPanel({
               ))}
             </div>
           ) : null}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Money Sinks</h3>
+        <CollapsibleCard
+          title="Money Sinks"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Spend excess cash or bank balance on temporary lifestyle and service purchases. These
             are intentionally low-impact drains for economy balancing and audit visibility.
@@ -3740,10 +3779,12 @@ export function CharacterPanel({
               <span style={{ color: '#a1a1aa' }}>No money sinks configured.</span>
             )}
           </div>
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Stocks & Crypto</h3>
+        <CollapsibleCard
+          title="Stocks & Crypto"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
             {financeMarket.length ? (
               financeMarket.slice(0, 10).map((entry) => {
@@ -3883,10 +3924,12 @@ export function CharacterPanel({
               </span>
             ) : null}
           </div>
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Casino</h3>
+        <CollapsibleCard
+          title="Casino"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <p style={{ color: '#a1a1aa', marginTop: 0 }}>
             Table limit ${gamblingTableLimit} · lifetime profit {gamblingProfit >= 0 ? '+' : ''}$
             {gamblingProfit} · wagers {gamblingWagerCount}
@@ -3981,10 +4024,12 @@ export function CharacterPanel({
               <span style={{ color: '#a1a1aa' }}>No wagers yet.</span>
             )}
           </div>
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-economy')}>
-          <h3 style={{ marginTop: 0 }}>Contracts</h3>
+        <CollapsibleCard
+          title="Contracts"
+          visible={isSectionActive('dashboard-economy')}
+        >
           <form
             onSubmit={handleCreateContract}
             style={{ display: 'grid', gap: 8, marginBottom: 12 }}
@@ -3994,7 +4039,9 @@ export function CharacterPanel({
               <option value="protection">Protection</option>
               <option value="collection">Collection</option>
               <option value="bounty">Bounty</option>
-              <option value="faction_task">Faction task</option>
+              {canPostDashboardFactionContract ? (
+                <option value="faction_task">Faction task</option>
+              ) : null}
             </select>
             <input
               name="title"
@@ -4031,10 +4078,10 @@ export function CharacterPanel({
               {cooldownButtonLabel('contract_create', 'Post contract')}
             </button>
           </form>
-          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-            <strong>Open board</strong>
-            {contracts?.openContracts?.length ? (
-              contracts.openContracts.slice(0, 6).map((contract) => (
+          {dashboardAvailableContracts.length > 0 ? (
+            <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+              <strong>Open board</strong>
+              {dashboardAvailableContracts.slice(0, 6).map((contract) => (
                 <div
                   key={contract.id}
                   style={{ borderTop: '1px solid #27272a', display: 'grid', gap: 6, paddingTop: 8 }}
@@ -4051,7 +4098,6 @@ export function CharacterPanel({
                     disabled={
                       isSubmitting ||
                       !isAvailable ||
-                      contract.createdByCharacterId === activeCharacter.id ||
                       hasActionCooldown('contract_accept')
                     }
                     onClick={() =>
@@ -4065,74 +4111,78 @@ export function CharacterPanel({
                     Accept
                   </button>
                 </div>
-              ))
-            ) : (
-              <span style={{ color: '#a1a1aa' }}>No open contracts yet.</span>
-            )}
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            <strong>My contracts</strong>
-            {contracts?.mine?.length ? (
-              contracts.mine.slice(0, 6).map((contract) => (
-                <div
-                  key={contract.id}
-                  style={{ borderTop: '1px solid #27272a', display: 'grid', gap: 6, paddingTop: 8 }}
-                >
-                  <strong>{contract.title}</strong>
-                  <span style={{ color: '#a1a1aa' }}>
-                    {contract.status} · {contract.contractType} · ${contract.reward} · target{' '}
-                    {contract.targetLocation ?? 'anywhere'}
-                  </span>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      disabled={
-                        isSubmitting ||
-                        !isAvailable ||
-                        contract.assignedToCharacterId !== activeCharacter.id ||
-                        contract.status !== 'accepted' ||
-                        hasActionCooldown('contract_complete')
-                      }
-                      onClick={() =>
-                        runAction(
-                          `/api/contracts/${contract.id}/complete`,
-                          { characterId: activeCharacter.id },
-                          `Completed ${contract.title}.`,
-                        )
-                      }
-                    >
-                      Complete
-                    </button>
-                    <button
-                      disabled={
-                        isSubmitting ||
-                        contract.createdByCharacterId !== activeCharacter.id ||
-                        contract.status !== 'open'
-                      }
-                      onClick={() =>
-                        runAction(
-                          `/api/contracts/${contract.id}/cancel`,
-                          { characterId: activeCharacter.id },
-                          `Cancelled ${contract.title}.`,
-                        )
-                      }
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <span style={{ color: '#a1a1aa' }}>You have no contracts yet.</span>
-            )}
-          </div>
-        </article>
+              ))}
+            </div>
+          ) : null}
+          {dashboardOwnContracts.length > 0 ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <strong>My contracts</strong>
+              {dashboardOwnContracts.slice(0, 6).map((contract) => {
+                const canComplete =
+                  contract.assignedToCharacterId === activeCharacter.id &&
+                  contract.status === 'accepted';
+                const canCancel =
+                  contract.createdByCharacterId === activeCharacter.id && contract.status === 'open';
 
-        <article
-          className="card"
+                return (
+                  <div
+                    key={contract.id}
+                    style={{ borderTop: '1px solid #27272a', display: 'grid', gap: 6, paddingTop: 8 }}
+                  >
+                    <strong>{contract.title}</strong>
+                    <span style={{ color: '#a1a1aa' }}>
+                      {contract.status} · {contract.contractType} · ${contract.reward} · target{' '}
+                      {contract.targetLocation ?? 'anywhere'}
+                    </span>
+                    {canComplete || canCancel ? (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {canComplete ? (
+                          <button
+                            disabled={
+                              isSubmitting ||
+                              !isAvailable ||
+                              hasActionCooldown('contract_complete')
+                            }
+                            onClick={() =>
+                              runAction(
+                                `/api/contracts/${contract.id}/complete`,
+                                { characterId: activeCharacter.id },
+                                `Completed ${contract.title}.`,
+                              )
+                            }
+                          >
+                            Complete
+                          </button>
+                        ) : null}
+                        {canCancel ? (
+                          <button
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              runAction(
+                                `/api/contracts/${contract.id}/cancel`,
+                                { characterId: activeCharacter.id },
+                                `Cancelled ${contract.title}.`,
+                              )
+                            }
+                          >
+                            Cancel
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </CollapsibleCard>
+
+        <CollapsibleCard
+          title="Goals / Profile"
           id="dashboard-progression"
-          hidden={!isSectionActive('dashboard-progression')}
+          visible={isSectionActive('dashboard-progression')}
+          defaultOpen
         >
-          <h3 style={{ marginTop: 0 }}>Goals / Profile</h3>
           {progressionProfile ? (
             <div style={{ display: 'grid', gap: 12 }}>
               <p style={{ color: '#a1a1aa', marginTop: 0 }}>
@@ -4287,10 +4337,12 @@ export function CharacterPanel({
               Create a character to start earning achievements and objectives.
             </span>
           )}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-progression')}>
-          <h3 style={{ marginTop: 0 }}>Season / Legacy</h3>
+        <CollapsibleCard
+          title="Season / Legacy"
+          visible={isSectionActive('dashboard-progression')}
+        >
           {seasonProfile ? (
             <div style={{ display: 'grid', gap: 12 }}>
               {seasonProfile.season ? (
@@ -4419,14 +4471,15 @@ export function CharacterPanel({
           ) : (
             <span style={{ color: '#a1a1aa' }}>Season profile unavailable.</span>
           )}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-progression')}>
-          <h3 style={{ marginTop: 0 }}>Crafting / Workshops</h3>
+        <CollapsibleCard
+          title="Crafting / Workshops"
+          visible={isSectionActive('dashboard-progression')}
+        >
 
           {contactsProfile ? (
-            <article className="card">
-              <h3 style={{ marginTop: 0 }}>Contacts / Crew</h3>
+            <CollapsibleCard title="Contacts / Crew">
               <div style={{ display: 'grid', gap: 10 }}>
                 <strong>Recruitable</strong>
                 {contactsProfile.recruitable
@@ -4568,7 +4621,7 @@ export function CharacterPanel({
                   </p>
                 ))}
               </div>
-            </article>
+            </CollapsibleCard>
           ) : null}
 
           {craftingProfile ? (
@@ -4722,10 +4775,12 @@ export function CharacterPanel({
           ) : (
             <span style={{ color: '#a1a1aa' }}>Crafting profile unavailable.</span>
           )}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-progression')}>
-          <h3 style={{ marginTop: 0 }}>Vehicles / Garage</h3>
+        <CollapsibleCard
+          title="Vehicles / Garage"
+          visible={isSectionActive('dashboard-progression')}
+        >
           {vehicleProfile?.vehicles.length ? (
             <div style={{ display: 'grid', gap: 12 }}>
               {vehicleProfile.vehicles.map((vehicle) => {
@@ -4797,10 +4852,12 @@ export function CharacterPanel({
               and vehicle upgrades.
             </p>
           )}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-progression')}>
-          <h3 style={{ marginTop: 0 }}>Gear / Equipment</h3>
+        <CollapsibleCard
+          title="Gear / Equipment"
+          visible={isSectionActive('dashboard-progression')}
+        >
           {equipmentProfile ? (
             <div style={{ display: 'grid', gap: 14 }}>
               <div style={{ display: 'grid', gap: 6 }}>
@@ -4938,10 +4995,12 @@ export function CharacterPanel({
           ) : (
             <span style={{ color: '#a1a1aa' }}>Equipment profile unavailable.</span>
           )}
-        </article>
+        </CollapsibleCard>
 
-        <article className="card" hidden={!isSectionActive('dashboard-crew')}>
-          <h3 style={{ marginTop: 0 }}>PvP / Bounties / Wars</h3>
+        <CollapsibleCard
+          title="PvP / Bounties / Wars"
+          visible={isSectionActive('dashboard-crew')}
+        >
           {pvpProfile ? (
             <div style={{ display: 'grid', gap: 16 }}>
               <div style={{ display: 'grid', gap: 8 }}>
@@ -5109,64 +5168,84 @@ export function CharacterPanel({
           ) : (
             <span style={{ color: '#a1a1aa' }}>PvP profile unavailable.</span>
           )}
-        </article>
+        </CollapsibleCard>
 
         <ActionCard
-          hidden={!isSectionActive('dashboard-economy')}
+          visible={isSectionActive('dashboard-economy')}
           title="Market"
           items={market}
           empty="No market prices available."
           render={(entry) => {
             const owned = inventoryByKey.get(entry.item.key) ?? 0;
             return (
-              <div style={{ display: 'grid', gap: 6 }}>
-                <strong>{entry.item.name}</strong>
-                <span>
-                  ${entry.price} · supply {entry.supply} · owned {owned}
-                </span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button
-                    disabled={isSubmitting || !isAvailable || hasActionCooldown('market_buy')}
-                    onClick={() =>
-                      runAction(
-                        '/api/market',
-                        {
-                          action: 'buy',
-                          characterId: activeCharacter.id,
-                          itemKey: entry.item.key,
-                          quantity: 1,
-                        },
-                        `Bought ${entry.item.name}.`,
-                      )
-                    }
-                  >
-                    Buy 1
-                  </button>
-                  <button
-                    disabled={
-                      isSubmitting || !isAvailable || owned < 1 || hasActionCooldown('market_sell')
-                    }
-                    onClick={() =>
-                      runAction(
-                        '/api/market',
-                        {
-                          action: 'sell',
-                          characterId: activeCharacter.id,
-                          itemKey: entry.item.key,
-                          quantity: 1,
-                        },
-                        `Sold ${entry.item.name}.`,
-                      )
-                    }
-                  >
-                    Sell 1
-                  </button>
+              <article className="dashboard-product">
+                <ProductImage
+                  compact
+                  imageAltText={entry.item.imageAltText}
+                  imageUpdatedAt={entry.item.imageUpdatedAt}
+                  itemKey={entry.item.key}
+                  name={entry.item.name}
+                />
+                <div className="dashboard-product__content">
+                  <strong>{entry.item.name}</strong>
+                  <span className="dashboard-product__meta">
+                    ${entry.price} · supply {entry.supply} · owned {owned}
+                  </span>
+                  <div className="dashboard-product__actions">
+                    <button
+                      disabled={isSubmitting || !isAvailable || hasActionCooldown('market_buy')}
+                      onClick={() =>
+                        runAction(
+                          '/api/market',
+                          {
+                            action: 'buy',
+                            characterId: activeCharacter.id,
+                            itemKey: entry.item.key,
+                            quantity: 1,
+                          },
+                          `Bought ${entry.item.name}.`,
+                        )
+                      }
+                    >
+                      Buy 1
+                    </button>
+                    <button
+                      disabled={
+                        isSubmitting ||
+                        !isAvailable ||
+                        owned < 1 ||
+                        hasActionCooldown('market_sell')
+                      }
+                      onClick={() =>
+                        runAction(
+                          '/api/market',
+                          {
+                            action: 'sell',
+                            characterId: activeCharacter.id,
+                            itemKey: entry.item.key,
+                            quantity: 1,
+                          },
+                          `Sold ${entry.item.name}.`,
+                        )
+                      }
+                    >
+                      Sell 1
+                    </button>
+                  </div>
+                  <details className="product-details">
+                    <summary>View details</summary>
+                    <div className="product-details__body">
+                      <p>{entry.item.description || 'No product description is available.'}</p>
+                      <SupplyDemandGraph supply={entry.supply} demand={entry.demand} />
+                    </div>
+                  </details>
                 </div>
-              </div>
+              </article>
             );
           }}
         />
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -5209,21 +5288,22 @@ function ActionCard<T>({
   items,
   empty,
   render,
-  hidden = false,
+  visible = true,
+  defaultOpen = false,
 }: {
   title: string;
   items: T[];
   empty: string;
   render: (item: T) => ReactNode;
-  hidden?: boolean;
+  visible?: boolean;
+  defaultOpen?: boolean;
 }) {
-  if (hidden) {
+  if (!visible) {
     return null;
   }
 
   return (
-    <article className="card">
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
+    <CollapsibleCard title={title} defaultOpen={defaultOpen}>
       <div style={{ display: 'grid', gap: 8 }}>
         {items.length ? (
           items.map((item, index) => <div key={index}>{render(item)}</div>)
@@ -5231,6 +5311,6 @@ function ActionCard<T>({
           <p>{empty}</p>
         )}
       </div>
-    </article>
+    </CollapsibleCard>
   );
 }

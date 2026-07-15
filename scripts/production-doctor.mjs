@@ -10,6 +10,8 @@ const proofMode = args.has('--proof');
 const skipDocker = args.has('--skip-docker') || envBoolean('MVP_PROOF_SKIP_DOCKER');
 const skipBackup = args.has('--skip-backup') || envBoolean('MVP_PROOF_SKIP_BACKUP');
 const skipServer = args.has('--skip-server') || envBoolean('MVP_PROOF_SKIP_SERVER');
+const skipWorker = args.has('--skip-worker') || envBoolean('MVP_PROOF_SKIP_WORKER');
+const skipRedisProof = args.has('--skip-redis-proof') || envBoolean('MVP_PROOF_SKIP_REDIS_PROOF');
 const checks = [];
 
 function envBoolean(name) {
@@ -171,6 +173,26 @@ if (!skipServer) {
   add('application-origin', validAppUrl, {
     actual: appUrl,
     remediation: 'Set NEXT_PUBLIC_APP_URL or APP_ORIGIN to a valid HTTP(S) origin.',
+  });
+}
+
+if (proofMode && !skipRedisProof) {
+  const redisUrl = mergedEnv.RATE_LIMIT_REDIS_URL || mergedEnv.REDIS_URL;
+  let validRedisUrl = false;
+  try {
+    validRedisUrl = ['redis:', 'rediss:'].includes(new URL(redisUrl).protocol);
+  } catch {
+    validRedisUrl = false;
+  }
+  add('redis-rate-limit-url', validRedisUrl, {
+    actual: validRedisUrl ? 'configured' : 'missing or invalid',
+    remediation: 'Set REDIS_URL or RATE_LIMIT_REDIS_URL to the Redis instance used by the application.',
+  });
+}
+
+if (proofMode && !skipWorker) {
+  add('worker-package', fs.existsSync(path.join(repoRoot, 'apps/worker/package.json')), {
+    remediation: 'Restore apps/worker/package.json before running the worker stability proof.',
   });
 }
 

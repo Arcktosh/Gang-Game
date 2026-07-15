@@ -2,7 +2,9 @@
 
 import { FormEvent, useState } from 'react';
 import type { AdminEconomyAuditTransaction, AdminInventoryAuditItem, AdminSessionAuditSession, AdminTransactionType } from '@drugdeal/db';
+import type { ItemImageCatalogEntry } from '@drugdeal/db';
 import { useRouter } from 'next/navigation';
+import { ProductImage } from '@/features/game/product-display';
 import { useToast } from '@/features/ui/toast-provider';
 import { formatDateTime } from '@/lib/format';
 
@@ -332,6 +334,8 @@ type AdminPanelProps = {
   anomalies: OperationalAnomalyList;
   auditWorkbench: AdminAuditWorkbench;
   rollbackCandidates: AdminRollbackCandidates;
+  itemCatalog: ItemImageCatalogEntry[];
+  canManageProductImages: boolean;
 };
 
 async function sendJson(path: string, method: 'POST' | 'PATCH', body: unknown) {
@@ -349,7 +353,7 @@ async function sendJson(path: string, method: 'POST' | 'PATCH', body: unknown) {
   return result;
 }
 
-export function AdminPanel({ config, featureFlags, audit, announcements, moderation, moderationArchive, transparency, loanExposure, anomalies, auditWorkbench, rollbackCandidates }: AdminPanelProps) {
+export function AdminPanel({ config, featureFlags, audit, announcements, moderation, moderationArchive, transparency, loanExposure, anomalies, auditWorkbench, rollbackCandidates, itemCatalog, canManageProductImages }: AdminPanelProps) {
   const router = useRouter();
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
@@ -423,6 +427,61 @@ export function AdminPanel({ config, featureFlags, audit, announcements, moderat
     }
 
     await runAdminAction('/api/admin/config', 'PATCH', { key, label, category, description, isPublic, value }, `Updated ${key}.`);
+  }
+
+  async function handleProductImageUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const itemKey = String(formData.get('itemKey') ?? '').trim();
+    const image = formData.get('image');
+
+    if (!itemKey || !(image instanceof File) || image.size === 0) {
+      toast.warning('Choose a JPEG, PNG, or WebP image before uploading.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/items/${encodeURIComponent(itemKey)}/image`, {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error?.message ?? 'Product image upload failed.');
+      }
+
+      form.reset();
+      toast.success('Product image saved.');
+      router.refresh();
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : 'Product image upload failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleProductImageDelete(itemKey: string) {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/items/${encodeURIComponent(itemKey)}/image`, {
+        method: 'DELETE',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error?.message ?? 'Product image removal failed.');
+      }
+
+      toast.success('Product image removed.');
+      router.refresh();
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : 'Product image removal failed.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
 
@@ -726,6 +785,74 @@ export function AdminPanel({ config, featureFlags, audit, announcements, moderat
 
   return (
     <section style={{ display: 'grid', gap: 24 }}>
+
+      {canManageProductImages ? (
+        <article className="admin-card">
+          <h2 style={{ marginTop: 0 }}>Product images</h2>
+          <p style={{ color: '#a1a1aa', marginTop: 0 }}>
+            Upload one persistent JPEG, PNG, or WebP image per product. Images are validated, stored in PostgreSQL, and reused by market and shop listings. Maximum file size: 2 MiB.
+          </p>
+          <div className="admin-product-grid">
+            {itemCatalog.map((item) => (
+              <section className="admin-product-card" key={item.itemKey}>
+                <div className="admin-product-card__summary">
+                  <ProductImage
+                    compact
+                    imageAltText={item.imageAltText}
+                    imageUpdatedAt={item.imageUpdatedAt}
+                    itemKey={item.itemKey}
+                    name={item.itemName}
+                  />
+                  <div>
+                    <strong>{item.itemName}</strong>
+                    <span>{item.itemCategory} · {item.itemKey}</span>
+                    <span>
+                      {item.imageUpdatedAt && item.imageByteSize
+                        ? `${item.imageContentType} · ${Math.ceil(item.imageByteSize / 1024)} KiB · updated ${formatDateTime(item.imageUpdatedAt)}`
+                        : 'No image uploaded'}
+                    </span>
+                  </div>
+                </div>
+                <details className="admin-product-card__details">
+                  <summary>Image controls and product context</summary>
+                  <p>{item.itemDescription}</p>
+                  <form encType="multipart/form-data" onSubmit={handleProductImageUpload}>
+                    <input name="itemKey" type="hidden" value={item.itemKey} />
+                    <label>
+                      Product image
+                      <input accept="image/jpeg,image/png,image/webp" name="image" required type="file" />
+                    </label>
+                    <label>
+                      Alternative text
+                      <input
+                        defaultValue={item.imageAltText ?? `${item.itemName} product image`}
+                        maxLength={160}
+                        name="altText"
+                        placeholder="Describe the product image"
+                      />
+                    </label>
+                    <div className="admin-product-card__actions">
+                      <button disabled={submitting} type="submit">
+                        {item.imageUpdatedAt ? 'Replace image' : 'Upload image'}
+                      </button>
+                      {item.imageUpdatedAt ? (
+                        <button
+                          className="button-secondary"
+                          disabled={submitting}
+                          onClick={() => void handleProductImageDelete(item.itemKey)}
+                          type="button"
+                        >
+                          Remove image
+                        </button>
+                      ) : null}
+                    </div>
+                  </form>
+                </details>
+              </section>
+            ))}
+          </div>
+        </article>
+      ) : null}
 
       <article className="admin-card">
         <h2 style={{ marginTop: 0 }}>Rollback workbench</h2>

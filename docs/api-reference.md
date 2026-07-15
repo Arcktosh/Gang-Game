@@ -48,6 +48,7 @@ This is the current human-readable API route map. It is intentionally lighter th
 ## Inventory, markets, finance, and gambling
 
 - `GET, POST` `/api/market`
+- `GET` `/api/items/:itemKey/image` - return the current validated product image with cache validators and same-origin media headers.
 - `GET, POST` `/api/inventory` - list item stacks, rarity/value/risk summaries, use consumables, and directly transfer inventory to same-location characters.
 - `GET, POST` `/api/trades` - list private trade center data and create reserved-inventory trade offers.
 - `POST` `/api/trades/:tradeOfferId` - accept or cancel an open private trade offer.
@@ -115,6 +116,7 @@ This is the current human-readable API route map. It is intentionally lighter th
 - `POST` `/api/admin/anomalies/:anomalyId`
 - `GET, POST` `/api/admin/announcements`
 - `GET, PATCH` `/api/admin/config`
+- `POST, DELETE` `/api/admin/items/:itemKey/image` - upload, replace, or remove a JPEG, PNG, or WebP product image; requires `manage_config`.
 - `GET` `/api/admin/economy/loans`
 - `GET` `/api/admin/moderation`
 - `GET, POST` `/api/admin/rollback`

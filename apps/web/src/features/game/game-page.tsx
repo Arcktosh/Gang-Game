@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { listCharactersForUser } from '@drugdeal/db';
 import {
   GameSideMenu,
-  type GameSectionLink,
   type GameSidebarCharacter,
 } from '@/features/game/game-side-menu';
 import { formatDateTime, formatMoney } from '@/lib/format';
@@ -25,7 +24,7 @@ export async function getActiveGameContext(): Promise<ActiveGameContext> {
   const character = characters[0];
 
   if (!character) {
-    redirect('/dashboard');
+    redirect('/create-character');
   }
 
   return { session, character };
@@ -38,7 +37,6 @@ export function GamePageShell({
   children,
   actions,
   sidebarCharacter,
-  sectionItems,
 }: {
   title: string;
   eyebrow?: string;
@@ -46,11 +44,10 @@ export function GamePageShell({
   children: ReactNode;
   actions?: ReactNode;
   sidebarCharacter?: GameSidebarCharacter;
-  sectionItems?: readonly GameSectionLink[];
 }) {
   return (
     <div className="game-layout">
-      <GameSideMenu character={sidebarCharacter} sectionItems={sectionItems} />
+      <GameSideMenu character={sidebarCharacter} />
       <main className="game-page" aria-labelledby="game-page-title">
         <header className="game-page__header">
           <div className="game-page__title-row">

@@ -665,3 +665,46 @@ Feature Pass 56 remains the monetization foundation baseline; Feature Pass 57 bu
 - [x] Add stale-memory validation to `pnpm validate:static`.
 - [x] Normalize shared package barrel exports without changing their public names.
 - [ ] Complete `VAL-001` installed-environment proof before starting dependent refactor tasks.
+
+## Feature Pass 103 - Accessible sections, character gate, and product images
+
+- [x] Redirect authenticated game routes to `/create-character` when the signed-in user has no character.
+- [x] Redirect `/create-character` back to `/dashboard` after a character exists.
+- [x] Replace hash-hidden profile and inventory sections with native, independently collapsible disclosures.
+- [x] Make dashboard sections independently expandable and preserve direct hash navigation.
+- [x] Hide unavailable private/faction contract forms and omit empty available/activity contract sections.
+- [x] Hide faction bank, armory, rank, and territory action surfaces when the active character lacks the required membership, role, stock, or targets.
+- [x] Omit empty shop listing and owner-operation collections while retaining actions the character can perform.
+- [x] Add `0048_item_product_images.sql` for persistent validated product image storage.
+- [x] Add `manage_config`-gated image upload/replace/delete controls to the Admin Console.
+- [x] Display product images in market and shop grids with compact summaries and expandable details.
+- [x] Keep demand out of the standard card summary and display supply/demand as an accessible graph in product details.
+- [x] Add product image validation unit coverage and representative public/admin route contracts.
+- [ ] Installed-environment proof of migration application, image upload/delivery/removal, responsive disclosure behavior, typecheck, tests, and production build.
+
+## Feature Pass 104 - Credential and owner bootstrap hardening
+
+- [x] Add `0049_disable_legacy_dev_owner.sql` without rewriting historical migration checksums.
+- [x] Revoke sessions and one-time tokens for every fixed-id or legacy-email development owner.
+- [x] Invalidate the historical password and remove administrator privileges before production use.
+- [x] Replace direct historical SQL seeding with a development-only, explicitly enabled owner seed command.
+- [x] Require an operator-supplied strong password for local development seeding.
+- [x] Add a separate production-only owner bootstrap/reset command with an exact confirmation phrase.
+- [x] Refuse accidental existing-account resets unless `ADMIN_BOOTSTRAP_ALLOW_EXISTING=true` is deliberately supplied.
+- [x] Execute owner mutations and credential revocation transactionally.
+- [x] Document local seeding, production bootstrap, and the latest migration without publishing a reusable credential.
+- [ ] Execute migration `0049`, guarded local seed, production bootstrap, login, and token-revocation proof against disposable staging databases under `VAL-001`.
+
+## Feature Pass 105 - Routed gameplay hubs and card disclosures
+
+- [x] Promote all eight dashboard sections to dedicated routes while keeping `/dashboard` as the overview page.
+- [x] Promote all six profile sections to dedicated routes while keeping `/profile` as the overview page.
+- [x] Promote all three inventory sections to dedicated routes while keeping `/inventory` as the summary page.
+- [x] Replace page-level section controls with independently operable native card disclosures.
+- [x] Avoid mounting inactive dashboard disclosure content as hidden page content.
+- [x] Add every promoted route to the side navigation and group pages under Overview, Character, Actions, Economy, Inventory, Community, and World.
+- [x] Resolve the active sidebar entry by longest route match so parent and child pages are not simultaneously marked current.
+- [x] Scope notification and message event streams to the activity and message overview routes that use them.
+- [x] Expand source validation to cover all 27 routable player pages and the new navigation/disclosure contracts.
+- [x] Regenerate deterministic agent memory after the route and symbol changes.
+- [ ] Run installed typecheck, tests, optimized build, direct-route browser navigation, keyboard/screen-reader disclosure checks, and responsive sidebar proof under `VAL-001`.

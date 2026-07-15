@@ -1,0 +1,120 @@
+{
+  "summary": {
+    "checkedAt": "2026-07-13T13:41:27.803Z",
+    "dryRun": true,
+    "ok": true,
+    "steps": 18,
+    "skipped": 1,
+    "proofDatabase": "drugdeal_game_mvp_proof",
+    "restoreProofAttempted": true
+  },
+  "results": [
+    {
+      "step": "proof-command-summary",
+      "ok": true,
+      "command": "pnpm install --frozen-lockfile, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm build, pnpm test, Redis-required rate-limit proof, production web start and smoke, worker stability proof, pnpm db:backup, pnpm db:restore"
+    },
+    {
+      "step": "env-file",
+      "ok": true,
+      "skipped": true,
+      "command": "cp .env.example .env"
+    },
+    {
+      "step": "install",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm install --frozen-lockfile"
+    },
+    {
+      "step": "docker-compose",
+      "ok": true,
+      "dryRun": true,
+      "command": "docker compose up -d"
+    },
+    {
+      "step": "database-prepare-mvp-proof",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm --filter @drugdeal/db db:prepare:mvp-proof"
+    },
+    {
+      "step": "migration:db:apply:all",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm db:apply:all"
+    },
+    {
+      "step": "validation:validate:static",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm validate:static"
+    },
+    {
+      "step": "validation:typecheck",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm typecheck"
+    },
+    {
+      "step": "validation:build",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm build"
+    },
+    {
+      "step": "validation:test",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm test"
+    },
+    {
+      "step": "redis-rate-limit-proof",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm prove:redis-rate-limit"
+    },
+    {
+      "step": "web-server",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm --filter @drugdeal/web start"
+    },
+    {
+      "step": "wait-for-health",
+      "ok": true,
+      "dryRun": true,
+      "url": "http://localhost:3000/api/health"
+    },
+    {
+      "step": "runtime-smoke",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm smoke:runtime"
+    },
+    {
+      "step": "worker-process",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm --filter @drugdeal/worker dev"
+    },
+    {
+      "step": "worker-stability",
+      "ok": true,
+      "dryRun": true,
+      "durationMs": 5000
+    },
+    {
+      "step": "database-backup",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm db:backup"
+    },
+    {
+      "step": "database-restore-proof",
+      "ok": true,
+      "dryRun": true,
+      "command": "pnpm db:restore -- backups/mvp-proof/drugdeal-game-mvp-proof.dump"
+    }
+  ]
+}

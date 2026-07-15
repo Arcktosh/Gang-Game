@@ -18,6 +18,7 @@ const requiredDocTokens = [
   'job',
   'crime',
   'legal status',
+  'artifacts/integration-proof.json',
 ];
 const requiredTestTokens = [
   'shouldRunDbIntegrationTests',
@@ -25,6 +26,11 @@ const requiredTestTokens = [
   'createIntegrationUser',
   'createIntegrationCharacter',
   'calculateProgressionFromExperience',
+  'runJobAction',
+  'runCrimeAction',
+  "event.type === 'job_completed'",
+  "event.type === 'crime_succeeded'",
+  'roll back when requirements are not met',
 ];
 
 const errors = [];

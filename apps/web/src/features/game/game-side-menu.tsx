@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  GAME_NAV_GROUPS,
+  resolveActiveGameHref,
+  type GameNavGroup,
+} from '@/features/game/game-navigation';
 import { formatMoney } from '@/lib/format';
 
 export type GameSidebarCharacter = {
@@ -19,71 +24,6 @@ export type GameSidebarCharacter = {
   maxNerve: number;
   heat: number;
 } | null;
-
-export type GameSectionLink = {
-  label: string;
-  href: string;
-  icon: string;
-};
-
-type NavGroup = {
-  label: string;
-  icon: string;
-  items: readonly { label: string; href: string; icon: string }[];
-};
-
-const navGroups: readonly NavGroup[] = [
-  {
-    label: 'Core',
-    icon: '⬢',
-    items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '▣' },
-      { label: 'Profile', href: '/profile', icon: '◉' },
-    ],
-  },
-  {
-    label: 'Activities',
-    icon: '⚑',
-    items: [
-      { label: 'Jobs', href: '/jobs', icon: '▤' },
-      { label: 'Crimes', href: '/crimes', icon: '⚑' },
-      { label: 'Legal', href: '/legal', icon: '⚖' },
-    ],
-  },
-  {
-    label: 'Trading',
-    icon: '↕',
-    items: [
-      { label: 'Market', href: '/market', icon: '↕' },
-      { label: 'Inventory', href: '/inventory', icon: '◈' },
-      { label: 'Shops', href: '/shops', icon: '◈' },
-      { label: 'Contracts', href: '/contracts', icon: '▥' },
-      { label: 'Trades', href: '/trades', icon: '⇄' },
-    ],
-  },
-  {
-    label: 'Social',
-    icon: '✉',
-    items: [
-      { label: 'Messages', href: '/messages', icon: '✉' },
-      { label: 'Newspaper', href: '/newspaper', icon: '◫' },
-      { label: 'Factions', href: '/factions', icon: '⬢' },
-    ],
-  },
-] as const;
-
-function isActivePath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function linkPath(href: string) {
-  return href.split('#')[0] || href;
-}
-
-function linkHash(href: string) {
-  const hash = href.split('#')[1];
-  return hash ? `#${hash}` : '';
-}
 
 function SidebarProgress({ label, value, max }: { label: string; value: number; max: number }) {
   const safeMax = Math.max(max, 1);
@@ -108,19 +48,20 @@ function SidebarProgress({ label, value, max }: { label: string; value: number; 
 
 function NavDropdown({
   group,
-  pathname,
-  activeHash,
-  onSectionClick,
+  activeHref,
 }: {
-  group: NavGroup;
-  pathname: string;
-  activeHash: string;
-  onSectionClick: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
+  group: GameNavGroup;
+  activeHref?: string;
 }) {
-  const [isOpen, setIsOpen] = useState(
-    group.items.some((item) => isActivePath(pathname, item.href)),
-  );
-  const isGroupActive = group.items.some((item) => isActivePath(pathname, item.href));
+  const isGroupActive = group.items.some((item) => item.href === activeHref);
+  const [isOpen, setIsOpen] = useState(isGroupActive);
+  const contentId = `game-navigation-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
+  useEffect(() => {
+    if (isGroupActive) {
+      setIsOpen(true);
+    }
+  }, [isGroupActive]);
 
   return (
     <div className="game-sidebar__nav-dropdown">
@@ -129,7 +70,8 @@ function NavDropdown({
         className={`dropdown-trigger${isOpen ? ' dropdown-trigger--open' : ''}${
           isGroupActive ? ' dropdown-trigger--active' : ''
         }`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((current) => !current)}
+        aria-controls={contentId}
         aria-expanded={isOpen}
       >
         <span className="nav-dropdown__label">
@@ -142,73 +84,34 @@ function NavDropdown({
           ▼
         </span>
       </button>
-      {isOpen && (
-        <div className="dropdown-content">
-          {group.items.map((item) => {
-            const hrefPath = linkPath(item.href);
-            const active = isActivePath(pathname, hrefPath);
-            const hrefHash = linkHash(item.href);
-            const sectionActive =
-              active && (activeHash ? activeHash === hrefHash : hrefHash === '');
+      <div className="dropdown-content" hidden={!isOpen} id={contentId}>
+        {group.items.map((item) => {
+          const active = item.href === activeHref;
 
-            return (
-              <a
-                key={item.href}
-                className={`dropdown-item game-sidebar__link${active ? ' game-sidebar__link--active' : ''}${sectionActive ? ' dropdown-item--active' : ''}`}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                onClick={(e) => onSectionClick(e, item.href)}
-              >
-                <span className="game-sidebar__icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </a>
-            );
-          })}
-        </div>
-      )}
+          return (
+            <Link
+              key={item.href}
+              className={`dropdown-item game-sidebar__link${
+                active ? ' game-sidebar__link--active dropdown-item--active' : ''
+              }`}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+            >
+              <span className="game-sidebar__icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-export function GameSideMenu({
-  character,
-  sectionItems = [],
-}: {
-  character?: GameSidebarCharacter;
-  sectionItems?: readonly GameSectionLink[];
-}) {
+export function GameSideMenu({ character }: { character?: GameSidebarCharacter }) {
   const pathname = usePathname();
-  const [activeHash, setActiveHash] = useState('');
-
-  function handleSamePageSectionClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
-    const hrefPath = linkPath(href);
-    const hrefHash = linkHash(href);
-
-    if (!hrefHash || !isActivePath(pathname, hrefPath)) {
-      return;
-    }
-
-    event.preventDefault();
-    setActiveHash(hrefHash);
-    window.history.pushState(null, '', hrefHash);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-    window.requestAnimationFrame(() => {
-      document.getElementById(hrefHash.slice(1))?.scrollIntoView({ block: 'start' });
-    });
-  }
-
-  useEffect(() => {
-    function updateHash() {
-      setActiveHash(window.location.hash);
-    }
-
-    updateHash();
-    window.addEventListener('hashchange', updateHash);
-
-    return () => window.removeEventListener('hashchange', updateHash);
-  }, [pathname]);
+  const activeHref = useMemo(() => resolveActiveGameHref(pathname), [pathname]);
 
   const quickStats = character
     ? [
@@ -268,14 +171,8 @@ export function GameSideMenu({
       </section>
 
       <nav className="game-sidebar__nav" aria-label="Game pages">
-        {navGroups.map((group) => (
-          <NavDropdown
-            key={group.label}
-            group={group}
-            pathname={pathname}
-            activeHash={activeHash}
-            onSectionClick={handleSamePageSectionClick}
-          />
+        {GAME_NAV_GROUPS.map((group) => (
+          <NavDropdown key={group.label} group={group} activeHref={activeHref} />
         ))}
       </nav>
     </aside>

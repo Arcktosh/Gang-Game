@@ -38,16 +38,21 @@ if (!validators.includes("action: z.enum(['apply', 'work', 'resign'])")) {
 }
 
 const route = read('apps/web/src/app/api/jobs/route.ts');
+if (!route.includes('runJobAction')) {
+  errors.push('Jobs route must delegate to runJobAction.');
+}
+
+const gameplayActions = read('packages/db/src/queries/gameplay-actions.ts');
 for (const snippet of [
-  'body.data.action === \'apply\'',
-  'body.data.action === \'resign\'',
+  'input.action === \'apply\'',
+  'input.action === \'resign\'',
   "type: 'job_applied'",
   "type: 'job_resigned'",
   "type: promoted ? 'job_promoted' : 'job_completed'",
   'shiftsCompleted: nextShiftsCompleted',
 ]) {
-  if (!route.includes(snippet)) {
-    errors.push(`Jobs route missing lifecycle behavior: ${snippet}`);
+  if (!gameplayActions.includes(snippet)) {
+    errors.push(`Job action service missing lifecycle behavior: ${snippet}`);
   }
 }
 

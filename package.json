@@ -30,7 +30,9 @@
     "db:setup": "pnpm --filter @drugdeal/db db:setup",
     "db:apply:all": "pnpm --filter @drugdeal/db db:apply:all",
     "db:apply:file": "pnpm --filter @drugdeal/db db:apply:file",
-    "db:seed": "pnpm db:apply:file -- drizzle/0001_seed_starter_content.sql",
+    "db:seed": "pnpm db:seed:dev",
+    "db:seed:dev": "pnpm --filter @drugdeal/db db:seed:dev",
+    "db:bootstrap:admin": "pnpm --filter @drugdeal/db db:bootstrap:admin",
     "db:backup": "bash scripts/backup-db.sh",
     "db:restore": "bash scripts/restore-db.sh",
     "agent:memory": "node scripts/generate-agent-memory.mjs",
@@ -38,7 +40,10 @@
     "validate:agent-memory": "node scripts/generate-agent-memory.mjs --check",
     "doctor:production": "node scripts/production-doctor.mjs",
     "doctor:proof": "node scripts/production-doctor.mjs --proof",
-    "validate:observability": "node scripts/validate-observability-foundation.mjs"
+    "validate:observability": "node scripts/validate-observability-foundation.mjs",
+    "prove:redis-rate-limit": "pnpm exec tsx scripts/verify-redis-rate-limit.ts",
+    "release:audit": "node scripts/release-audit.mjs",
+    "release:audit:strict": "node scripts/release-audit.mjs --strict"
   },
   "devDependencies": {
     "@types/node": "latest",

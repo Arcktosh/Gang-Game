@@ -6,6 +6,7 @@ import {
   financialTransactions,
   inventoryItems,
   itemDefinitions,
+  itemImages,
   newspaperArticles,
   playerEvents,
   shopAdCampaigns,
@@ -71,9 +72,12 @@ export async function getShopWithListings(shopId: string) {
       itemCategory: itemDefinitions.category,
       itemDescription: itemDefinitions.description,
       isIllegal: itemDefinitions.isIllegal,
+      imageAltText: itemImages.altText,
+      imageUpdatedAt: itemImages.updatedAt,
     })
     .from(shopListings)
     .innerJoin(itemDefinitions, eq(shopListings.itemKey, itemDefinitions.key))
+    .leftJoin(itemImages, eq(itemDefinitions.key, itemImages.itemKey))
     .where(and(eq(shopListings.shopId, shopId), eq(shopListings.status, 'active')))
     .orderBy(desc(shopListings.createdAt));
 
@@ -360,6 +364,10 @@ export async function listActiveShopListings(location?: string | null) {
       itemKey: shopListings.itemKey,
       itemName: itemDefinitions.name,
       itemCategory: itemDefinitions.category,
+      itemDescription: itemDefinitions.description,
+      isIllegal: itemDefinitions.isIllegal,
+      imageAltText: itemImages.altText,
+      imageUpdatedAt: itemImages.updatedAt,
       quantity: shopListings.quantity,
       soldQuantity: shopListings.soldQuantity,
       priceEach: shopListings.priceEach,
@@ -370,6 +378,7 @@ export async function listActiveShopListings(location?: string | null) {
     .from(shopListings)
     .innerJoin(shops, eq(shopListings.shopId, shops.id))
     .innerJoin(itemDefinitions, eq(shopListings.itemKey, itemDefinitions.key))
+    .leftJoin(itemImages, eq(itemDefinitions.key, itemImages.itemKey))
     .where(
       location
         ? and(eq(shopListings.status, 'active'), eq(shops.isOpen, true), eq(shops.location, location), ne(shopListings.quantity, shopListings.soldQuantity))

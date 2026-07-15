@@ -56,3 +56,15 @@ The scaffold covers these required MVP integration scenarios:
 - `RUN_DB_INTEGRATION_TESTS=true` is required for mutation tests.
 - `TEST_DATABASE_URL` is preferred over `DATABASE_URL`.
 - Test users and characters should use deterministic `mvp-test-*` identifiers.
+
+## Feature Pass 102 expansion
+
+The integration lane now calls the same reusable database services used by the `/api/jobs` and `/api/crimes` routes. The proof deterministically verifies:
+
+- job application persistence;
+- completed shift payout, XP, energy, employment counters, action locks, and job-run history;
+- resignation persistence;
+- successful crime reward, heat, nerve, XP, crime-attempt history, and player events;
+- rejection without partial writes when character requirements are not met.
+
+Every run writes machine-readable evidence to `artifacts/integration-proof.json`, including migration and test steps, exit codes, and durations.

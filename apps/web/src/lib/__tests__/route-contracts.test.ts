@@ -44,6 +44,12 @@ const routeContracts: RouteContract[] = [
     requires: ['GET', 'POST', 'withApiObservability', 'requireRequestUserId', 'assertRateLimit', 'parseJsonBody', 'marketActionSchema', 'withIdempotency', 'buyMarketItem', 'sellMarketItem'],
   },
   {
+    name: 'product-image-delivery',
+    group: 'market',
+    path: 'apps/web/src/app/api/items/[itemKey]/image/route.ts',
+    requires: ['GET', 'withApiObservability', 'assertRateLimit', 'getItemImageAsset', 'etag', 'nosniff'],
+  },
+  {
     name: 'shop-listing-management',
     group: 'shops',
     path: 'apps/web/src/app/api/shops/listings/route.ts',
@@ -84,6 +90,12 @@ const routeContracts: RouteContract[] = [
     group: 'admin',
     path: 'apps/web/src/app/api/admin/enforcements/[enforcementId]/lift/route.ts',
     requires: ['POST', 'withApiObservability', 'requireAdminCapability', 'enforce_players', 'assertRateLimit', 'parseJsonBody', 'liftSchema', 'withIdempotency', 'liftCharacterEnforcement'],
+  },
+  {
+    name: 'admin-product-image-management',
+    group: 'admin',
+    path: 'apps/web/src/app/api/admin/items/[itemKey]/image/route.ts',
+    requires: ['POST', 'DELETE', 'withApiObservability', 'requireAdminCapability', 'manage_config', 'assertRateLimit', 'request.formData', 'validateProductImageBytes', 'upsertItemImage', 'deleteItemImage'],
   },
 ];
 

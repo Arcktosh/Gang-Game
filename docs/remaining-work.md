@@ -51,3 +51,23 @@ Run `pnpm doctor:proof` first in the installed development or staging environmen
 ## Feature Pass 100 follow-up
 
 The shared observability foundation, API/worker telemetry, redaction, HTTP shipping hooks, runbook, tests, and committed pnpm lockfile are complete. Remaining observability work is operational: configure real event/alert endpoints, verify redaction against production-shaped payloads, create dashboards, test alert routing, and run incident/rollback exercises. `VAL-001` still requires Docker/PostgreSQL-backed migrations, live runtime smoke, backup, and restore proof.
+
+## Feature Pass 101 follow-up
+
+The proof runner itself is now production-complete. Execute it on a machine with Docker Compose, PostgreSQL client tools, Redis, and pnpm 9.15.4. Do not close `VAL-001` until `artifacts/mvp-runtime-proof.json` reports success with no skipped production-critical steps.
+
+## Feature Pass 102 follow-up
+
+The job and crime API routes now share reusable transactional services with the database integration suite. Run `TEST_DATABASE_URL=... pnpm prove:integration` against a disposable migrated PostgreSQL database and retain `artifacts/integration-proof.json`. `VAL-002` remains blocked until that live proof passes after `VAL-001`.
+
+## Feature Pass 103 follow-up
+
+Apply `0048_item_product_images.sql` in staging, upload JPEG/PNG/WebP samples through the Admin Console, verify ETag/304 delivery and deletion, and exercise market/shop cards at mobile and desktop breakpoints with keyboard and assistive technology. Retain the installed typecheck/test/build and PostgreSQL evidence with `VAL-001`/`VAL-002`; the source implementation is complete, but those infrastructure-backed proofs remain open.
+
+## Feature Pass 104 follow-up
+
+Apply `0049_disable_legacy_dev_owner.sql` in a disposable staging copy and verify that the fixed-id and legacy-email owner paths have no active sessions, one-time tokens, verified email, usable password, or administrator role. Exercise the guarded local development seed only against a development database, then exercise production owner creation and an explicitly authorized reset against a separate production-like database. Retain evidence that each command rejects the wrong `NODE_ENV`, missing enable flags, weak passwords, absent confirmation, and unintended existing-account resets. Do not close `VAL-001` until login and token revocation are proven after the transaction commits.
+
+## Feature Pass 105 follow-up
+
+Run the installed web typecheck and production build, then exercise all 17 promoted dashboard/profile/inventory routes from the categorized sidebar. Verify one current-page indicator at a time, direct URL entry, browser back/forward behavior, keyboard-only expansion/collapse, screen-reader names and states, mobile sidebar scrolling, and event-stream connections limited to the activity and message overview routes. Retain this evidence with `VAL-001`; the source implementation and dependency-light route contracts are complete.

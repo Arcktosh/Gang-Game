@@ -1,8 +1,8 @@
 import { and, eq, ne } from 'drizzle-orm';
 import { canCreateFactionContract, describeContractScope } from '@drugdeal/game';
-import { characters, db, getFactionForCharacter, itemDefinitions, listActiveActionLocks, listContracts } from '@drugdeal/db';
+import { characters, db, getFactionForCharacter, listActiveActionLocks, listContracts } from '@drugdeal/db';
 import { GameActionForm } from '@/features/game/action-form';
-import { Card, EmptyState, formatDate, GamePageShell, getActionCooldown, getActiveGameContext, Grid, money, StatList } from '@/features/game/game-page';
+import { Card, formatDate, GamePageShell, getActionCooldown, getActiveGameContext, Grid, money, StatList } from '@/features/game/game-page';
 
 const contractTypeOptions = [
   { label: 'Delivery', value: 'delivery' },
@@ -47,6 +47,9 @@ export default async function ContractsPage() {
     { label: 'No item requirement', value: '' },
     ...items.map((item) => ({ label: `${item.name} · ${item.category}`, value: item.key })),
   ];
+  const actionableOpenContracts = contracts.openContracts.filter(
+    (contract) => contract.createdByCharacterId !== character.id,
+  );
 
   return (
     <GamePageShell
@@ -76,58 +79,56 @@ export default async function ContractsPage() {
           />
         </Card>
 
-        <Card title="Assign private contract" meta={`${recipientOptions.length} local recipients`}>
-          <GameActionForm
-            endpoint="/api/contracts"
-            label="Assign private contract"
-            payload={{ characterId: character.id }}
-            fields={[
-              { name: 'assignedToCharacterId', label: 'Recipient', type: 'select', options: recipientOptions },
-              { name: 'contractType', label: 'Type', type: 'select', options: contractTypeOptions.filter((option) => option.value !== 'faction_task'), defaultValue: 'delivery' },
-              { name: 'title', label: 'Title', placeholder: 'Private delivery assignment' },
-              { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Optional instructions', omitWhenEmpty: true },
-              { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
-              { name: 'itemKey', label: 'Required item', type: 'select', options: itemOptions, omitWhenEmpty: true },
-              { name: 'quantity', label: 'Quantity', type: 'number', defaultValue: 0, min: 0, max: 1000 },
-              { name: 'reward', label: 'Reward', type: 'number', defaultValue: 250, min: 25, max: 1_000_000 },
-              { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 24, min: 1, max: 168 },
-            ]}
-            successMessage="Private contract assigned."
-            cooldown={createCooldown}
-            disabled={recipientOptions.length === 0}
-            disabledReason={recipientOptions.length === 0 ? 'No other local characters are available for private assignments.' : undefined}
-          />
-        </Card>
+        {recipientOptions.length > 0 ? (
+          <Card title="Assign private contract" meta={`${recipientOptions.length} local recipients`}>
+            <GameActionForm
+              endpoint="/api/contracts"
+              label="Assign private contract"
+              payload={{ characterId: character.id }}
+              fields={[
+                { name: 'assignedToCharacterId', label: 'Recipient', type: 'select', options: recipientOptions },
+                { name: 'contractType', label: 'Type', type: 'select', options: contractTypeOptions.filter((option) => option.value !== 'faction_task'), defaultValue: 'delivery' },
+                { name: 'title', label: 'Title', placeholder: 'Private delivery assignment' },
+                { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Optional instructions', omitWhenEmpty: true },
+                { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
+                { name: 'itemKey', label: 'Required item', type: 'select', options: itemOptions, omitWhenEmpty: true },
+                { name: 'quantity', label: 'Quantity', type: 'number', defaultValue: 0, min: 0, max: 1000 },
+                { name: 'reward', label: 'Reward', type: 'number', defaultValue: 250, min: 25, max: 1_000_000 },
+                { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 24, min: 1, max: 168 },
+              ]}
+              successMessage="Private contract assigned."
+              cooldown={createCooldown}
+            />
+          </Card>
+        ) : null}
 
-        <Card title="Post faction task" meta={ownFaction?.faction ? `${ownFaction.faction.name} operations` : 'No faction'}>
-          <GameActionForm
-            endpoint="/api/contracts"
-            label="Post faction task"
-            payload={{ characterId: character.id, contractType: 'faction_task', factionId: ownFactionId ?? undefined }}
-            fields={[
-              { name: 'assignedToCharacterId', label: 'Assignment', type: 'select', options: factionRecipientOptions, omitWhenEmpty: true },
-              { name: 'title', label: 'Title', placeholder: 'Secure a faction route' },
-              { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Crew-only instructions', omitWhenEmpty: true },
-              { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
-              { name: 'reward', label: 'Reward', type: 'number', defaultValue: 500, min: 25, max: 1_000_000 },
-              { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 48, min: 1, max: 168 },
-            ]}
-            successMessage="Faction task posted."
-            cooldown={createCooldown}
-            disabled={!canPostFactionContract}
-            disabledReason={!ownFactionId ? 'Join a faction before posting faction tasks.' : !canPostFactionContract ? 'Only lieutenants and above can post faction tasks.' : undefined}
-          />
-        </Card>
+        {canPostFactionContract ? (
+          <Card title="Post faction task" meta={ownFaction?.faction ? `${ownFaction.faction.name} operations` : 'No faction'}>
+            <GameActionForm
+              endpoint="/api/contracts"
+              label="Post faction task"
+              payload={{ characterId: character.id, contractType: 'faction_task', factionId: ownFactionId ?? undefined }}
+              fields={[
+                { name: 'assignedToCharacterId', label: 'Assignment', type: 'select', options: factionRecipientOptions, omitWhenEmpty: true },
+                { name: 'title', label: 'Title', placeholder: 'Secure a faction route' },
+                { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Crew-only instructions', omitWhenEmpty: true },
+                { name: 'targetLocation', label: 'Target location', placeholder: character.location, omitWhenEmpty: true },
+                { name: 'reward', label: 'Reward', type: 'number', defaultValue: 500, min: 25, max: 1_000_000 },
+                { name: 'expiresInHours', label: 'Expires in hours', type: 'number', defaultValue: 48, min: 1, max: 168 },
+              ]}
+              successMessage="Faction task posted."
+              cooldown={createCooldown}
+            />
+          </Card>
+        ) : null}
       </Grid>
 
-      <div style={{ height: 16 }} />
-
-      <Card title="Available contracts" meta={`${contracts.openContracts.length} visible`}>
-        {contracts.openContracts.length > 0 ? (
-          <Grid min={260}>
-            {contracts.openContracts.map((contract) => {
-              const isCreator = contract.createdByCharacterId === character.id;
-              return (
+      {actionableOpenContracts.length > 0 ? (
+        <>
+          <div style={{ height: 16 }} />
+          <Card title="Available contracts" meta={`${actionableOpenContracts.length} available`}>
+            <Grid min={260}>
+              {actionableOpenContracts.map((contract) => (
                 <article key={contract.id} style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
                   <strong>{contract.title}</strong>
                   <p style={{ color: '#a1a1aa', margin: '4px 0 8px' }}>{contract.description || 'No description provided.'}</p>
@@ -148,64 +149,60 @@ export default async function ContractsPage() {
                     payload={{ characterId: character.id }}
                     successMessage="Contract accepted."
                     cooldown={acceptCooldown}
-                    disabled={isCreator}
-                    disabledReason={isCreator ? 'You cannot accept a contract you posted.' : undefined}
                   />
                 </article>
-              );
-            })}
-          </Grid>
-        ) : (
-          <EmptyState>No visible contracts are open for your character.</EmptyState>
-        )}
-      </Card>
+              ))}
+            </Grid>
+          </Card>
+        </>
+      ) : null}
 
-      <div style={{ height: 16 }} />
+      {contracts.mine.length > 0 ? (
+        <>
+          <div style={{ height: 16 }} />
+          <Card title="Your contract activity" meta={`${contracts.mine.length} records`}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {contracts.mine.map((contract) => {
+                const isCreator = contract.createdByCharacterId === character.id;
+                const isAssignee = contract.assignedToCharacterId === character.id;
+                return (
+                  <article key={contract.id} style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
+                    <strong>{contract.title}</strong>
+                    <StatList
+                      items={[
+                        { label: 'Status', value: contract.status },
+                        { label: 'Scope', value: describeContractScope(contract) },
+                        { label: 'Reward', value: money(contract.reward) },
+                        { label: 'Target', value: contract.targetLocation ?? 'Any location' },
+                        { label: 'Created', value: formatDate(contract.createdAt) },
+                        { label: 'Expires', value: formatDate(contract.expiresAt) },
+                      ]}
+                    />
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <GameActionForm
+                        endpoint={`/api/contracts/${contract.id}/complete`}
+                        label="Complete contract"
+                        payload={{ characterId: character.id }}
+                        successMessage="Contract completed."
+                        cooldown={completeCooldown}
+                        hidden={contract.status !== 'accepted' || !isAssignee}
+                      />
+                      <GameActionForm
+                        endpoint={`/api/contracts/${contract.id}/cancel`}
+                        label="Cancel contract"
+                        payload={{ characterId: character.id }}
+                        successMessage="Contract cancelled and escrow refunded."
+                        hidden={contract.status !== 'open' || !isCreator}
+                      />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Card>
+        </>
+      ) : null}
 
-      <Card title="Your contract activity" meta={`${contracts.mine.length} records`}>
-        {contracts.mine.length > 0 ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {contracts.mine.map((contract) => {
-              const isCreator = contract.createdByCharacterId === character.id;
-              const isAssignee = contract.assignedToCharacterId === character.id;
-              return (
-                <article key={contract.id} style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
-                  <strong>{contract.title}</strong>
-                  <StatList
-                    items={[
-                      { label: 'Status', value: contract.status },
-                      { label: 'Scope', value: describeContractScope(contract) },
-                      { label: 'Reward', value: money(contract.reward) },
-                      { label: 'Target', value: contract.targetLocation ?? 'Any location' },
-                      { label: 'Created', value: formatDate(contract.createdAt) },
-                      { label: 'Expires', value: formatDate(contract.expiresAt) },
-                    ]}
-                  />
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    <GameActionForm
-                      endpoint={`/api/contracts/${contract.id}/complete`}
-                      label="Complete contract"
-                      payload={{ characterId: character.id }}
-                      successMessage="Contract completed."
-                      cooldown={completeCooldown}
-                      hidden={contract.status !== 'accepted' || !isAssignee}
-                    />
-                    <GameActionForm
-                      endpoint={`/api/contracts/${contract.id}/cancel`}
-                      label="Cancel contract"
-                      payload={{ characterId: character.id }}
-                      successMessage="Contract cancelled and escrow refunded."
-                      hidden={contract.status !== 'open' || !isCreator}
-                    />
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState>You have no posted, assigned, or faction-linked contracts yet.</EmptyState>
-        )}
-      </Card>
     </GamePageShell>
   );
 }

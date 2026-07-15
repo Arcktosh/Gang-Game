@@ -10,6 +10,13 @@ const requiredEnvKeys = [
   'NEXT_PUBLIC_APP_URL',
   'APP_ORIGIN',
   'TRUSTED_ORIGINS',
+  'ALLOW_DEVELOPMENT_SEED',
+  'DEV_SEED_PASSWORD',
+  'ALLOW_ADMIN_BOOTSTRAP',
+  'ADMIN_BOOTSTRAP_CONFIRM',
+  'ADMIN_BOOTSTRAP_EMAIL',
+  'ADMIN_BOOTSTRAP_PASSWORD',
+  'ADMIN_BOOTSTRAP_ALLOW_EXISTING',
 ];
 const requiredPackageScripts = [
   'db:backup',
@@ -17,6 +24,8 @@ const requiredPackageScripts = [
   'smoke:runtime',
   'validate:runtime',
   'validate:ci',
+  'db:seed',
+  'db:bootstrap:admin',
 ];
 const requiredReadmeLinks = [
   'docs/mvp-release-runbook.md',
@@ -51,6 +60,20 @@ function hasExecutableBit(relativePath) {
   return (mode & 0o111) !== 0;
 }
 
+function requireTerms(relativePath, terms) {
+  if (!exists(relativePath)) {
+    errors.push(`${relativePath} is missing.`);
+    return;
+  }
+
+  const source = read(relativePath);
+  for (const term of terms) {
+    if (!source.includes(term)) {
+      errors.push(`${relativePath} must include ${term}.`);
+    }
+  }
+}
+
 const errors = [];
 const notes = [];
 
@@ -78,6 +101,30 @@ for (const key of requiredEnvKeys) {
     errors.push(`.env.example is missing ${key}.`);
   }
 }
+
+if (String(packageJson.scripts?.['db:seed'] ?? '').includes('0001_seed_starter_content.sql')) {
+  errors.push('package.json db:seed must not execute the historical fixed-credential SQL seed directly.');
+}
+
+requireTerms('packages/db/drizzle/0049_disable_legacy_dev_owner.sql', [
+  'dev@example.com',
+  'DELETE FROM user_sessions',
+  "admin_role = 'none'",
+  '@invalid.local',
+]);
+requireTerms('packages/db/scripts/seed-development-user.ts', [
+  "process.env.NODE_ENV !== 'development'",
+  'ALLOW_DEVELOPMENT_SEED',
+  'requireStrongBootstrapPassword',
+  'sql.begin',
+]);
+requireTerms('packages/db/scripts/bootstrap-admin.ts', [
+  "process.env.NODE_ENV !== 'production'",
+  'ALLOW_ADMIN_BOOTSTRAP',
+  'CREATE_OR_RESET_OWNER',
+  'ADMIN_BOOTSTRAP_ALLOW_EXISTING',
+  'sql.begin',
+]);
 
 const dockerCompose = read('docker-compose.yml');
 for (const service of ['postgres:', 'redis:']) {

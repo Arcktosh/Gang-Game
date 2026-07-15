@@ -1,0 +1,204 @@
+{
+  "featurePass": 105,
+  "generatedAt": "2026-07-15T16:48:44Z",
+  "releaseDesignation": "production_release_candidate_pending_installed_proof",
+  "productionApproved": false,
+  "summary": "Dashboard, profile, and inventory page-level disclosures are now 17 routed pages with independently collapsible cards and a categorized side navigation.",
+  "requestedFeatures": {
+    "routedGameplayHubs": "complete",
+    "collapsibleCardsWithinPages": "complete",
+    "categorizedSidebar": "complete",
+    "singleSpecificActiveRoute": "complete",
+    "inactiveDashboardContentNotMounted": "complete",
+    "routeScopedDashboardStreams": "complete",
+    "installedBrowserProof": "pending_VAL_001"
+  },
+  "promotedRoutes": {
+    "dashboard": [
+      "/dashboard",
+      "/dashboard/actions",
+      "/dashboard/messages",
+      "/dashboard/activity",
+      "/dashboard/economy",
+      "/dashboard/progression",
+      "/dashboard/crew",
+      "/dashboard/news"
+    ],
+    "profile": [
+      "/profile",
+      "/profile/status",
+      "/profile/titles",
+      "/profile/rewards",
+      "/profile/achievements",
+      "/profile/history"
+    ],
+    "inventory": [
+      "/inventory",
+      "/inventory/items",
+      "/inventory/transfers"
+    ]
+  },
+  "navigationGroups": [
+    "Overview",
+    "Character",
+    "Actions",
+    "Economy",
+    "Inventory",
+    "Community",
+    "World"
+  ],
+  "checklist": {
+    "checked": 412,
+    "partial": 40,
+    "unchecked": 79,
+    "total": 531,
+    "featurePass105SourceItemsComplete": true,
+    "openProofItems": [
+      {
+        "file": "docs/feature-checklist.md",
+        "line": 667,
+        "id": "VAL-001",
+        "description": "Complete installed-environment production proof."
+      },
+      {
+        "file": "docs/feature-checklist.md",
+        "line": 683,
+        "description": "Product image migration, CRUD, responsive disclosure, typecheck, tests, and build proof."
+      },
+      {
+        "file": "docs/feature-checklist.md",
+        "line": 696,
+        "description": "Legacy owner neutralization, guarded seed, bootstrap, login, and revocation proof."
+      },
+      {
+        "file": "docs/feature-checklist.md",
+        "line": 710,
+        "description": "Feature Pass 105 installed typecheck, tests, build, navigation, accessibility, and responsive proof."
+      }
+    ]
+  },
+  "validation": {
+    "typescriptSyntax": {
+      "status": "passed",
+      "files": 187,
+      "method": "TypeScript transpileModule",
+      "validatedAt": "2026-07-15T16:49:53Z"
+    },
+    "focusedUnitTests": {
+      "status": "passed",
+      "tests": 5,
+      "failed": 0,
+      "coverage": [
+        "game navigation",
+        "product image helpers"
+      ],
+      "validatedAt": "2026-07-15T16:49:55Z"
+    },
+    "mvpGameplay": {
+      "status": "passed"
+    },
+    "playerPageContracts": {
+      "status": "passed",
+      "routablePlayerPages": 27,
+      "productionUxMediaContracts": 20
+    },
+    "staticAcceptance": {
+      "status": "passed",
+      "command": "npm run validate:static --silent",
+      "validatedAt": "2026-07-15T16:49:42Z"
+    },
+    "strictReleaseAudit": {
+      "status": "passed_with_warning",
+      "passed": 13,
+      "warnings": 1,
+      "failed": 0,
+      "warning": "VAL-001 installed proof remains open.",
+      "validatedAt": "2026-07-15T16:49:51Z"
+    },
+    "migrationAudit": {
+      "status": "passed",
+      "count": 50,
+      "first": "0000_initial_schema.sql",
+      "last": "0049_disable_legacy_dev_owner.sql"
+    },
+    "dependencyBackedChecks": {
+      "status": "not_executed",
+      "reason": "node_modules is absent and the sandbox cannot retrieve the pinned pnpm toolchain or workspace packages; Docker and psql are unavailable.",
+      "pending": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "pnpm build",
+        "database-backed integration and runtime proof",
+        "browser keyboard, screen-reader, and responsive proof"
+      ]
+    },
+    "documentation": {
+      "status": "passed",
+      "apiRoutes": 102,
+      "documentedApiRoutes": 102,
+      "featureHistorySections": 83,
+      "validatedAt": "2026-07-15T16:49:51Z"
+    },
+    "fullWorkspaceTypecheckAttempt": {
+      "status": "blocked",
+      "exitCode": 2,
+      "reason": "TypeScript could not resolve the configured 'node' type library because workspace dependencies are not installed."
+    }
+  },
+  "environmentLimitations": {
+    "nodeModulesPresent": false,
+    "pnpmBinaryPresent": false,
+    "corepackPresent": true,
+    "dockerPresent": false,
+    "psqlPresent": false,
+    "registryAccess": "unavailable during validation"
+  },
+  "changedFiles": [
+    ".agent-memory/README.md",
+    ".agent-memory/files.md",
+    ".agent-memory/imports.md",
+    ".agent-memory/manifest.md",
+    ".agent-memory/public-api.md",
+    ".agent-memory/symbols.md",
+    ".agent-memory/tasks.json",
+    "PRODUCTION_READINESS_REPORT.md",
+    "README.md",
+    "apps/web/src/app/(game)/dashboard/actions/page.tsx",
+    "apps/web/src/app/(game)/dashboard/activity/page.tsx",
+    "apps/web/src/app/(game)/dashboard/crew/page.tsx",
+    "apps/web/src/app/(game)/dashboard/economy/page.tsx",
+    "apps/web/src/app/(game)/dashboard/messages/page.tsx",
+    "apps/web/src/app/(game)/dashboard/news/page.tsx",
+    "apps/web/src/app/(game)/dashboard/page.tsx",
+    "apps/web/src/app/(game)/dashboard/progression/page.tsx",
+    "apps/web/src/app/(game)/inventory/items/page.tsx",
+    "apps/web/src/app/(game)/inventory/page.tsx",
+    "apps/web/src/app/(game)/inventory/transfers/page.tsx",
+    "apps/web/src/app/(game)/profile/achievements/page.tsx",
+    "apps/web/src/app/(game)/profile/history/page.tsx",
+    "apps/web/src/app/(game)/profile/page.tsx",
+    "apps/web/src/app/(game)/profile/rewards/page.tsx",
+    "apps/web/src/app/(game)/profile/status/page.tsx",
+    "apps/web/src/app/(game)/profile/titles/page.tsx",
+    "apps/web/src/app/globals.css",
+    "apps/web/src/features/dashboard/character-panel.tsx",
+    "apps/web/src/features/dashboard/dashboard-section-page.tsx",
+    "apps/web/src/features/game/__tests__/game-navigation.test.ts",
+    "apps/web/src/features/game/collapsible-card.tsx",
+    "apps/web/src/features/game/focused-sections.tsx",
+    "apps/web/src/features/game/game-navigation.ts",
+    "apps/web/src/features/game/game-page.tsx",
+    "apps/web/src/features/game/game-side-menu.tsx",
+    "apps/web/src/features/inventory/inventory-section-page.tsx",
+    "apps/web/src/features/profile/profile-section-page.tsx",
+    "docs/current-state.md",
+    "docs/feature-checklist.md",
+    "docs/feature-history.md",
+    "docs/project-status.md",
+    "docs/remaining-work.md",
+    "production-readiness-manifest.json",
+    "scripts/validate-mvp-gameplay.mjs",
+    "scripts/validate-mvp-pages.mjs"
+  ]
+}

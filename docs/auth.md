@@ -21,14 +21,19 @@ POST /api/auth/logout
 GET  /api/auth/me
 ```
 
-## Local dev user
+## Local development owner
 
-The seed data creates:
+The repository does not ship a known password. Migration `0049_disable_legacy_dev_owner.sql` revokes and de-privileges the historical seeded development owner. A local owner can be created or reset only through the explicit development guard:
 
-```txt
-Email:    dev@example.com
-Password: password123
+```bash
+NODE_ENV=development \
+ALLOW_DEVELOPMENT_SEED=true \
+DEV_SEED_EMAIL=dev@example.com \
+DEV_SEED_PASSWORD="$LOCAL_DEV_OWNER_PASSWORD" \
+pnpm db:seed
 ```
+
+Load `LOCAL_DEV_OWNER_PASSWORD` from a local secret source first. `DEV_SEED_PASSWORD` must be at least 12 characters and contain uppercase, lowercase, numeric, and symbol characters. The command revokes existing sessions and one-time account tokens for the local owner.
 
 ## Migration
 
@@ -42,13 +47,27 @@ A fresh local database should use:
 
 ```bash
 pnpm db:setup
-pnpm db:seed
 ```
 
-## Production notes still needed
+Run the guarded local seed command above only when an administrator account is needed for development.
 
-- Add email verification.
-- Add password reset.
-- Add account lockout / rate limiting.
-- Add CSRF hardening for non-JSON form posts if introduced.
-- Add admin session review and forced logout.
+## Production owner bootstrap
+
+Production owner creation is separate from local seeding and requires a one-invocation confirmation:
+
+```bash
+NODE_ENV=production \
+ALLOW_ADMIN_BOOTSTRAP=true \
+ADMIN_BOOTSTRAP_CONFIRM=CREATE_OR_RESET_OWNER \
+ADMIN_BOOTSTRAP_EMAIL='owner@example.org' \
+ADMIN_BOOTSTRAP_PASSWORD="$PRODUCTION_OWNER_PASSWORD" \
+pnpm db:bootstrap:admin
+```
+
+Load `PRODUCTION_OWNER_PASSWORD` from the deployment secret manager first. The password must be at least 16 characters with uppercase, lowercase, numeric, and symbol characters. Existing accounts are refused unless `ADMIN_BOOTSTRAP_ALLOW_EXISTING=true` is deliberately supplied for an owner reset. Remove all bootstrap variables immediately afterward.
+
+## Remaining production operations
+
+- Prove bootstrap, login, logout, forced token revocation, and recovery behavior against a staging database.
+- Keep runtime secrets outside source control and rotate any bootstrap secret after use.
+- Continue monitoring lockout, rate-limit, CSRF, and session-review behavior through the production proof runbook.

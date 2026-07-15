@@ -18,7 +18,9 @@
     "db:setup": "pnpm db:ensure && pnpm db:apply:all",
     "db:apply:all": "tsx scripts/apply-migrations.ts",
     "db:apply:file": "tsx scripts/run-sql-file.ts",
-    "db:prepare:mvp-proof": "tsx scripts/prepare-mvp-proof-database.ts"
+    "db:prepare:mvp-proof": "tsx scripts/prepare-mvp-proof-database.ts",
+    "db:seed:dev": "tsx scripts/seed-development-user.ts",
+    "db:bootstrap:admin": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@drugdeal/game": "workspace:*",

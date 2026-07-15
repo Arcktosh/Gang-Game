@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
 import {
   buildMarketEventNewsArticle,
   calculateMarketEventImpact,
@@ -11,6 +11,7 @@ import {
   financialTransactions,
   inventoryItems,
   itemDefinitions,
+  itemImages,
   marketEvents,
   marketPrices,
   newspaperArticles,
@@ -22,33 +23,52 @@ import { decrementCharacterCash, decrementInventoryQuantity, incrementCharacterC
 const MARKET_COOLDOWN_SECONDS = 5;
 
 export async function listMarketForLocation(location: string) {
-  const items = await db.query.itemDefinitions.findMany();
-  const latestPrices = await Promise.all(
-    items.map(async (item) => {
-      const price = await db.query.marketPrices.findFirst({
-        where: and(eq(marketPrices.location, location), eq(marketPrices.itemKey, item.key)),
-        orderBy: desc(marketPrices.createdAt),
-      });
+  const rows = await db
+    .select({
+      itemKey: marketPrices.itemKey,
+      price: marketPrices.price,
+      supply: marketPrices.supply,
+      demand: marketPrices.demand,
+      itemName: itemDefinitions.name,
+      itemCategory: itemDefinitions.category,
+      itemDescription: itemDefinitions.description,
+      itemIsIllegal: itemDefinitions.isIllegal,
+      imageAltText: itemImages.altText,
+      imageUpdatedAt: itemImages.updatedAt,
+    })
+    .from(marketPrices)
+    .innerJoin(itemDefinitions, eq(marketPrices.itemKey, itemDefinitions.key))
+    .leftJoin(itemImages, eq(itemDefinitions.key, itemImages.itemKey))
+    .where(eq(marketPrices.location, location))
+    .orderBy(asc(itemDefinitions.name), desc(marketPrices.createdAt));
 
-      return price
-        ? {
-            itemKey: price.itemKey,
-            price: price.price,
-            supply: price.supply,
-            demand: price.demand,
-            item: {
-              key: item.key,
-              name: item.name,
-              category: item.category,
-              description: item.description,
-              isIllegal: item.isIllegal,
-            },
-          }
-        : null;
-    }),
-  );
+  const seenItemKeys = new Set<string>();
+  const latestPrices = [];
 
-  return latestPrices.filter((entry): entry is Exclude<(typeof latestPrices)[number], null> => entry !== null);
+  for (const row of rows) {
+    if (seenItemKeys.has(row.itemKey)) {
+      continue;
+    }
+
+    seenItemKeys.add(row.itemKey);
+    latestPrices.push({
+      itemKey: row.itemKey,
+      price: row.price,
+      supply: row.supply,
+      demand: row.demand,
+      item: {
+        key: row.itemKey,
+        name: row.itemName,
+        category: row.itemCategory,
+        description: row.itemDescription,
+        isIllegal: row.itemIsIllegal,
+        imageAltText: row.imageAltText,
+        imageUpdatedAt: row.imageUpdatedAt,
+      },
+    });
+  }
+
+  return latestPrices;
 }
 
 async function getLatestMarketPrice(tx: any, location: string, itemKey: string) {

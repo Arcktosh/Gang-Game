@@ -1,10 +1,10 @@
 # Current State Brief
 
-Last updated: Feature Pass 100 production observability foundation and installed CI proof.
+Last updated: Feature Pass 105 routed gameplay hubs and card-level disclosures after the Feature Pass 104 account bootstrap hardening.
 
 ## Project posture
 
-DrugDeal Game is a **static MVP candidate pending installed-environment runtime proof**. Feature breadth is strong enough for controlled evaluation, but production readiness still depends on proving install, migration, typecheck, tests, app/worker startup, runtime smoke checks, backup, restore, and DB integration tests together.
+DrugDeal Game is a **production release candidate pending installed-environment runtime proof**. Source-level feature and security work is ready for controlled staging evaluation, but production approval still depends on proving install, migration, typecheck, tests, app/worker startup, runtime smoke checks, backup, restore, media persistence, and DB integration together.
 
 ## Completed MVP-level areas
 
@@ -22,6 +22,9 @@ DrugDeal Game is a **static MVP candidate pending installed-environment runtime 
 - Admin-operated feature flags now provide production kill switches for messages, newspaper actions, shops, trades, gambling, finance trading, market actions, contracts, factions, and PvP attacks.
 - Automated operational anomaly detection now scans for high net worth, transaction spikes, oversized inventory stacks, and recent session IP spread with admin review controls.
 - Admin rollback tooling can reverse recent cash/bank admin adjustments from the audit trail with duplicate-rollback prevention and a separate rollback audit record. The Admin Console audit workbench now uses the shared nullable audit row types from `@drugdeal/db`, so records without descriptions, character names, or emails render with safe fallbacks instead of failing typecheck.
+- Authenticated game routes enforce character setup through `/create-character`. The eight dashboard sections, six profile sections, and three inventory sections now have dedicated routes; cards inside those pages use native collapsible disclosures, and the sidebar groups every route by gameplay domain with exact active-page indication. Contracts, factions, and shops omit empty or unauthorized action surfaces instead of rendering unusable placeholders.
+- Product definitions now support persistent PostgreSQL-backed JPEG, PNG, and WebP images. Admins with `manage_config` can upload, replace, or remove images, while market and shop grids use compact image cards with expandable descriptions and local supply/demand graphs.
+- The historical fixed development owner is neutralized by migration `0049_disable_legacy_dev_owner.sql`. Local development owner seeding and production owner bootstrap now use separate, environment-guarded commands with operator-supplied strong passwords and transactional session/token revocation.
 
 ## Highest-risk gaps
 
@@ -32,7 +35,7 @@ DrugDeal Game is a **static MVP candidate pending installed-environment runtime 
 
 ## Current command surface
 
-Use the reduced command set in `README.md`: `pnpm validate:static`, `pnpm validate:ci`, `pnpm agent:memory`, `pnpm agent:memory:check`, `pnpm db:setup`, `pnpm db:apply:all`, `pnpm db:apply:file`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
+Use the reduced command set in `README.md`: `pnpm validate:static`, `pnpm validate:ci`, `pnpm agent:memory`, `pnpm agent:memory:check`, `pnpm db:setup`, `pnpm db:apply:all`, `pnpm db:apply:file`, guarded `pnpm db:seed`, guarded `pnpm db:bootstrap:admin`, `pnpm prove:mvp-runtime`, and `pnpm prove:integration`.
 
 ## Feature Pass 98 test baseline update
 
@@ -56,3 +59,40 @@ The runtime proof now begins with `pnpm doctor:proof`, which reports environment
 - The installed test run found and fixed direct Node JSX execution for `StatCard` by adding the required React runtime import.
 - Next production build concurrency is now bounded by `NEXT_BUILD_CPUS` (default 4) to prevent resource exhaustion on shared CI hosts.
 - Static validation, workspace typecheck, production build, and all executable package tests passed after the repairs.
+
+## Feature Pass 101 production-proof contract
+
+The runtime proof now certifies the production path rather than the development path. It installs from the frozen lockfile, runs the production build, verifies Redis-required allow/allow/reject behavior, starts the built Next.js app with `next start`, executes strict runtime smoke checks, proves the worker remains alive through a configurable stability window, performs backup/restore, and writes `artifacts/mvp-runtime-proof.json` on both success and failure. Infrastructure execution remains pending on a host with Docker, PostgreSQL tools, Redis, and pnpm 9.15.4.
+
+## Feature Pass 102 — executable gameplay integration boundary
+
+- Job and crime transaction logic now lives in reusable `@drugdeal/db` gameplay action services.
+- The API routes retain authentication, validation, rate limiting, idempotency, observability, and HTTP response responsibilities only.
+- The database integration suite now proves job application, work, resignation, deterministic crime success, persisted history/events, and no partial writes on rejected actions.
+- `pnpm prove:integration` now writes `artifacts/integration-proof.json` on both success and failure.
+- Live PostgreSQL execution remains required before `VAL-002` can be closed.
+
+## Feature Pass 103 — accessible game surfaces and product media
+
+- Added the required character-creation redirect boundary for all authenticated game pages.
+- Replaced hash-hidden profile/inventory sections with native collapsible disclosures and made dashboard sections independently expandable.
+- Hid private/faction contract tools, empty contract collections, faction operations, and shop collections when the active character cannot use them.
+- Added migration `0048_item_product_images.sql`, image query helpers, validated admin upload/delete routes, cacheable public delivery, and compact market/shop product cards.
+- Dependency-free migration, route-contract, source-parse, and documentation validation cover the new paths. Full installed typecheck/build/test and live PostgreSQL upload proof remain part of `VAL-001`/`VAL-002`.
+
+## Feature Pass 104 — account bootstrap and release credential hardening
+
+- Added `0049_disable_legacy_dev_owner.sql` to revoke sessions and one-time tokens, invalidate the historical password, remove administrator privileges, and move the legacy seed address to a non-routable domain.
+- Replaced direct execution of the historical SQL seed with a development-only `pnpm db:seed` command requiring `ALLOW_DEVELOPMENT_SEED=true` and an operator-supplied strong password.
+- Added a production-only `pnpm db:bootstrap:admin` command requiring an explicit confirmation phrase, a strong operator-supplied password, and deliberate opt-in before resetting an existing account.
+- Wrapped owner creation/reset and credential revocation in database transactions so privileges and tokens cannot be left partially updated.
+- Source-level release auditing now has concrete neutralization, guarded local seed, and production bootstrap evidence. Live database execution remains part of the staging proof.
+
+## Feature Pass 105 — routed gameplay hubs and card disclosures
+
+- Promoted eight dashboard sections, six profile sections, and three inventory sections into 17 dedicated App Router pages while preserving `/dashboard`, `/profile`, and `/inventory` as overview routes.
+- Replaced the former page-level section controls with a reusable native `details/summary` card disclosure. Hidden dashboard cards return `null`, so inactive route content is not mounted as inaccessible page content.
+- Reorganized the side navigation into Overview, Character, Actions, Economy, Inventory, Community, and World categories; every promoted route is linked and the longest matching route receives the single `aria-current="page"` state.
+- Scoped notification and message event streams to `/dashboard/activity` and `/dashboard/messages` respectively.
+- Expanded the source-level MVP page validator to cover 27 player routes, categorized navigation contracts, routed section implementations, card disclosures, and the existing character/media/capability requirements.
+- Installed TypeScript checking, optimized build, and browser keyboard/screen-reader/responsive proof remain part of `VAL-001` because the offline environment cannot retrieve the pinned pnpm toolchain and workspace dependencies.

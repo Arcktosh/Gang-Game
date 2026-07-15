@@ -20,9 +20,9 @@ Public launch references remain in `docs/privacy-policy.md`, `docs/terms-of-serv
 
 ## Current state
 
-The repo is at **Feature Pass 97**. It is still an **MVP candidate**, not production-proven, because installed-environment proof remains outstanding. Feature Pass 56 added the monetization foundation and MVP acceptance gate; Feature Pass 59 added public launch polish and policy drafts; Feature Pass 60 added the site-quality baseline for accessibility, responsive design, PWA, and SEO; Feature Pass 88 consolidated package scripts/docs and added Redis-backed rate limiting with memory fallback; Feature Pass 89 adds idempotent achievement syncing plus worker retry/dead-letter handling; Feature Pass 90 adds admin message hiding plus configurable message-retention cleanup; Feature Pass 91 adds admin-operated feature flags for production kill switches; Feature Pass 92 adds automated operational anomaly detection with worker scans and admin review; Feature Pass 93 adds admin economy, inventory, and session audit workbench routes with CSV exports; Feature Pass 94 adds first-pass admin rollback tooling for cash/bank adjustment mistakes; Feature Pass 95 repairs audit-route typecheck failures and makes the MVP runtime proof runner Windows-safe; Feature Pass 96 aligns the Admin Console audit workbench prop types with nullable DB audit rows reported by local typecheck; Feature Pass 97 adds deterministic AI-agent memory indexes, a validated JSON task queue, and normalized shared-package barrel exports. MVP acceptance is tracked in `docs/mvp-acceptance.md` and now runs through the consolidated `pnpm validate:static` chain.
+The repo is at **Feature Pass 105**. It is a **production release candidate pending installed-environment proof**, not a production-approved deployment. Feature Pass 56 established the executable MVP acceptance gate, Feature Pass 59 added public launch polish and draft policies, and Feature Pass 60 added the site-quality baseline for accessibility, responsive behavior, PWA support, and SEO. Feature Pass 103 added the required character setup boundary, accessible disclosure controls, capability-aware contract/faction/shop surfaces, persistent product images, compact market/shop cards, and product detail graphs. Feature Pass 104 removed the historical fixed development credential from the deployable path and added guarded local-seed and production-owner bootstrap commands. Feature Pass 105 promotes the former dashboard, profile, and inventory disclosure sections into 17 dedicated routes, keeps cards independently collapsible within each route, and reorganizes the side navigation into gameplay-focused categories. MVP acceptance is tracked in `docs/mvp-acceptance.md` and runs through the consolidated `pnpm validate:static` chain.
 
-Current breadth includes auth/account recovery, character creation, core actions, jobs, crimes, legal/hospital recovery, travel, market, banking/statements, money sinks, loans, finance charts, factions, PvP, shops, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baseline, monetization placeholders, static validation gates, and Redis-backed anti-spam/rate limiting, idempotent dashboard achievement sync, worker retry/dead-letter handling, admin message hiding, message-retention cleanup, admin-operated feature flags for production kill switches, operational anomaly review, admin audit workbench filters/CSV exports, cash/bank rollback controls for admin adjustment mistakes, typed audit CSV mappers, nullable-safe Admin Console audit workbench rendering, and Windows-safe runtime proof process spawning.
+Current breadth includes auth/account recovery, enforced character creation, core actions, jobs, crimes, legal/hospital recovery, travel, image-backed markets and shops, banking/statements, money sinks, loans, finance charts, factions, PvP, contracts, newspaper, messages, notifications, admin/moderation/enforcement, public launch pages, site-quality baselines, monetization placeholders, static validation gates, Redis-backed anti-spam/rate limiting, worker retry/dead-letter handling, feature flags, operational anomaly review, admin audit/rollback workbenches, and guarded account bootstrap operations, routed dashboard/profile/inventory hubs, and categorized side navigation.
 
 ## Architecture
 
@@ -47,14 +47,19 @@ pnpm dev
 
 The default compose images use AWS Public ECR mirrors of the official PostgreSQL and Redis images to reduce Docker Hub dependency. Override `POSTGRES_IMAGE` and `REDIS_IMAGE` in `.env` if needed.
 
-## Local login
+## Optional local development owner
 
-The seed script creates a local admin/dev user:
+No fixed development password is shipped. After migrations are applied, create or reset the local owner only with an operator-chosen password:
 
-```txt
-Email:    dev@example.com
-Password: password123
+```bash
+NODE_ENV=development \
+ALLOW_DEVELOPMENT_SEED=true \
+DEV_SEED_EMAIL=dev@example.com \
+DEV_SEED_PASSWORD="$LOCAL_DEV_OWNER_PASSWORD" \
+pnpm db:seed
 ```
+
+Set `LOCAL_DEV_OWNER_PASSWORD` from a local secret source before running the command. The seeder refuses to run outside development or without the explicit enable flag. Migration `0049_disable_legacy_dev_owner.sql` neutralizes the historical seeded owner before this guarded local-only command can recreate it.
 
 Sessions use an `httpOnly` cookie named `dd_session`. For local API testing only, game routes still accept `x-user-id` when `NODE_ENV !== 'production'`.
 
@@ -79,6 +84,8 @@ pnpm prove:integration           # Opt-in database-backed integration proof
 pnpm db:setup                    # Ensure database exists, then apply all migrations
 pnpm db:apply:all                # Apply tracked migrations to an existing database
 pnpm db:apply:file -- drizzle/0031_monetization_foundation.sql  # Targeted repair only
+pnpm db:seed                     # Explicitly guarded local-development owner seed
+pnpm db:bootstrap:admin          # Explicitly guarded production owner bootstrap/reset
 pnpm db:backup                   # PostgreSQL custom-format backup using DATABASE_URL
 pnpm db:restore -- backup.dump   # Restore using DATABASE_URL
 ```

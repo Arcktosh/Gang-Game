@@ -43,6 +43,8 @@ pnpm db:apply:file -- drizzle/0044_operational_anomalies.sql
 pnpm db:apply:file -- drizzle/0045_admin_audit_workbench.sql
 pnpm db:apply:file -- drizzle/0046_admin_rollback_action_types.sql
 pnpm db:apply:file -- drizzle/0047_admin_rollback_tooling.sql
+pnpm db:apply:file -- drizzle/0048_item_product_images.sql
+pnpm db:apply:file -- drizzle/0049_disable_legacy_dev_owner.sql
 ```
 
 Normal setup, staging, and production-like deployments should use `pnpm db:setup` or `pnpm db:apply:all` instead.
@@ -53,7 +55,13 @@ Normal setup, staging, and production-like deployments should use `pnpm db:setup
 - Seed migration: `0001_seed_starter_content.sql`.
 - Monetization foundation: `0031_monetization_foundation.sql`.
 - Admin rollback action types: `0046_admin_rollback_action_types.sql`.
-- Latest migration: `0047_admin_rollback_tooling.sql`.
+- Product image storage: `0048_item_product_images.sql`.
+- Legacy development owner neutralization: `0049_disable_legacy_dev_owner.sql`.
+- Latest migration: `0049_disable_legacy_dev_owner.sql`.
+
+Migration `0001_seed_starter_content.sql` is retained unchanged for migration checksum compatibility. Migration `0049_disable_legacy_dev_owner.sql` revokes its historical fixed development account, removes administrator capability, invalidates its password, and deletes active sessions and one-time account tokens. Do not use the historical SQL seed as an account bootstrap path.
+
+For an explicitly enabled local owner, run `pnpm db:seed` with `NODE_ENV=development`, `ALLOW_DEVELOPMENT_SEED=true`, and an operator-supplied `DEV_SEED_PASSWORD`. For production, use `pnpm db:bootstrap:admin` only with the documented production confirmation variables in `docs/auth.md`.
 
 Validate migration order and coverage with:
 

@@ -54,6 +54,91 @@
       ]
     },
     {
+      "id": "UX-001",
+      "title": "Make game sections accessible and add persistent product media",
+      "status": "done",
+      "priority": "high",
+      "type": "feature",
+      "scope": [
+        "apps/web",
+        "packages/db",
+        "docs"
+      ],
+      "dependsOn": [
+        "MEM-001"
+      ],
+      "sourceRefs": [
+        "apps/web/src/app/(game)/layout.tsx",
+        "apps/web/src/features/game/collapsible-card.tsx",
+        "apps/web/src/features/dashboard/character-panel.tsx",
+        "apps/web/src/app/(game)/market/page.tsx",
+        "apps/web/src/app/(game)/shops/page.tsx",
+        "apps/web/src/app/(game)/contracts/page.tsx",
+        "apps/web/src/app/(game)/factions/page.tsx",
+        "packages/db/drizzle/0048_item_product_images.sql",
+        "apps/web/src/app/api/admin/items/[itemKey]/image/route.ts",
+        "apps/web/src/app/api/items/[itemKey]/image/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "Authenticated users without a character are redirected to a required character creation page before any game route renders.",
+        "Profile, inventory, and dashboard content remains reachable through visible, keyboard-operable navigation and disclosure controls.",
+        "Unavailable or empty contract, faction, and shop operation groups are omitted instead of displaying dead forms or placeholder collections.",
+        "Admins can upload, replace, and remove validated persistent product images, and public image delivery supports cache validation.",
+        "Market and shop product grids show compact images and summaries, with descriptions and supply/demand graphs in details.",
+        "Migration, route-contract, documentation, source-parse, unit, typecheck, build, and staging media proofs are recorded."
+      ],
+      "commands": [
+        "pnpm validate:static",
+        "pnpm --filter @drugdeal/web typecheck",
+        "pnpm --filter @drugdeal/web test",
+        "pnpm --filter @drugdeal/web build",
+        "pnpm prove:mvp-runtime"
+      ],
+      "notes": "Feature Pass 103 completed the source implementation; Feature Pass 105 subsequently replaced the temporary page-level disclosure router with dedicated routes and retained card-level native disclosures. Dependency-free migration, route-contract, documentation, and TypeScript parse checks run in this environment. Registry access is unavailable, so the pinned pnpm/dependency-backed typecheck, tests, build, live PostgreSQL image lifecycle, and browser accessibility proof remain part of VAL-001/VAL-002 rather than reopening the bounded feature task."
+    },
+    {
+      "id": "UX-002",
+      "title": "Promote dashboard, profile, and inventory sections to routed pages",
+      "status": "done",
+      "priority": "high",
+      "type": "feature",
+      "scope": [
+        "apps/web",
+        "scripts",
+        "docs"
+      ],
+      "dependsOn": [
+        "UX-001"
+      ],
+      "sourceRefs": [
+        "apps/web/src/features/game/collapsible-card.tsx",
+        "apps/web/src/features/game/game-navigation.ts",
+        "apps/web/src/features/game/game-side-menu.tsx",
+        "apps/web/src/features/game/__tests__/game-navigation.test.ts",
+        "apps/web/src/features/dashboard/dashboard-section-page.tsx",
+        "apps/web/src/features/dashboard/character-panel.tsx",
+        "apps/web/src/features/profile/profile-section-page.tsx",
+        "apps/web/src/features/inventory/inventory-section-page.tsx",
+        "scripts/validate-mvp-pages.mjs"
+      ],
+      "acceptanceCriteria": [
+        "The eight dashboard sections, six profile sections, and three inventory sections are individually routable pages.",
+        "The base dashboard, profile, and inventory URLs remain valid overview routes.",
+        "Cards within the routed section pages use accessible, independently controlled disclosure widgets.",
+        "Every new route is present in the categorized side navigation with one unambiguous active item.",
+        "Dashboard message and notification streams only connect on the pages that use them.",
+        "Route, navigation-unit, source-parse, static UX, documentation, and generated-memory validation pass."
+      ],
+      "commands": [
+        "node scripts/validate-mvp-pages.mjs",
+        "pnpm agent:memory",
+        "pnpm validate:static",
+        "pnpm --filter @drugdeal/web typecheck",
+        "pnpm --filter @drugdeal/web build"
+      ],
+      "notes": "Feature Pass 105 replaced hash-addressed page sections with 17 routed pages, retained native disclosure behavior at the card level, reorganized the side navigation by gameplay domain, and scoped dashboard live streams to their owning routes. Dependency-free source parsing and static validation run in this environment; installed typecheck/build and browser proof remain under VAL-001."
+    },
+    {
       "id": "VAL-001",
       "title": "Run the full installed-environment MVP proof",
       "status": "ready",
@@ -81,13 +166,11 @@
       ],
       "commands": [
         "pnpm doctor:proof",
-        "pnpm install",
+        "pnpm install --frozen-lockfile",
         "docker compose up -d",
-        "pnpm db:setup",
-        "pnpm validate:ci",
         "pnpm prove:mvp-runtime"
       ],
-      "notes": "Feature Pass 100 generated pnpm-lock.yaml with pnpm 9.15.4 and passed dependency installation, the complete static gate, workspace typechecking, the production Next.js build, and all executable package tests. It also capped Next build parallelism through NEXT_BUILD_CPUS after the sandbox exposed excessive 55-worker page generation. VAL-001 remains open only for Docker/PostgreSQL migration, live app/worker smoke, backup, restore, Redis-required, and database integration proof."
+      "notes": "Feature Pass 100 generated pnpm-lock.yaml with pnpm 9.15.4 and passed dependency installation, the complete static gate, workspace typechecking, the production Next.js build, and all executable package tests. It also capped Next build parallelism through NEXT_BUILD_CPUS after the sandbox exposed excessive 55-worker page generation. VAL-001 remains open only for Docker/PostgreSQL migration, live app/worker smoke, backup, restore, Redis-required, and database integration proof. Feature Pass 101 upgraded the proof contract to use frozen-lockfile installation, include the production build, prove Redis-required overflow behavior, start the built Next.js server, keep the worker alive through a stability window, and persist artifacts/mvp-runtime-proof.json on success or failure. The infrastructure-backed execution remains open because this environment has no Docker, PostgreSQL client/server, Redis service, or installable pnpm binary."
     },
     {
       "id": "VAL-002",
@@ -114,7 +197,8 @@
       ],
       "commands": [
         "pnpm prove:integration"
-      ]
+      ],
+      "notes": "Feature Pass 102 expanded the integration suite to use production job/crime services and verify successful persistence plus rejected-action rollback. Live PostgreSQL execution remains required after VAL-001."
     },
     {
       "id": "REF-001",

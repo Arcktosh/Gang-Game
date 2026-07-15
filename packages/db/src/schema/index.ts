@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -13,6 +14,12 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 export const adminRole = pgEnum('admin_role', ['none', 'support', 'moderator', 'economy_manager', 'game_master', 'owner']);
 export const characterStatus = pgEnum('character_status', ['free', 'traveling', 'jailed', 'hospitalized']);
@@ -241,6 +248,26 @@ export const itemDefinitions = pgTable('item_definitions', {
   metadata: jsonb('metadata').notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const itemImages = pgTable(
+  'item_images',
+  {
+    itemKey: text('item_key')
+      .primaryKey()
+      .references(() => itemDefinitions.key, { onDelete: 'cascade' }),
+    contentType: text('content_type').notNull(),
+    byteSize: integer('byte_size').notNull(),
+    altText: text('alt_text').notNull().default(''),
+    imageData: bytea('image_data').notNull(),
+    sha256: text('sha256').notNull(),
+    updatedByUserId: uuid('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    updatedAtIdx: index('item_images_updated_at_idx').on(table.updatedAt),
+  }),
+);
 
 export const inventoryItems = pgTable(
   'inventory_items',
@@ -2344,6 +2371,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   passwordResetTokens: many(passwordResetTokens),
   emailVerificationTokens: many(emailVerificationTokens),
   updatedConfigEntries: many(gameConfigEntries),
+  updatedItemImages: many(itemImages),
   adminActionLogs: many(adminActionLogs, { relationName: 'adminActionActor' }),
   targetedAdminActionLogs: many(adminActionLogs, { relationName: 'adminActionTargetUser' }),
   createdFlags: many(characterFlags, { relationName: 'flagCreatedBy' }),
@@ -2422,7 +2450,8 @@ export const charactersRelations = relations(characters, ({ one, many }) => ({
 
 
 
-export const itemDefinitionsRelations = relations(itemDefinitions, ({ many }) => ({
+export const itemDefinitionsRelations = relations(itemDefinitions, ({ many, one }) => ({
+  image: one(itemImages),
   inventoryItems: many(inventoryItems),
   equipment: many(characterEquipment),
   travelCargo: many(travelCargo),
@@ -2436,6 +2465,11 @@ export const itemDefinitionsRelations = relations(itemDefinitions, ({ many }) =>
   factionInventoryItems: many(factionInventoryItems),
 }));
 
+
+export const itemImagesRelations = relations(itemImages, ({ one }) => ({
+  item: one(itemDefinitions, { fields: [itemImages.itemKey], references: [itemDefinitions.key] }),
+  updatedBy: one(users, { fields: [itemImages.updatedByUserId], references: [users.id] }),
+}));
 
 export const factionInventoryItemsRelations = relations(factionInventoryItems, ({ one }) => ({
   faction: one(factions, { fields: [factionInventoryItems.factionId], references: [factions.id] }),

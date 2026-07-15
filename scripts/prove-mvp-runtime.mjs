@@ -13,11 +13,15 @@ const skipDocker = args.has('--skip-docker') || parseBoolean(process.env.MVP_PRO
 const skipMigrations = args.has('--skip-migrations') || parseBoolean(process.env.MVP_PROOF_SKIP_MIGRATIONS, false);
 const skipValidation = args.has('--skip-validation') || parseBoolean(process.env.MVP_PROOF_SKIP_VALIDATION, false);
 const skipServer = args.has('--skip-server') || parseBoolean(process.env.MVP_PROOF_SKIP_SERVER, false);
+const skipWorker = args.has('--skip-worker') || parseBoolean(process.env.MVP_PROOF_SKIP_WORKER, false);
+const skipRedisProof = args.has('--skip-redis-proof') || parseBoolean(process.env.MVP_PROOF_SKIP_REDIS_PROOF, false);
 const skipBackup = args.has('--skip-backup') || parseBoolean(process.env.MVP_PROOF_SKIP_BACKUP, false);
 const restoreDatabaseUrl = process.env.MVP_RESTORE_DATABASE_URL;
 const smokeBaseUrl = process.env.SMOKE_BASE_URL ?? 'http://localhost:3000';
 const startupTimeoutMs = parsePositiveInteger(process.env.MVP_PROOF_STARTUP_TIMEOUT_MS, 120000);
 const startupPollMs = parsePositiveInteger(process.env.MVP_PROOF_STARTUP_POLL_MS, 2000);
+const workerStabilityMs = parsePositiveInteger(process.env.MVP_PROOF_WORKER_STABILITY_MS, 5000);
+const proofArtifact = process.env.MVP_PROOF_ARTIFACT ?? 'artifacts/mvp-runtime-proof.json';
 const backupDir = process.env.BACKUP_DIR ?? 'backups/mvp-proof';
 const backupFile = process.env.BACKUP_FILE ?? `${backupDir}/drugdeal-game-mvp-proof.dump`;
 const defaultDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/drugdeal_game';
@@ -25,11 +29,12 @@ let useCurrentDatabase = parseBoolean(process.env.MVP_PROOF_USE_CURRENT_DATABASE
 
 const migrationScripts = ['db:apply:all'];
 
-const proofCommandSummary = 'pnpm install, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm test, SMOKE_STRICT_HEALTH_OK=true pnpm smoke:runtime, pnpm db:backup, pnpm db:restore';
+const proofCommandSummary = 'pnpm install --frozen-lockfile, docker compose up -d, idempotent db:apply:all migrations, pnpm validate:static, pnpm typecheck, pnpm build, pnpm test, Redis-required rate-limit proof, production web start and smoke, worker stability proof, pnpm db:backup, pnpm db:restore';
 
-const validationScripts = ['validate:static', 'typecheck', 'test'];
+const validationScripts = ['validate:static', 'typecheck', 'build', 'test'];
 const results = [{ step: 'proof-command-summary', ok: true, command: proofCommandSummary }];
 let webProcess;
+let workerProcess;
 
 function parseBoolean(value, fallback) {
   if (value === undefined || value === '') {
@@ -208,14 +213,14 @@ function runCommand(step, command, args = [], options = {}) {
 
 function spawnWebServer() {
   if (dryRun) {
-    results.push({ step: 'web-server', ok: true, dryRun: true, command: 'pnpm --filter @drugdeal/web dev' });
+    results.push({ step: 'web-server', ok: true, dryRun: true, command: 'pnpm --filter @drugdeal/web start' });
     return null;
   }
 
   let child;
 
   try {
-    child = spawn(resolveExecutable('pnpm'), ['--filter', '@drugdeal/web', 'dev'], {
+    child = spawn(resolveExecutable('pnpm'), ['--filter', '@drugdeal/web', 'start'], {
       cwd: repoRoot,
       stdio: ['ignore', 'inherit', 'inherit'],
       shell: shouldUseShell(),
@@ -224,7 +229,7 @@ function spawnWebServer() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    results.push({ step: 'web-server', ok: false, command: 'pnpm --filter @drugdeal/web dev', error: message });
+    results.push({ step: 'web-server', ok: false, command: 'pnpm --filter @drugdeal/web start', error: message });
     throw error;
   }
 
@@ -291,6 +296,66 @@ async function stopWebServer() {
   results.push({ step: 'web-server-stop', ok: true });
 }
 
+
+function spawnWorker() {
+  if (dryRun) {
+    results.push({ step: 'worker-process', ok: true, dryRun: true, command: 'pnpm --filter @drugdeal/worker dev' });
+    return null;
+  }
+
+  const child = spawn(resolveExecutable('pnpm'), ['--filter', '@drugdeal/worker', 'dev'], {
+    cwd: repoRoot,
+    stdio: ['ignore', 'inherit', 'inherit'],
+    shell: shouldUseShell(),
+    env: sanitizeEnv(process.env),
+    windowsHide: true,
+  });
+  return child;
+}
+
+async function proveWorkerStability() {
+  if (dryRun) {
+    results.push({ step: 'worker-stability', ok: true, dryRun: true, durationMs: workerStabilityMs });
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      results.push({ step: 'worker-stability', ok: true, durationMs: workerStabilityMs });
+      resolve();
+    }, workerStabilityMs);
+    workerProcess.once('exit', (code, signal) => {
+      if (settled) return;
+      clearTimeout(timer);
+      results.push({ step: 'worker-stability', ok: false, code, signal });
+      reject(new Error(`worker exited before the stability window with code ${code ?? signal}.`));
+    });
+  });
+}
+
+async function stopWorker() {
+  if (!workerProcess || dryRun) return;
+  const processToStop = workerProcess;
+  workerProcess = undefined;
+  await new Promise((resolve) => {
+    processToStop.once('exit', () => resolve());
+    processToStop.kill('SIGTERM');
+    setTimeout(() => {
+      if (!processToStop.killed) processToStop.kill('SIGKILL');
+      resolve();
+    }, 5000).unref();
+  });
+  results.push({ step: 'worker-stop', ok: true });
+}
+
+function writeProofArtifact(summary) {
+  const artifactPath = path.join(repoRoot, proofArtifact);
+  fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+  fs.writeFileSync(artifactPath, `${JSON.stringify({ summary, results }, null, 2)}\n`);
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
 
@@ -303,6 +368,8 @@ async function main() {
       if (skipDocker) doctorArgs.push('--skip-docker');
       if (skipBackup) doctorArgs.push('--skip-backup');
       if (skipServer) doctorArgs.push('--skip-server');
+      if (skipWorker) doctorArgs.push('--skip-worker');
+      if (skipRedisProof) doctorArgs.push('--skip-redis-proof');
       await runCommand('production-preflight', process.execPath, doctorArgs);
     }
     useCurrentDatabase = parseBoolean(process.env.MVP_PROOF_USE_CURRENT_DATABASE, false);
@@ -310,7 +377,7 @@ async function main() {
     const runtimeEnv = getRuntimeEnv(proofDatabaseUrl);
 
     if (!skipInstall) {
-      await runCommand('install', 'pnpm', ['install']);
+      await runCommand('install', 'pnpm', ['install', '--frozen-lockfile']);
     }
 
     if (!skipDocker) {
@@ -337,6 +404,12 @@ async function main() {
       }
     }
 
+    if (!skipRedisProof) {
+      await runCommand('redis-rate-limit-proof', 'pnpm', ['prove:redis-rate-limit'], {
+        env: { ...runtimeEnv, RATE_LIMIT_REDIS_REQUIRED: 'true' },
+      });
+    }
+
     if (!skipServer) {
       process.env.DATABASE_URL = proofDatabaseUrl;
       webProcess = spawnWebServer();
@@ -348,6 +421,12 @@ async function main() {
           SMOKE_STRICT_HEALTH_OK: 'true',
         },
       });
+    }
+
+    if (!skipWorker) {
+      process.env.DATABASE_URL = proofDatabaseUrl;
+      workerProcess = spawnWorker();
+      await proveWorkerStability();
     }
 
     if (!skipBackup) {
@@ -375,6 +454,7 @@ async function main() {
       }
     }
 
+    await stopWorker();
     await stopWebServer();
 
     const summary = {
@@ -387,12 +467,14 @@ async function main() {
       restoreProofAttempted: Boolean(restoreDatabaseUrl) && !skipBackup,
     };
 
+    writeProofArtifact(summary);
     console.log(JSON.stringify({ summary, results }, null, 2));
 
     if (!summary.ok) {
       process.exitCode = 1;
     }
   } catch (error) {
+    await stopWorker();
     await stopWebServer();
     const summary = {
       checkedAt: startedAt,
@@ -401,6 +483,7 @@ async function main() {
       steps: results.length,
       error: error instanceof Error ? error.message : String(error),
     };
+    writeProofArtifact(summary);
     console.error(JSON.stringify({ summary, results }, null, 2));
     process.exitCode = 1;
   }

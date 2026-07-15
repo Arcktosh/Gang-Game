@@ -1,0 +1,17 @@
+{
+  "featurePass": 101,
+  "checkedAt": "2026-07-13T13:41:47.604767+00:00",
+  "status": "blocked_by_environment",
+  "completed": [
+    "proof contract upgraded",
+    "dry-run orchestration passed",
+    "runtime-proof static validator passed"
+  ],
+  "environmentBlockers": [
+    "pnpm 9.15.4 unavailable because registry DNS is inaccessible",
+    "Docker and Docker Compose unavailable",
+    "PostgreSQL client/server tools unavailable",
+    "Redis service unavailable"
+  ],
+  "nextCommand": "MVP_RESTORE_DATABASE_URL=postgres://postgres:postgres@localhost:5432/drugdeal_game_restore pnpm prove:mvp-runtime"
+}

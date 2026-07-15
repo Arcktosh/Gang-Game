@@ -5702,3 +5702,63 @@ Full dependency-backed typecheck, build, tests, and runtime proof remain part of
 - The installed test run found and fixed direct Node JSX execution for `StatCard` by adding the required React runtime import.
 - Next production build concurrency is now bounded by `NEXT_BUILD_CPUS` (default 4) to prevent resource exhaustion on shared CI hosts.
 - Static validation, workspace typecheck, production build, and all executable package tests passed after the repairs.
+
+## Feature Pass 101 - production proof completion contract
+
+- Switched runtime verification from `next dev` to the built `next start` application.
+- Added frozen-lockfile install and production build to the proof.
+- Added a Redis-required rate-limit allow/allow/reject proof.
+- Added worker startup/stability verification and graceful cleanup.
+- Added machine-readable proof evidence on success and failure.
+- Extended the production doctor and static proof validator for the new gates.
+
+## Feature Pass 102 — Gameplay integration proof expansion
+
+Extracted job and crime mutations from route handlers into reusable transactional database services. Expanded the opt-in PostgreSQL integration suite from a user/character insertion smoke test to deterministic gameplay persistence and rollback scenarios, and added machine-readable integration proof evidence.
+
+## Feature Pass 103 - Character setup gate, collapsible game sections, capability-aware pages, and product media
+
+This pass resolves the player-navigation and product-presentation gaps identified during production-candidate review.
+
+- Added an authenticated `/create-character` setup page and a game-route layout guard. Users without a character cannot enter gameplay pages; users who already have a character are redirected back to the dashboard.
+- Reworked `FocusedSections` around native `<details>` disclosures. Profile and inventory sections remain discoverable on arrival, multiple sections can stay open, and hash links open and scroll to their target.
+- Reworked dashboard section controls so each section can be independently expanded or collapsed with `aria-controls` and `aria-expanded`, while direct hash navigation still opens the requested section.
+- Removed unusable contract and faction placeholders. Private contract assignment is shown only with a valid recipient, faction task posting only with the required faction role, empty contract collections are omitted, and faction resource/member/territory tools are shown only when actionable.
+- Simplified shop collections so active third-party listings and owned-shop operation groups render only when data exists.
+- Added `0048_item_product_images.sql` with one persistent PostgreSQL-backed image per item, MIME/size/alt-text/SHA-256 constraints, updater attribution, and cascade deletion.
+- Added DB catalog, binary retrieval, upsert, and deletion helpers plus a public cacheable image route and `manage_config`-gated admin upload/delete route.
+- Added JPEG, PNG, and WebP MIME/signature validation, a 2 MiB limit, ETag delivery, `nosniff`, and same-origin resource policy headers.
+- Added Admin Console image management and reusable product image/fallback rendering.
+- Replaced dense market and shop listing layouts with compact image cards. Default cards show price and supply/stock; descriptions and accessible local supply/demand graphs live under product details.
+- Extended migration, route-contract, documentation, and unit-test coverage for the new product-media paths.
+
+Dependency-free validation performed in this environment includes migration ordering/coverage, representative route contracts, TypeScript source parsing, and documentation route coverage. The pinned pnpm binary and dependencies could not be downloaded because registry access is unavailable, so installed workspace typecheck, tests, build, and live PostgreSQL media proof remain open under the existing production proof tasks.
+
+## Feature Pass 104 - Legacy credential neutralization and explicit owner bootstrap
+
+This pass closes the source-level production credential gap left by the historical starter seed while preserving migration checksum compatibility.
+
+- Added `0049_disable_legacy_dev_owner.sql`. It finds the fixed historical seed id and any remaining `dev@example.com` account, revokes sessions and one-time recovery/verification tokens, invalidates the password hash, removes administrator privileges, clears verification, and moves the address to a deterministic non-routable domain.
+- Kept `0001_seed_starter_content.sql` immutable so already-applied migration checksums remain valid.
+- Replaced the root `db:seed` command with a guarded TypeScript development seeder. It runs only with `NODE_ENV=development` and `ALLOW_DEVELOPMENT_SEED=true`, validates an operator-supplied strong password, prevents email collisions, and revokes prior credentials transactionally.
+- Added `db:bootstrap:admin` for production. It requires `NODE_ENV=production`, an explicit enable flag, the exact `CREATE_OR_RESET_OWNER` confirmation phrase, a strong password, and a separate opt-in before resetting an existing account.
+- Added shared scrypt/bootstrap validation helpers and documented all environment controls in `.env.example`, `README.md`, `docs/auth.md`, and the migration guide.
+- Added the binary `bytea` column to the Drizzle `itemImages` model so schema generation faithfully represents the persistent product-media migration.
+
+The source implementation is complete. Applying migration `0049` and exercising both guarded commands against disposable databases remains part of installed staging proof; no reusable password is recorded in repository documentation.
+
+## Feature Pass 105 - Routed gameplay hubs, categorized navigation, and collapsible cards
+
+This pass replaces the previous page-level dashboard, profile, and inventory disclosure navigation with dedicated App Router pages while retaining native disclosure behavior for the cards within each page.
+
+- Added eight dashboard routes: overview, actions, messages, activity, economy, progression, crew, and news.
+- Added six profile routes: overview, status, titles, rewards, achievements, and history.
+- Added three inventory routes: summary, items, and transfers.
+- Preserved `/dashboard`, `/profile`, and `/inventory` as stable overview entry points.
+- Added a reusable `CollapsibleCard` component based on native `details/summary`; the first high-priority card on each page opens by default while all cards remain independently keyboard operable.
+- Changed hidden dashboard disclosures to return `null` when they belong to another route, avoiding inaccessible inactive content in the mounted page tree.
+- Reorganized the sidebar into Overview, Character, Actions, Economy, Inventory, Community, and World groups, added all promoted routes, added `aria-controls` to group toggles, and uses longest-route matching for one unambiguous current page.
+- Scoped server-sent event subscriptions so notification streaming runs only on the activity route and message streaming runs only on the message overview route.
+- Replaced the legacy `FocusedSections` implementation and extended the MVP page validator to cover 27 player routes and 20 production UX/media contracts.
+
+Dependency-light validation for this pass includes TypeScript/TSX syntax parsing, route/page contracts, playable-action checks, site-quality checks, documentation validation, migration auditing, generated-memory freshness, and the consolidated static validation chain. Installed typecheck, test, production build, and browser assistive-technology proof remain under `VAL-001`.
